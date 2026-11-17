@@ -24,7 +24,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.popUpTo
 import androidx.navigation.toRoute
 import app.reelvocab.BuildConfig
 import app.reelvocab.R
