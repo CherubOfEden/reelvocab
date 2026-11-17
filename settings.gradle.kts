@@ -23,6 +23,9 @@ dependencyResolutionManagement {
 rootProject.name = "reelvocab"
 
 include(":app")
+include(":core:common")
+include(":core:domain")
+include(":core:data")
 include(":core:designsystem")
 include(":feature:today")
 include(":feature:deck")

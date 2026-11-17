@@ -8,6 +8,15 @@ semantic versioning once it ships.
 
 ### Added
 
+- M2 data foundation: `:core:common`, `:core:domain`, and `:core:data` modules,
+  Room schema v1 (words, senses, films, cards), repository implementations, and
+  fake enrichment/transcription services behind Hilt bindings.
+- Bundled offline dictionary `assets/dict.db` (12.5 MB): 31,679 headwords, 68,455
+  WordNet 3.1 senses, 55,738 synonyms, 3,420 antonyms, CMUdict-derived US IPA and
+  frequency ranks. Built by `tools/build_dict.py`, gated by `tools/verify_dict.py`.
+- Thesaurus rows on the word card (synonyms in teal, antonyms in rose), plus a
+  debug-only dictionary probe screen reachable from Settings.
+
 - Gradle multi-module skeleton: `:app`, `:core:designsystem`, and four feature
   modules, pinned to AGP 8.7.3, Kotlin 2.0.21, Compose BOM 2024.12.01.
 - Design system: semantic dark and light palettes, AA-checked type scale, spacing,

@@ -46,11 +46,14 @@ jobs:
             exit 1
           fi
 
+      - name: Verify bundled dictionary
+        run: python3 tools/verify_dict.py
+
       - name: Assemble debug
         run: ./gradlew --no-daemon assembleDebug
 
       - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        run: ./gradlew --no-daemon testDebugUnitTest :core:common:test
 
       - name: Lint
         run: ./gradlew --no-daemon lintDebug

@@ -38,14 +38,18 @@ Local runs need JDK 17 and an Android SDK (compileSdk 35):
 | Module | Holds |
 | --- | --- |
 | `:app` | `MainActivity`, onboarding flow, tab shell, licences, debug gallery |
+| `:core:common` | dispatchers and small pure helpers |
+| `:core:domain` | models and repository interfaces |
+| `:core:data` | Room, bundled dictionary, repositories, fakes |
 | `:core:designsystem` | colour, type, spacing, motion tokens; 20 shared components |
 | `:feature:today` | daily quiz entry point |
 | `:feature:deck` | saved cards, filters |
-| `:feature:library` | films and sources |
+| `:feature:library` | films and sources, media menu |
 | `:feature:settings` | plan, appearance, licences, privacy |
+| `:feature:media` (M3) | in-app local video/audio player |
 
 Dependency direction: features depend on `:core:designsystem`; `:app` wires the
-navigation graph. Nothing depends on `:app`.
+navigation graph and depends on `:core:data`. Nothing depends on `:app`.
 
 ## Design system rules
 
@@ -64,27 +68,35 @@ the live theme.
 
 ## Permissions
 
-Nothing is requested during onboarding. Screen capture, microphone, and
-notifications are each requested the first time their feature is used. The capture
-session is foreground-service based, shows a timer, and ends after 15 minutes.
+Nothing is requested during onboarding. Screen capture, microphone,
+notifications, and "display over other apps" are each requested the first time
+their feature is used. The floating word pill is a PIP-style overlay drawn with
+`SYSTEM_ALERT_WINDOW`, not the PiP API: it must sit above other apps without
+replacing the video surface.
+
+The Media menu reads local video and audio through `MediaStore` (or the system
+file picker) and plays it inside the app; capture works there without any
+screen-projection consent.
 
 ## Verification gates
 
 - `assembleDebug` must succeed.
-- Unit tests: token contrast, route serialization stability.
+- Unit tests: token contrast, route serialization stability, headword
+  normalization, dictionary shape.
 - `lintDebug` with `abortOnError`.
 - Raw-colour grep gate.
+- `tools/verify_dict.py` checks the bundled `dict.db` schema and row counts.
 - Debug APKs come from CI artifacts only.
 
 ## Roadmap
 
 | Milestone | Scope |
 | --- | --- |
-| M1 | Skeleton, design system, onboarding, CI |
-| M2 | Room, bundled dictionary (`assets/dict.db`), enrichment and transcription fakes |
-| M3 | Capture session: overlay, screen frame, audio clip, save sheet |
+| M1 ✅ | Skeleton, design system, onboarding, CI |
+| M2 | Data foundation: Room, bundled dictionary with thesaurus, enrichment and transcription fakes |
+| M3 | PIP-style floating pill, capture session with OCR overlay, in-app media player |
 | M4 | SRS scheduler and morning review |
-| M5 | Deck and library content, search, tags |
+| M5 | Deck and library content, search, tags, dictionary detail |
 | M6 | Settings depth, reminders, full-screen alarm |
 | M7 | Encryption hardening, export, accessibility pass |
 | M8 | Gated billing stub |

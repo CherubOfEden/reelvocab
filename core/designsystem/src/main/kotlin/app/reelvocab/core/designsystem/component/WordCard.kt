@@ -38,6 +38,8 @@ data class WordCardLabels(
     val playPronunciation: String,
     val tag: String,
     val more: String,
+    val synonyms: String = "",
+    val antonyms: String = "",
 )
 
 @Immutable
@@ -54,6 +56,8 @@ data class WordCardModel(
     val isAiContext: Boolean,
     val hasAudio: Boolean,
     val difficulty: Int? = null,
+    val synonyms: List<String> = emptyList(),
+    val antonyms: List<String> = emptyList(),
 )
 
 @Composable
@@ -134,6 +138,26 @@ fun WordCard(
             maxLines = if (compact) 2 else 4,
             overflow = TextOverflow.Ellipsis,
         )
+
+        if (model.synonyms.isNotEmpty() || model.antonyms.isNotEmpty()) {
+            Spacer(Modifier.height(ReelTheme.spacing.m))
+            Column(verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs)) {
+                if (model.synonyms.isNotEmpty()) {
+                    ThesaurusRow(
+                        label = labels.synonyms,
+                        words = model.synonyms,
+                        tint = colors.teal,
+                    )
+                }
+                if (model.antonyms.isNotEmpty()) {
+                    ThesaurusRow(
+                        label = labels.antonyms,
+                        words = model.antonyms,
+                        tint = colors.rose,
+                    )
+                }
+            }
+        }
 
         val sentence = model.sentence
         val target = model.target
