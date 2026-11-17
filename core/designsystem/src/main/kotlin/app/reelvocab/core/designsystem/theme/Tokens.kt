@@ -38,13 +38,13 @@ data class ReelRadius(
     val sheetTop: Dp = 28.dp,
 )
 
-val ReelSpacing = ReelSpacing()
-val ReelRadius = ReelRadius()
+val DefaultReelSpacing = ReelSpacing()
+val DefaultReelRadius = ReelRadius()
 
 val ReelShapes = Shapes(
-    extraSmall = RoundedCornerShape(ReelRadius.chip),
-    small = RoundedCornerShape(ReelRadius.input),
-    medium = RoundedCornerShape(ReelRadius.card),
-    large = RoundedCornerShape(ReelRadius.sheet),
-    extraLarge = RoundedCornerShape(ReelRadius.sheetTop),
+    extraSmall = RoundedCornerShape(DefaultReelRadius.chip),
+    small = RoundedCornerShape(DefaultReelRadius.input),
+    medium = RoundedCornerShape(DefaultReelRadius.card),
+    large = RoundedCornerShape(DefaultReelRadius.sheet),
+    extraLarge = RoundedCornerShape(DefaultReelRadius.sheetTop),
 )

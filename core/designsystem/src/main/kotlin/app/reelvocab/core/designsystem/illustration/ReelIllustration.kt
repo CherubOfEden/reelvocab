@@ -24,11 +24,11 @@ fun ReelIllustrationArt(
 ) {
     val colors = ReelTheme.colors
     val accent = tint ?: colors.goldDim
-    val hairline = 2.dp.toPx()
 
     Canvas(modifier = modifier.size(width = 132.dp, height = 104.dp)) {
         val w = size.width
         val h = size.height
+        val hairline = 2.dp.toPx()
         when (illustration) {
             ReelIllustration.Poster -> {
                 drawRoundRect(

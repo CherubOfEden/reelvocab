@@ -116,9 +116,9 @@ object ReelTheme {
     val haptics: ReelHaptics
         @Composable @ReadOnlyComposable get() = LocalReelHaptics.current
 
-    val spacing: ReelSpacing get() = ReelSpacing
+    val spacing: ReelSpacing get() = DefaultReelSpacing
 
-    val radius: ReelRadius get() = ReelRadius
+    val radius: ReelRadius get() = DefaultReelRadius
 
     val type: ReelType get() = ReelTypography
 }
@@ -144,4 +144,4 @@ fun rememberReelHaptics(): ReelHaptics {
     return remember(view) { ReelHaptics(view) }
 }
 
-object NoopReelHaptics : ReelHaptics(null)
+val NoopReelHaptics = ReelHaptics(null)
