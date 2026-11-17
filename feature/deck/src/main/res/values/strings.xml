@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="deck_title">Deck</string>
+    <string name="deck_filter_all">All</string>
+    <string name="deck_filter_due">Due</string>
+    <string name="deck_filter_words">Words</string>
+    <string name="deck_filter_sentences">Sentences</string>
+    <string name="deck_empty_title">No cards yet</string>
+    <string name="deck_empty_body">Every word you keep from a film becomes a card here, with its line, its timestamp and its meaning in that scene.</string>
+    <string name="deck_cta_library">See the library</string>
+</resources>

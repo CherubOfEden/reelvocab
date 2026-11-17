@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_plan">Plan</string>
+    <string name="settings_plan_label">Your plan</string>
+    <string name="settings_plan_value">Free — billing arrives later</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_appearance_label">Theme</string>
+    <string name="settings_appearance_value">Follows the system</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_licenses_label">Fonts and licences</string>
+    <string name="settings_design_system_label">Design system (debug)</string>
+    <string name="settings_privacy_title">Your data stays here</string>
+    <string name="settings_privacy_body">Nothing leaves this device. There is no account, no analytics and no cloud yet. When those arrive they will be opt-in, and this screen will say so in plain words.</string>
+    <string name="settings_open_item">Open</string>
+</resources>
