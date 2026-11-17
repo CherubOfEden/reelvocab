@@ -25,12 +25,12 @@ internal object ReelArgb {
     const val LightTextPrimary: Long = 0xFF111217
     const val LightTextSecondary: Long = 0xFF5A6170
     const val LightTextTertiary: Long = 0xFF676E7C
-    const val LightGold: Long = 0xFFE0B152
-    const val LightGoldDim: Long = 0xFFB08A33
-    const val LightTeal: Long = 0xFF1F8A91
-    const val LightRose: Long = 0xFFC93F53
-    const val LightGreen: Long = 0xFF2E9A69
-    const val LightOnAccent: Long = 0xFF1A1408
+    const val LightGold: Long = 0xFF8A6A1F
+    const val LightGoldDim: Long = 0xFF7A5E1B
+    const val LightTeal: Long = 0xFF17727A
+    const val LightRose: Long = 0xFFC0394C
+    const val LightGreen: Long = 0xFF217A52
+    const val LightOnAccent: Long = 0xFFFFFFFF
 
     const val DarkScrim: Long = 0x99000000
     const val LightScrim: Long = 0x99000000

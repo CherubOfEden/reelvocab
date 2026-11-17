@@ -162,7 +162,11 @@ fun ReelChip(
             containerColor = colors.elevated,
             labelColor = colors.textSecondary,
             iconColor = colors.textSecondary,
-            selectedContainerColor = colors.gold.copy(alpha = 0.16f),
+            selectedContainerColor = if (colors.isDark) {
+                colors.gold.copy(alpha = 0.16f)
+            } else {
+                colors.elevated
+            },
             selectedLabelColor = colors.gold,
             selectedLeadingIconColor = colors.gold,
         ),

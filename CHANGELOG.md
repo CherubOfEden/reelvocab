@@ -27,5 +27,8 @@ semantic versioning once it ships.
 
 ### Notes
 
+- Light-theme accents are darkened (gold `#8A6A1F`, gold-dim `#7A5E1B`, teal
+  `#17727A`, rose `#C0394C`, green `#217A52`) so they hold AA when used as text;
+  light-theme on-accent is white. Dark stays the primary theme.
 - Capture, dictionary enrichment, scheduling, and review arrive in M2–M4.
 - No permissions are requested at launch; capture has no entry point yet.

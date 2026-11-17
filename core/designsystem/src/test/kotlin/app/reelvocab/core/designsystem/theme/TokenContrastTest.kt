@@ -21,8 +21,12 @@ class TokenContrastTest {
         assertAa("light primary", ReelArgb.LightTextPrimary, ReelArgb.LightBase, 7.0)
         assertAa("light secondary", ReelArgb.LightTextSecondary, ReelArgb.LightBase, 4.5)
         assertAa("light tertiary", ReelArgb.LightTextTertiary, ReelArgb.LightBase, 4.5)
-        assertAa("light gold on base", ReelArgb.LightGold, ReelArgb.LightBase, 3.0)
+        assertAa("light gold on base", ReelArgb.LightGold, ReelArgb.LightBase, 4.5)
+        assertAa("light gold on elevated", ReelArgb.LightGold, ReelArgb.LightElevated, 4.5)
         assertAa("light on-accent on gold", ReelArgb.LightOnAccent, ReelArgb.LightGold, 4.5)
+        assertAa("light teal on base", ReelArgb.LightTeal, ReelArgb.LightBase, 4.5)
+        assertAa("light rose on base", ReelArgb.LightRose, ReelArgb.LightBase, 4.5)
+        assertAa("light green on base", ReelArgb.LightGreen, ReelArgb.LightBase, 4.5)
     }
 
     @Test
