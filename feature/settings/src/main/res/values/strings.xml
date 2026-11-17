@@ -13,4 +13,5 @@
     <string name="settings_privacy_title">Your data stays here</string>
     <string name="settings_privacy_body">Nothing leaves this device. There is no account, no analytics and no cloud yet. When those arrive they will be opt-in, and this screen will say so in plain words.</string>
     <string name="settings_open_item">Open</string>
+    <string name="settings_dictionary_probe_label">Dictionary probe</string>
 </resources>

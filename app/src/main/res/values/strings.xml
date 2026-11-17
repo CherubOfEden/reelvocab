@@ -153,4 +153,20 @@
     <string name="gallery_confirm_body">Its review history goes with it. You can undo for a few seconds.</string>
     <string name="gallery_confirm_yes">Delete</string>
     <string name="gallery_confirm_no">Keep</string>
+
+    <string name="card_synonyms">Same as</string>
+    <string name="card_antonyms">Opposite</string>
+    <string name="gallery_syn_1">backbone</string>
+    <string name="gallery_syn_2">guts</string>
+    <string name="gallery_syn_3">moxie</string>
+    <string name="gallery_ant_1">cowardice</string>
+
+    <string name="probe_title">Dictionary probe</string>
+    <string name="probe_hint">Type a word</string>
+    <string name="probe_action">Look up</string>
+    <string name="probe_exact">Best match</string>
+    <string name="probe_matches">Other matches</string>
+    <string name="probe_empty">No dictionary entry for that word.</string>
+    <string name="probe_error">The dictionary could not be read.</string>
+    <string name="probe_loading">Searching…</string>
 </resources>

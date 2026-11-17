@@ -30,6 +30,7 @@ fun SettingsScreen(
     onOpenLicenses: () -> Unit,
     onOpenDesignSystem: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onOpenDictionaryProbe: (() -> Unit)? = null,
 ) {
     val colors = ReelTheme.colors
 
@@ -88,6 +89,15 @@ fun SettingsScreen(
                     label = stringResource(R.string.settings_design_system_label),
                     value = null,
                     onClick = onOpenDesignSystem,
+                )
+            }
+        }
+        if (onOpenDictionaryProbe != null) {
+            item {
+                SettingsRow(
+                    label = stringResource(R.string.settings_dictionary_probe_label),
+                    value = null,
+                    onClick = onOpenDictionaryProbe,
                 )
             }
         }

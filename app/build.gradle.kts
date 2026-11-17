@@ -57,6 +57,7 @@ android {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    implementation(project(":core:data"))
     implementation(project(":feature:today"))
     implementation(project(":feature:deck"))
     implementation(project(":feature:library"))

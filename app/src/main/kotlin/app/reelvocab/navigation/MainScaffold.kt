@@ -39,6 +39,8 @@ import app.reelvocab.feature.today.TodayRoute
 import app.reelvocab.feature.today.TodayScreen
 import app.reelvocab.feature.today.TodayUiState
 import app.reelvocab.ui.DesignSystemGallery
+import app.reelvocab.ui.DictionaryProbeRoute
+import app.reelvocab.ui.DictionaryProbeScreen
 import app.reelvocab.ui.DesignSystemRoute
 import app.reelvocab.ui.LicensesRoute
 import app.reelvocab.ui.LicensesScreen
@@ -115,6 +117,11 @@ fun MainScaffold(modifier: Modifier = Modifier) {
                     } else {
                         null
                     },
+                    onOpenDictionaryProbe = if (BuildConfig.DEBUG) {
+                        { navController.navigate(DictionaryProbeRoute) }
+                    } else {
+                        null
+                    },
                 )
             }
 
@@ -125,6 +132,9 @@ fun MainScaffold(modifier: Modifier = Modifier) {
             if (BuildConfig.DEBUG) {
                 composable<DesignSystemRoute> {
                     DesignSystemGallery(onBack = { navController.popBackStack() })
+                }
+                composable<DictionaryProbeRoute> {
+                    DictionaryProbeScreen(onBack = { navController.popBackStack() })
                 }
             }
         }

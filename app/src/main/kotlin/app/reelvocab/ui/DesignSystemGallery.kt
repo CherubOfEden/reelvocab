@@ -215,12 +215,20 @@ fun DesignSystemGallery(
                     isAiContext = true,
                     hasAudio = true,
                     difficulty = 3,
+                    synonyms = listOf(
+                        stringResource(R.string.gallery_syn_1),
+                        stringResource(R.string.gallery_syn_2),
+                        stringResource(R.string.gallery_syn_3),
+                    ),
+                    antonyms = listOf(stringResource(R.string.gallery_ant_1)),
                 )
                 val labels = WordCardLabels(
                     ai = stringResource(R.string.gallery_ai),
                     playPronunciation = stringResource(R.string.gallery_play_pronunciation),
                     tag = stringResource(R.string.gallery_tag),
                     more = stringResource(R.string.gallery_more),
+                    synonyms = stringResource(R.string.card_synonyms),
+                    antonyms = stringResource(R.string.card_antonyms),
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.m)) {
                     WordCard(
