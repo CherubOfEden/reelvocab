@@ -45,7 +45,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -556,8 +555,9 @@ private fun RepeatOption(
 private fun ImagePlayer(uri: String) {
     val context = LocalContext.current
     val colors = ReelTheme.colors
-    val image by produceState<Bitmap?>(initialValue = null, uri) {
-        value = withContext(Dispatchers.IO) { loadImage(context, uri) }
+    var image by remember(uri) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(uri) {
+        image = withContext(Dispatchers.IO) { loadImage(context, uri) }
     }
     Box(
         modifier = Modifier.fillMaxSize(),

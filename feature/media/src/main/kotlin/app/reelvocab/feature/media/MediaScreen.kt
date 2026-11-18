@@ -41,7 +41,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -374,12 +373,9 @@ private fun MediaRow(
 private fun MediaThumbnail(item: MediaItem) {
     val context = LocalContext.current
     val colors = ReelTheme.colors
-    val bitmap by produceState<Bitmap?>(
-        initialValue = null,
-        item.uri,
-        item.kind,
-    ) {
-        value = withContext(Dispatchers.IO) { loadThumbnail(context, item) }
+    var bitmap by remember(item.uri, item.kind) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(item.uri, item.kind) {
+        bitmap = withContext(Dispatchers.IO) { loadThumbnail(context, item) }
     }
     Box(
         modifier = Modifier
