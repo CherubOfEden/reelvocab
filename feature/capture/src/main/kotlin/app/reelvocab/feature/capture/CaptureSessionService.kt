@@ -167,7 +167,7 @@ class CaptureSessionService : Service() {
                 shape = GradientDrawable.OVAL
                 gradientType = GradientDrawable.LINEAR_GRADIENT
                 colors = intArrayOf(ReelDarkColors.gold.toArgb(), ReelDarkColors.goldDim.toArgb())
-                orientation = GradientDrawable.TOP_BOTTOM
+                orientation = GradientDrawable.Orientation.TOP_BOTTOM
             }
             elevation = 8f * density
             contentDescription = getString(R.string.capture_pill_description)
