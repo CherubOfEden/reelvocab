@@ -9,9 +9,10 @@ no analytics.
 
 ## Status
 
-`0.1.0` — milestones **M1–M4** are done and **M5** is landing. The app has the
-navigation shell, offline dictionary, floating capture, SM-2 review, a searchable
-deck with tags, and a dictionary detail sheet.
+`0.1.0` — milestones **M1–M5** are done and the **M5.5 polish** pass is landing.
+The app has a five-tab navigation shell, offline dictionary with an optional online
+fallback, persistent floating capture, SM-2 review, a searchable deck with tags and
+deletion, a media hub, and an adaptive local player.
 
 ## Building
 
@@ -43,15 +44,16 @@ Local runs need JDK 17 and an Android SDK (compileSdk 35):
 | `:core:data` | Room, bundled dictionary, repositories, fakes |
 | `:core:designsystem` | colour, type, spacing, motion tokens; 21 shared components |
 | `:feature:today` | daily quiz entry point |
-| `:feature:deck` | saved cards, filters |
+| `:feature:deck` | saved cards, filters, tags, deletion |
+| `:feature:dictionary` | dictionary search and detail browsing |
 | `:feature:library` | films and sources, media menu |
-| `:feature:settings` | plan, appearance, licences, privacy |
-| `:feature:media` | MediaStore scan, in-app local video/audio player |
-| `:feature:capture` | OCR, word selection, floating pill, projection session |
+| `:feature:settings` | AI dictionary, reminders, appearance, licences, privacy |
+| `:feature:media` | video/image/audio/document hub, thumbnails, local player |
+| `:feature:capture` | OCR, phrase selection, preview, floating pill, projection session |
 
 Dependency direction: features depend on `:core:designsystem`; `:feature:media`
 also consumes `:feature:capture` for in-app frame capture. `:app` wires the
-navigation graph and depends on `:core:data`. Nothing depends on `:app`.
+five-tab navigation graph and depends on `:core:data`. Nothing depends on `:app`.
 
 ## Design system rules
 
@@ -76,12 +78,12 @@ their feature is used. The floating word pill is a PIP-style overlay drawn with
 `SYSTEM_ALERT_WINDOW`, not the PiP API: it must sit above other apps without
 replacing the video surface.
 
-The Media menu reads local video and audio through `MediaStore` (or the system
-file picker) and plays it inside the app; capture works there without any
-screen-projection consent. The floating pill asks for overlay access, then for
-media-projection consent once per 15-minute session. OCR uses the bundled ML Kit
-Latin model: no network and no Play Services model download. Long-press the
-pill, use the notification Stop action, or wait 15 minutes to end a session.
+The Media tab reads local video, images, audio and documents through `MediaStore`
+(or the system file picker) and opens them inside the app; capture works there
+without any screen-projection consent. The floating pill asks for overlay access,
+then for media-projection consent and stays until stopped from the notification or
+by long-pressing the pill. OCR uses the bundled ML Kit Latin model: no network and
+no Play Services model download.
 
 ## Verification gates
 
@@ -102,7 +104,8 @@ pill, use the notification Stop action, or wait 15 minutes to end a session.
 | M3 ✅ | PIP-style floating pill, capture session with OCR overlay, in-app media player |
 | M4 ✅ | SM-2 scheduler, morning review, opt-in 08:00 reminder |
 | M5 ✅ | Deck search and tags, dictionary detail sheet, due-count wiring, optional cloud definitions |
-| M6 | Settings depth, reminders, full-screen alarm |
+| M5.5 ✅ | Five-tab shell, persistent small pill, capture preview/phrase selection, deck delete, dictionary tab, media hub, reminder time picker, AI settings |
+| M6 | Settings depth, full-screen alarm |
 | M7 | Encryption hardening, export, accessibility pass |
 | M8 | Gated billing stub |
 | M9 | Release polish, store metadata |

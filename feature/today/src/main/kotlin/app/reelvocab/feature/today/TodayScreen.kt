@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -48,7 +50,10 @@ data class TodayUiState(
 @Composable
 fun TodayScreen(
     state: TodayUiState,
-    onOpenSettings: () -> Unit,
+    pipActive: Boolean,
+    onTogglePip: () -> Unit,
+    onOpenReminder: () -> Unit,
+    onOpenAiSettings: () -> Unit,
     onOpenDeck: () -> Unit,
     onStartReview: () -> Unit,
     modifier: Modifier = Modifier,
@@ -76,36 +81,62 @@ fun TodayScreen(
         verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.l),
     ) {
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
                     Text(
                         text = dateLabel,
                         style = ReelTheme.type.label,
                         color = colors.textTertiary,
                     )
-                    Spacer(Modifier.height(ReelTheme.spacing.xs))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onTogglePip) {
+                            Icon(
+                                imageVector = Icons.Filled.PictureInPictureAlt,
+                                contentDescription = stringResource(
+                                    if (pipActive) {
+                                        R.string.today_pip_on
+                                    } else {
+                                        R.string.today_pip_off
+                                    },
+                                ),
+                                tint = if (pipActive) colors.gold else colors.textSecondary,
+                            )
+                        }
+                        IconButton(onClick = onOpenReminder) {
+                            Icon(
+                                imageVector = Icons.Filled.Alarm,
+                                contentDescription = stringResource(R.string.today_reminder),
+                                tint = colors.textSecondary,
+                            )
+                        }
+                        IconButton(onClick = onOpenAiSettings) {
+                            Icon(
+                                imageVector = Icons.Filled.AutoAwesome,
+                                contentDescription = stringResource(R.string.today_ai_dictionary),
+                                tint = colors.textSecondary,
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(ReelTheme.spacing.xs))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
                     Text(
                         text = stringResource(R.string.today_title),
                         style = ReelTheme.type.titleL,
                         color = colors.textPrimary,
                     )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
                     StreakRing(
                         current = state.streakDays,
                         label = streakLabel,
                     )
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Filled.Settings,
-                            contentDescription = stringResource(R.string.today_settings),
-                            tint = colors.textSecondary,
-                        )
-                    }
                 }
             }
         }

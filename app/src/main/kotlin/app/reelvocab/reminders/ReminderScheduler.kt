@@ -12,7 +12,6 @@ import java.time.ZonedDateTime
 object ReminderScheduler {
 
     private const val REQUEST_CODE = 8001
-    private const val MORNING_HOUR = 8
 
     fun scheduleIfEnabled(context: Context) {
         if (ReminderPrefs.isEnabled(context)) schedule(context)
@@ -21,10 +20,12 @@ object ReminderScheduler {
     fun schedule(context: Context) {
         val manager = context.getSystemService(AlarmManager::class.java) ?: return
         val pending = pendingIntent(context, PendingIntent.FLAG_UPDATE_CURRENT)
+        val hour = ReminderPrefs.hour(context)
+        val minute = ReminderPrefs.minute(context)
         runCatching {
             manager.setInexactRepeating(
                 AlarmManager.RTC_WAKEUP,
-                nextMorningEpochMs(),
+                nextReminderEpochMs(hour, minute),
                 AlarmManager.INTERVAL_DAY,
                 pending,
             )
@@ -51,14 +52,17 @@ object ReminderScheduler {
             flags or PendingIntent.FLAG_IMMUTABLE,
         )
 
-    private fun nextMorningEpochMs(
+    private fun nextReminderEpochMs(
+        hour: Int,
+        minute: Int,
         zone: ZoneId = ZoneId.systemDefault(),
     ): Long {
         val now = ZonedDateTime.now(zone)
-        val next = if (now.toLocalTime() < LocalTime.of(MORNING_HOUR, 0)) {
-            now.toLocalDate().atTime(MORNING_HOUR, 0)
+        val target = LocalTime.of(hour, minute)
+        val next = if (now.toLocalTime() < target) {
+            now.toLocalDate().atTime(target)
         } else {
-            now.toLocalDate().plusDays(1).atTime(MORNING_HOUR, 0)
+            now.toLocalDate().plusDays(1).atTime(target)
         }
         return Instant.from(next.atZone(zone)).toEpochMilli()
     }

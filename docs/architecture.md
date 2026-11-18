@@ -1,6 +1,6 @@
 # Architecture
 
-Status: revision 5 (M5 implemented). Supersedes revision 4.
+Status: revision 6 (M5.5 implemented). Supersedes revision 5.
 
 ## Product in one line
 
@@ -11,10 +11,11 @@ morning. Local-first, dark-first, no account, no backend.
 
 ```
 :app
- ├─ :feature:today ─┐
- ├─ :feature:deck ──┤
- ├─ :feature:library┤──▶ :core:designsystem
- ├─ :feature:settings┘
+ ├─ :feature:today ─────┐
+ ├─ :feature:deck ──────┤
+ ├─ :feature:dictionary ┤──▶ :core:designsystem
+ ├─ :feature:library ───┤
+ ├─ :feature:settings ──┘
  ├─ :feature:media
  ├─ :feature:capture
  └─ :core:data ──▶ :core:domain ──▶ :core:common
@@ -25,9 +26,11 @@ morning. Local-first, dark-first, no account, no backend.
 - `:core:data` — Room, asset dictionary, repository implementations, fakes.
 - `:core:designsystem` — tokens and components only.
 - Features never talk to each other; `:app` owns navigation and wiring.
-- `:feature:media` — MediaStore scan and the Media3 player.
-- `:feature:capture` — OCR, word selection, save sheet, the floating pill
-  service and the projection session. Media depends on it for in-app capture.
+- `:feature:media` — MediaStore scan for video/image/audio/documents, thumbnails
+  and the Media3 player.
+- `:feature:dictionary` — dictionary search, local-first lookup and detail sheet.
+- `:feature:capture` — OCR, phrase selection, preview, save sheet, the floating
+  pill service and the projection session. Media depends on it for in-app capture.
 
 ## Data layer
 
@@ -48,8 +51,8 @@ due at 08:00 the next morning; `Again` resets the ladder and reappears after ten
 minutes; `Hard`, `Good`, `Easy` map to qualities 3, 4, 5. Ease never drops below
 1.3. `Sm2Scheduler` is pure Kotlin in `:core:domain` and unit-tested with fixed
 clock and zone inputs. The morning reminder is an inexact daily `AlarmManager`
-alarm at 08:00, opt-in from Settings, restored on boot, and gated on
-`POST_NOTIFICATIONS` on Android 13+.
+alarm at a user-selected time (08:00 by default), opt-in from Settings, restored
+on boot, and gated on `POST_NOTIFICATIONS` on Android 13+.
 
 ### Bundled dictionary (`assets/dict.db`, read-only)
 
@@ -90,28 +93,36 @@ is a single update and searching needs no join. The Today tab observes
 Tapping a card in the Deck or during review opens a bottom sheet backed by
 `DictionaryRepository.lookup`: every WordNet sense, example, IPA, part of speech,
 difficulty and thesaurus edge. Words missing from the offline dictionary fall
-back to the meaning saved with the card. The tag editor writes through
+back to the meaning saved with the card. Cards can be deleted from the row after
+a destructive confirmation. The tag editor writes through
 `CardRepository.updateTags` and updates the visible card immediately.
+
+The dedicated Dictionary tab searches `word_fts` locally with a short debounce.
+If the local search is empty, it calls the Free Dictionary API once; offline or
+failed requests fall back to a clear empty state. Detail sheets are built from
+the same repository entry, so local and online results render identically.
 
 ## Capture pipeline (M3)
 
-1. **Floating pill.** A foreground service draws a 56 dp draggable pill with
-   `WindowManager` + `TYPE_APPLICATION_OVERLAY` (PIP-style bubble). It stays
-   above other apps, snaps to the nearest edge, and survives app switches.
-   The PiP *API* is not used: it cannot host OCR selection UI, and it would
-   replace the film surface. The overlay gives the same affordance.
+1. **Floating pill.** A foreground service draws a compact 44 dp draggable pill
+   with `WindowManager` + `TYPE_APPLICATION_OVERLAY` (PIP-style bubble). It stays
+   above other apps, snaps to the nearest edge, and survives app switches until
+   explicitly stopped. The PiP *API* is not used: it cannot host OCR selection UI,
+   and it would replace the film surface. The overlay gives the same affordance.
 2. **Permission.** First tap asks for `SYSTEM_ALERT_WINDOW` via
    `ACTION_MANAGE_OVERLAY_PERMISSION`; the capture session asks for
-   `MediaProjection` consent once per 15-minute session.
+   `MediaProjection` consent once per service session.
 3. **Capture.** Tap the pill → `MediaProjection` consent (once per session)
    → `CaptureSessionService` grabs one frame, runs bundled ML Kit OCR off the
-   main thread, and `CaptureActivity` shows the word-selection overlay in a
-   translucent window. The pill stays draggable and snaps to the nearest edge.
-4. **Save.** Selecting a word opens the save sheet (context line, film source,
-   timestamp, optional audio). Saving writes a card and marks the session.
-5. **End.** The session ends on notification action, after 15 minutes, or when
-   the pill is dismissed; media projection is stopped and the notification is
-   removed.
+   main thread, and `CaptureActivity` shows word chips over the frame in its own
+   task. Long-pressing a word starts a phrase range; tapping the last word selects
+   the phrase.
+4. **Preview and save.** Selecting a word opens a save sheet with an editable
+   headword, context line, source, timestamp and a dictionary preview. The preview
+   is fetched before saving, but an offline lookup never blocks the save.
+5. **End.** The session ends on the notification Stop action or by long-pressing
+   the pill; media projection is stopped, the overlay is removed, and the
+   notification is cleared.
 
 Permissions: `SYSTEM_ALERT_WINDOW`, `FOREGROUND_SERVICE`,
 `FOREGROUND_SERVICE_MEDIA_PROJECTION`, `POST_NOTIFICATIONS`, `RECORD_AUDIO`
@@ -119,21 +130,26 @@ Permissions: `SYSTEM_ALERT_WINDOW`, `FOREGROUND_SERVICE`,
 alarm. Recording audio from other apps is not attempted in v1; the clip is
 microphone-only and off by default.
 
-## Media menu (M3)
+## Media hub (M5.5)
 
-`Library ▸ Media` (also surfaced from Today when a film is in progress) scans
-local media with `MediaStore` (`mp4`, `mkv`, common audio), with a SAF
-`ACTION_OPEN_DOCUMENT` fallback for files MediaStore does not index.
+The Media tab scans local media with `MediaStore` and offers five chips: All,
+Videos, Images, Audio and Documents. Documents are ordinary non-media files from
+`MediaStore.Files`; the file picker remains the fallback for anything not indexed.
 
-- Requires `READ_MEDIA_VIDEO` / `READ_MEDIA_AUDIO` on API 33+ and
-  `READ_EXTERNAL_STORAGE` on 29–32, requested when the screen opens.
-- Playback uses Media3 ExoPlayer in an app-owned player screen; captions can
-  come from a sidecar `.srt`/`.vtt` chosen by the user.
-- Capture from media uses the same OCR/selection pipeline, invoked in-app (no
-  overlay needed, no projection consent): the player pauses, a frame is
-  extracted from the player surface, and the word sheet opens.
-- The media menu never uploads filenames or subtitles; nothing leaves the
-  device.
+- Requires `READ_MEDIA_VIDEO`, `READ_MEDIA_IMAGES` and `READ_MEDIA_AUDIO` on API
+  33+ and `READ_EXTERNAL_STORAGE` on 29–32, requested when the screen opens.
+- Video and image rows load real `ContentResolver` thumbnails; audio uses
+  embedded album art. Results are de-duplicated by URI.
+- Playback uses Media3 ExoPlayer in an app-owned player screen. Images use a
+  fit viewer, documents open in another app, and audio/video share a bounded queue.
+- Player gestures: vertical drag on the left changes window brightness; on the
+  right it changes volume. The overflow menu holds repeat off/one/all, next, and
+  subtitle selection.
+- Captions can come from a sidecar `.srt`/`.vtt`/`.ttml` chosen by the user.
+- Capture from media uses the same OCR/selection/preview pipeline, invoked in-app
+  (no overlay needed, no projection consent): the player pauses, a frame is
+  extracted, and the word sheet opens.
+- The media hub never uploads filenames or subtitles; nothing leaves the device.
 
 ## Enrichment and transcription
 
@@ -145,7 +161,11 @@ local media with `MediaStore` (`mp4`, `mkv`, common audio), with a SAF
   chat-completions URL and model, the router asks that endpoint once for the
   unknown headword plus film line. Any timeout, HTTP error, or empty answer
   silently falls back offline, so capture never blocks. Off by default; only
-  those two fields leave the device. Dictionary lookups stay local.
+  those two fields leave the device.
+- Online dictionary fallback: `DictionaryRepositoryImpl` checks the bundled
+  `dict.db` first, then calls the Free Dictionary API only when the local entry is
+  missing. This fallback is independent of the optional cloud-definition setting;
+  failures leave the local result and never block the UI.
 - Transcription remains the deterministic fake until the on-device recognizer
   lands.
 
@@ -164,6 +184,7 @@ theme accents are darkened to hold AA when used as text.
 | M3 | PIP-style floating pill, capture session + OCR overlay, Media menu player |
 | M4 | SRS scheduler, morning review, reminders |
 | M5 ✅ | Deck/library search and tags, dictionary detail sheet, due-count wiring, optional cloud definitions |
+| M5.5 ✅ | Five-tab shell, persistent small pill, phrase preview, deck delete, dictionary tab, media hub/player, reminder time picker, AI settings |
 | M6 | Settings depth, full-screen alarm |
 | M7 | Encryption hardening, export, accessibility pass |
 | M8 | Gated billing stub |

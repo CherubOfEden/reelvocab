@@ -32,7 +32,7 @@ data class Film(
     val year: Int?,
 )
 
-enum class MediaKind { Video, Audio }
+enum class MediaKind { Video, Image, Audio, Document }
 
 data class MediaItem(
     val id: Long,
@@ -40,4 +40,5 @@ data class MediaItem(
     val title: String,
     val durationMs: Long,
     val kind: MediaKind,
+    val mimeType: String? = null,
 )

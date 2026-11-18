@@ -10,12 +10,14 @@ import javax.inject.Singleton
 @Singleton
 class DictionaryRepositoryImpl @Inject constructor(
     private val asset: DictionaryAsset,
+    private val online: FreeDictionaryClient,
 ) : DictionaryRepository {
 
     override suspend fun lookup(rawLemma: String): DictionaryEntry? {
         val lemma = Headwords.normalize(rawLemma)
         if (lemma.isEmpty()) return null
-        return asset.read { db -> db.entryFor(lemma) }
+        val local = asset.read { db -> db.entryFor(lemma) }
+        return local ?: online.lookup(lemma)
     }
 
     override suspend fun search(prefix: String, limit: Int): List<DictionaryEntry> {

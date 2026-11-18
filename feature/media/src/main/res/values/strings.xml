@@ -1,15 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="media_title">Media</string>
-    <string name="media_subtitle">Play a film or an audio file, pause, and keep the words you hear.</string>
+    <string name="media_subtitle">Your local videos, images, audio and documents. Open anything and keep the words you hear or see.</string>
     <string name="media_permission_title">Let ReelVocab see your media</string>
-    <string name="media_permission_body">The list is built on this device from your local video and audio. Nothing is uploaded.</string>
+    <string name="media_permission_body">The list is built on this device from your local videos, images and audio. Nothing is uploaded.</string>
     <string name="media_permission_cta">Allow media access</string>
     <string name="media_open_file">Open a file instead</string>
+    <string name="media_section_all">All</string>
     <string name="media_section_videos">Videos</string>
+    <string name="media_section_images">Images</string>
     <string name="media_section_audio">Audio</string>
+    <string name="media_section_documents">Documents</string>
+    <string name="media_kind_video">Video</string>
+    <string name="media_kind_image">Image</string>
+    <string name="media_kind_audio">Audio</string>
+    <string name="media_kind_document">Document</string>
     <string name="media_empty_title">No local media found</string>
-    <string name="media_empty_body">Add a film to your device, or open one directly with the file picker.</string>
+    <string name="media_empty_body">Add something to your device, or open a file directly with the picker.</string>
+    <string name="media_empty_category">Nothing in this category yet.</string>
     <string name="media_loading">Scanning your library…</string>
     <string name="media_error">The media library could not be read.</string>
     <string name="media_retry">Try again</string>
@@ -18,4 +26,16 @@
     <string name="media_saved">Saved to your deck</string>
     <string name="media_capture_failed">That frame could not be captured.</string>
     <string name="media_capture_audio_unavailable">Capture needs a video frame. Play a film to capture words.</string>
+    <string name="media_menu_more">Player options</string>
+    <string name="media_menu_repeat_off">Repeat off</string>
+    <string name="media_menu_repeat_one">Repeat one</string>
+    <string name="media_menu_repeat_all">Repeat all</string>
+    <string name="media_menu_next">Next</string>
+    <string name="media_menu_subtitles">Subtitles</string>
+    <string name="media_volume">Volume %1$d%%</string>
+    <string name="media_brightness">Brightness %1$d%%</string>
+    <string name="media_document_open">Open with another app</string>
+    <string name="media_document_no_viewer">No app can open this document.</string>
+    <string name="media_image_loading">Loading image…</string>
+    <string name="media_image_failed">This image could not be opened.</string>
 </resources>

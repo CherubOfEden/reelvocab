@@ -1,8 +1,13 @@
 package app.reelvocab.feature.capture
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -13,10 +18,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -45,9 +52,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.reelvocab.core.designsystem.component.ReelButton
 import app.reelvocab.core.designsystem.component.ReelButtonStyle
-import app.reelvocab.core.designsystem.component.ReelChip
 import app.reelvocab.core.designsystem.component.ReelSheet
 import app.reelvocab.core.designsystem.theme.ReelTheme
+import app.reelvocab.core.domain.model.Enrichment
 import java.util.Locale
 
 @Composable
@@ -61,6 +68,7 @@ fun InAppCapture(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = ReelTheme.colors
+    var phraseRange by remember(state.lines) { mutableStateOf<PhraseRange?>(null) }
 
     LaunchedEffect(bitmap) {
         viewModel.recognize(bitmap)
@@ -80,6 +88,8 @@ fun InAppCapture(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
                     .padding(horizontal = ReelTheme.spacing.screenH),
             ) {
                 Row(
@@ -157,10 +167,41 @@ fun InAppCapture(
                         contentPadding = PaddingValues(bottom = ReelTheme.spacing.screenBottom),
                         verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
                     ) {
-                        items(state.lines) { line ->
+                        if (phraseRange != null) {
+                            item(key = "phrase-hint") {
+                                Text(
+                                    text = stringResource(R.string.capture_phrase_hint),
+                                    style = ReelTheme.type.label,
+                                    color = colors.gold,
+                                )
+                            }
+                        }
+                        itemsIndexed(state.lines) { lineIndex, line ->
                             CaptureLineRow(
                                 line = line,
-                                onSelect = viewModel::select,
+                                selectedRange = phraseRange?.takeIf { it.lineIndex == lineIndex },
+                                onWordTap = { wordIndex, word ->
+                                    val active = phraseRange
+                                    if (active != null && active.lineIndex == lineIndex) {
+                                        val start = minOf(active.start, wordIndex)
+                                        val end = maxOf(active.end, wordIndex)
+                                        val phrase = line.words
+                                            .subList(start, end + 1)
+                                            .joinToString(" ") { it.text }
+                                        viewModel.select(CaptureWord(text = phrase, line = line.text))
+                                        phraseRange = null
+                                    } else {
+                                        phraseRange = null
+                                        viewModel.select(word)
+                                    }
+                                },
+                                onWordLongPress = { wordIndex ->
+                                    phraseRange = PhraseRange(
+                                        lineIndex = lineIndex,
+                                        start = wordIndex,
+                                        end = wordIndex,
+                                    )
+                                },
                             )
                         }
                     }
@@ -175,18 +216,29 @@ fun InAppCapture(
             word = selected,
             sourceTitle = sourceTitle,
             timestampMs = timestampMs,
+            preview = state.preview,
+            previewLoading = state.previewLoading,
             saving = state.saving,
+            saveError = state.saveError,
             onDismiss = viewModel::dismissSelection,
             onSave = { edited -> viewModel.save(selected, edited, sourceTitle, timestampMs, onSaved) },
         )
     }
 }
 
+private data class PhraseRange(
+    val lineIndex: Int,
+    val start: Int,
+    val end: Int,
+)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CaptureLineRow(
     line: CaptureLine,
-    onSelect: (CaptureWord) -> Unit,
+    selectedRange: PhraseRange?,
+    onWordTap: (Int, CaptureWord) -> Unit,
+    onWordLongPress: (Int) -> Unit,
 ) {
     val colors = ReelTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs)) {
@@ -199,14 +251,48 @@ private fun CaptureLineRow(
             horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs),
             verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs),
         ) {
-            line.words.forEach { word ->
-                ReelChip(
+            line.words.forEachIndexed { index, word ->
+                WordChip(
                     text = word.text,
-                    selected = false,
-                    onClick = { onSelect(word) },
+                    selected = selectedRange != null &&
+                        index >= selectedRange.start &&
+                        index <= selectedRange.end,
+                    onClick = { onWordTap(index, word) },
+                    onLongClick = { onWordLongPress(index) },
                 )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun WordChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val colors = ReelTheme.colors
+    val shape = RoundedCornerShape(ReelTheme.radius.chip)
+    val container = if (selected) colors.gold.copy(alpha = 0.16f) else colors.elevated
+    val border = if (selected) colors.gold.copy(alpha = 0.55f) else colors.strokeSubtle
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .background(container)
+            .border(ReelTheme.spacing.hairline, border, shape)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+            .padding(horizontal = ReelTheme.spacing.s, vertical = ReelTheme.spacing.xs),
+    ) {
+        Text(
+            text = text,
+            style = ReelTheme.type.bodyM,
+            color = if (selected) colors.gold else colors.textSecondary,
+        )
     }
 }
 
@@ -215,7 +301,10 @@ private fun SaveWordSheet(
     word: CaptureWord,
     sourceTitle: String,
     timestampMs: Long,
+    preview: Enrichment?,
+    previewLoading: Boolean,
     saving: Boolean,
+    saveError: Boolean,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
 ) {
@@ -246,6 +335,49 @@ private fun SaveWordSheet(
             style = ReelTheme.type.label,
             color = colors.textTertiary,
         )
+
+        Spacer(Modifier.height(ReelTheme.spacing.l))
+        when {
+            edited.trim() != word.text -> Text(
+                text = stringResource(R.string.capture_preview_edited),
+                style = ReelTheme.type.label,
+                color = colors.textTertiary,
+            )
+
+            previewLoading -> Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = colors.gold,
+                )
+                Text(
+                    text = stringResource(R.string.capture_preview_loading),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textSecondary,
+                )
+            }
+
+            preview != null -> DictionaryPreview(preview = preview)
+
+            else -> Text(
+                text = stringResource(R.string.capture_preview_unavailable),
+                style = ReelTheme.type.label,
+                color = colors.textTertiary,
+            )
+        }
+
+        if (saveError) {
+            Spacer(Modifier.height(ReelTheme.spacing.s))
+            Text(
+                text = stringResource(R.string.capture_save_error),
+                style = ReelTheme.type.bodyM,
+                color = colors.rose,
+            )
+        }
+
         Spacer(Modifier.height(ReelTheme.spacing.xl))
         ReelButton(
             text = stringResource(R.string.capture_save),
@@ -259,6 +391,43 @@ private fun SaveWordSheet(
             onClick = onDismiss,
             style = ReelButtonStyle.Ghost,
             enabled = !saving,
+        )
+    }
+}
+
+@Composable
+private fun DictionaryPreview(preview: Enrichment) {
+    val colors = ReelTheme.colors
+    val meaning = preview.definitions.firstOrNull()?.definition
+        ?: stringResource(R.string.capture_preview_unavailable)
+    Text(
+        text = stringResource(R.string.capture_preview_label),
+        style = ReelTheme.type.label,
+        color = colors.textTertiary,
+    )
+    Spacer(Modifier.height(ReelTheme.spacing.xs))
+    if (preview.ipa != null) {
+        Text(
+            text = preview.ipa,
+            style = ReelTheme.type.ipa,
+            color = colors.textSecondary,
+        )
+        Spacer(Modifier.height(ReelTheme.spacing.xxs))
+    }
+    Text(
+        text = meaning,
+        style = ReelTheme.type.bodyM,
+        color = colors.textPrimary,
+    )
+    if (preview.thesaurus.synonyms.isNotEmpty()) {
+        Spacer(Modifier.height(ReelTheme.spacing.xs))
+        Text(
+            text = stringResource(
+                R.string.capture_preview_synonyms,
+                preview.thesaurus.synonyms.take(4).joinToString(", "),
+            ),
+            style = ReelTheme.type.label,
+            color = colors.teal,
         )
     }
 }

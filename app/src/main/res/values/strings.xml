@@ -3,8 +3,11 @@
     <string name="app_name">ReelVocab</string>
 
     <string name="tab_today">Today</string>
+    <string name="tab_home">Home</string>
     <string name="tab_deck">Deck</string>
+    <string name="tab_dictionary">Dictionary</string>
     <string name="tab_library">Library</string>
+    <string name="tab_media">Media</string>
 
     <string name="common_back">Back</string>
     <string name="common_close">Close</string>
@@ -39,7 +42,7 @@
     <string name="onboarding_p3_mic_title">Microphone</string>
     <string name="onboarding_p3_mic_body">Records a clip only while you hold a capture session.</string>
     <string name="onboarding_p3_notif_title">Notifications</string>
-    <string name="onboarding_p3_notif_body">Shows the capture timer and delivers the morning quiz.</string>
+    <string name="onboarding_p3_notif_body">Keeps the floating capture control visible and delivers the morning quiz.</string>
     <string name="onboarding_p3_footnote">Every one of these can be turned off later, and the app keeps working.</string>
 
     <string name="licenses_title">Fonts and licences</string>
@@ -147,7 +150,7 @@
     <string name="gallery_sheet_body">A sheet sits over the paused film. The card appears in place, so the film is never left behind.</string>
     <string name="gallery_permission_title">Allow screen capture?</string>
     <string name="gallery_permission_body">One frame is read so you can pick a word from it.</string>
-    <string name="gallery_permission_why">The session ends by itself after 15 minutes, or whenever you end it from the notification.</string>
+    <string name="gallery_permission_why">The control stays until you stop it from the notification or long-press the floating pill.</string>
     <string name="gallery_permission_confirm">Continue</string>
     <string name="gallery_confirm_title">Delete this card?</string>
     <string name="gallery_confirm_body">Its review history goes with it. You can undo for a few seconds.</string>

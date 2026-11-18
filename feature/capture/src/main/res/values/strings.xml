@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="capture_pick_title">Pick a word</string>
+    <string name="capture_pick_title">Pick a word or phrase</string>
     <string name="capture_scanning">Reading the frame…</string>
     <string name="capture_error">The frame could not be read.</string>
     <string name="capture_retry">Try again</string>
     <string name="capture_empty">No readable words in this frame.</string>
     <string name="capture_close">Close</string>
     <string name="capture_save_title">Save word</string>
-    <string name="capture_word_label">Word</string>
+    <string name="capture_word_label">Word or phrase</string>
     <string name="capture_context_label">Line in the film</string>
+    <string name="capture_phrase_hint">Selection started. Tap the last word of the phrase.</string>
+    <string name="capture_preview_label">Definition</string>
+    <string name="capture_preview_loading">Looking up the definition…</string>
+    <string name="capture_preview_unavailable">No definition yet. The line will be saved as context.</string>
+    <string name="capture_preview_edited">The definition will be refreshed for the edited word.</string>
+    <string name="capture_preview_synonyms">Same as %1$s</string>
+    <string name="capture_save_error">Could not save this card. Try again.</string>
     <string name="capture_source_format">From %1$s · %2$s</string>
     <string name="capture_save">Save to deck</string>
     <string name="capture_cancel">Cancel</string>

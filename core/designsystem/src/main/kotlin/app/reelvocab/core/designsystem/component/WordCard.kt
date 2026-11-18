@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.LocalMovies
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Style
@@ -42,6 +43,7 @@ data class WordCardLabels(
     val more: String,
     val synonyms: String = "",
     val antonyms: String = "",
+    val delete: String = "",
 )
 
 @Immutable
@@ -72,6 +74,7 @@ fun WordCard(
     onTag: () -> Unit,
     onMore: () -> Unit,
     modifier: Modifier = Modifier,
+    onDelete: (() -> Unit)? = null,
     compact: Boolean = false,
 ) {
     val colors = ReelTheme.colors
@@ -211,6 +214,15 @@ fun WordCard(
                     contentDescription = labels.tag,
                     tint = colors.textTertiary,
                 )
+            }
+            if (onDelete != null) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Filled.DeleteOutline,
+                        contentDescription = labels.delete,
+                        tint = colors.rose,
+                    )
+                }
             }
             IconButton(onClick = onMore) {
                 Icon(

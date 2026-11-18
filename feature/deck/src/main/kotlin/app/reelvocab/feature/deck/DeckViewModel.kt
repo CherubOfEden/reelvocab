@@ -172,6 +172,25 @@ class DeckViewModel @Inject constructor(
         }
     }
 
+    fun deleteCard(cardId: Long) {
+        viewModelScope.launch {
+            try {
+                cards.deleteCard(cardId)
+                _state.update { state ->
+                    state.copy(
+                        cards = state.cards.filterNot { it.id == cardId },
+                        tagEditor = state.tagEditor.takeUnless { state.tagEditorCardId == cardId },
+                        tagEditorCardId = state.tagEditorCardId.takeUnless { it == cardId },
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                // The card stays visible if the delete fails; the user can retry.
+            }
+        }
+    }
+
     fun saveTags() {
         val cardId = _state.value.tagEditorCardId ?: return
         val editor = _state.value.tagEditor ?: return

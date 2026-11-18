@@ -60,6 +60,7 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":feature:today"))
     implementation(project(":feature:deck"))
+    implementation(project(":feature:dictionary"))
     implementation(project(":feature:library"))
     implementation(project(":feature:settings"))
     implementation(project(":feature:media"))

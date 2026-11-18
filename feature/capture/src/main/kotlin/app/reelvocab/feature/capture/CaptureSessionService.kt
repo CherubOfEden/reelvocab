@@ -36,9 +36,11 @@ import app.reelvocab.core.designsystem.theme.ReelDarkColors
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 import java.io.FileOutputStream
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 @AndroidEntryPoint
 class CaptureSessionService : Service() {
@@ -51,12 +53,11 @@ class CaptureSessionService : Service() {
     private var capturing = false
 
     private val handler = Handler(Looper.getMainLooper())
-    private val stopRunnable = Runnable { stopEverything() }
 
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WindowManager::class.java)
-        running.set(true)
+        setRunning(true)
         createChannel()
     }
 
@@ -101,7 +102,7 @@ class CaptureSessionService : Service() {
     override fun onDestroy() {
         releaseProjection()
         removePill()
-        running.set(false)
+        setRunning(false)
         super.onDestroy()
     }
 
@@ -322,7 +323,6 @@ class CaptureSessionService : Service() {
         )
         imageReader = reader
         projection = created
-        handler.postDelayed(stopRunnable, SESSION_MILLIS)
     }
 
     private fun captureFrame() {
@@ -374,7 +374,6 @@ class CaptureSessionService : Service() {
     }
 
     private fun releaseProjection() {
-        handler.removeCallbacks(stopRunnable)
         val current = projection
         projection = null
         if (current != null) runCatching { current.stop() }
@@ -398,7 +397,7 @@ class CaptureSessionService : Service() {
     private fun stopEverything() {
         releaseProjection()
         removePill()
-        running.set(false)
+        setRunning(false)
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -414,14 +413,19 @@ class CaptureSessionService : Service() {
         private const val EXTRA_DATA = "projection_data"
         private const val EXTRA_CAPTURE_NOW = "capture_now"
 
-        private const val PILL_SIZE_DP = 56
-        private const val PILL_ICON_DP = 26
-        private const val PILL_MARGIN_DP = 16
+        private const val PILL_SIZE_DP = 44
+        private const val PILL_ICON_DP = 20
+        private const val PILL_MARGIN_DP = 12
         private const val CAPTURE_DELAY_MS = 350L
         private const val RETRY_DELAY_MS = 150L
-        private const val SESSION_MILLIS = 15 * 60 * 1000L
 
-        val running = AtomicBoolean(false)
+        private val _running = MutableStateFlow(false)
+        val runningFlow: StateFlow<Boolean> = _running.asStateFlow()
+        val isRunning: Boolean get() = _running.value
+
+        private fun setRunning(value: Boolean) {
+            _running.value = value
+        }
 
         fun startPill(context: Context) {
             ContextCompat.startForegroundService(

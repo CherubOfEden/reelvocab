@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.BitmapFactory
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,8 +63,15 @@ class CaptureActivity : ComponentActivity() {
                         bitmap = bitmap,
                         sourceTitle = getString(R.string.capture_screen_source),
                         timestampMs = 0L,
-                        onDismiss = { finish() },
-                        onSaved = { finish() },
+                        onDismiss = { finishAndRemoveTask() },
+                        onSaved = {
+                            Toast.makeText(
+                                this@CaptureActivity,
+                                R.string.capture_saved,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            finishAndRemoveTask()
+                        },
                     )
                 }
             }

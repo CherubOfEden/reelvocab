@@ -24,6 +24,11 @@
     <string name="deck_more">More options</string>
     <string name="deck_synonyms">Same as</string>
     <string name="deck_antonyms">Opposite</string>
+    <string name="deck_delete">Delete card</string>
+    <string name="deck_delete_title">Delete this card?</string>
+    <string name="deck_delete_body">“%1$s” and its review history will be removed from this device.</string>
+    <string name="deck_delete_confirm">Delete</string>
+    <string name="deck_delete_cancel">Keep</string>
 
     <string name="deck_dictionary_title">Dictionary</string>
     <string name="deck_definitions">Definitions</string>

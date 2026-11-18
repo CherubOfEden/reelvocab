@@ -12,11 +12,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class MediaCategory(val labelRes: Int) {
+    All(R.string.media_section_all),
+    Videos(R.string.media_section_videos),
+    Images(R.string.media_section_images),
+    Audio(R.string.media_section_audio),
+    Documents(R.string.media_section_documents),
+}
+
 data class MediaUiState(
     val loading: Boolean = false,
     val error: Boolean = false,
     val items: List<MediaItem> = emptyList(),
     val scanned: Boolean = false,
+    val category: MediaCategory = MediaCategory.All,
 )
 
 @HiltViewModel
@@ -26,6 +35,10 @@ class MediaViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(MediaUiState())
     val state: StateFlow<MediaUiState> = _state.asStateFlow()
+
+    fun setCategory(category: MediaCategory) {
+        _state.update { it.copy(category = category) }
+    }
 
     fun scan(force: Boolean = false) {
         val current = _state.value

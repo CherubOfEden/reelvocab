@@ -12,17 +12,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import app.reelvocab.core.designsystem.component.CardSurface
 import app.reelvocab.core.designsystem.theme.ReelTheme
+import java.util.Locale
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -44,11 +54,15 @@ fun SettingsScreen(
     onOpenDictionaryProbe: (() -> Unit)? = null,
     onEnableFloatingCapture: (() -> Unit)? = null,
     reminderEnabled: Boolean = false,
+    reminderHour: Int = 8,
+    reminderMinute: Int = 0,
     onToggleReminder: (() -> Unit)? = null,
+    onReminderTimeChange: ((Int, Int) -> Unit)? = null,
     cloud: CloudSettingsUi = CloudSettingsUi(),
     onCloudChange: ((CloudSettingsUi) -> Unit)? = null,
 ) {
     val colors = ReelTheme.colors
+    var showTimePicker by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -70,55 +84,22 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsSectionHeader(text = stringResource(R.string.settings_section_plan))
-        }
-        item {
-            SettingsRow(
-                label = stringResource(R.string.settings_plan_label),
-                value = stringResource(R.string.settings_plan_value),
-            )
-        }
-
-        item {
-            SettingsSectionHeader(text = stringResource(R.string.settings_section_appearance))
-        }
-        item {
-            SettingsRow(
-                label = stringResource(R.string.settings_appearance_label),
-                value = stringResource(R.string.settings_appearance_value),
-            )
-        }
-
-        item {
-            SettingsSectionHeader(text = stringResource(R.string.settings_section_capture))
-        }
-        item {
-            SettingsRow(
-                label = stringResource(R.string.settings_floating_capture_label),
-                value = stringResource(R.string.settings_floating_capture_value),
-                onClick = onEnableFloatingCapture,
-            )
-        }
-
-        item {
-            SettingsSectionHeader(text = stringResource(R.string.settings_section_reminders))
-        }
-        item {
-            SettingsRow(
-                label = stringResource(R.string.settings_reminder_label),
-                value = stringResource(
-                    if (reminderEnabled) {
-                        R.string.settings_reminder_on
-                    } else {
-                        R.string.settings_reminder_off
-                    },
-                ),
-                onClick = onToggleReminder,
-            )
-        }
-
-        item {
             SettingsSectionHeader(text = stringResource(R.string.settings_section_cloud))
+        }
+        item {
+            CardSurface {
+                Text(
+                    text = stringResource(R.string.settings_ai_title),
+                    style = ReelTheme.type.titleM,
+                    color = colors.textPrimary,
+                )
+                Spacer(Modifier.height(ReelTheme.spacing.xs))
+                Text(
+                    text = stringResource(R.string.settings_ai_summary),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textSecondary,
+                )
+            }
         }
         item {
             SettingsRow(
@@ -173,6 +154,65 @@ fun SettingsScreen(
         }
 
         item {
+            SettingsSectionHeader(text = stringResource(R.string.settings_section_plan))
+        }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_plan_label),
+                value = stringResource(R.string.settings_plan_value),
+            )
+        }
+
+        item {
+            SettingsSectionHeader(text = stringResource(R.string.settings_section_appearance))
+        }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_appearance_label),
+                value = stringResource(R.string.settings_appearance_value),
+            )
+        }
+
+        item {
+            SettingsSectionHeader(text = stringResource(R.string.settings_section_capture))
+        }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_floating_capture_label),
+                value = stringResource(R.string.settings_floating_capture_value),
+                onClick = onEnableFloatingCapture,
+            )
+        }
+
+        item {
+            SettingsSectionHeader(text = stringResource(R.string.settings_section_reminders))
+        }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_reminder_label),
+                value = stringResource(
+                    if (reminderEnabled) {
+                        R.string.settings_reminder_on
+                    } else {
+                        R.string.settings_reminder_off
+                    },
+                ),
+                onClick = onToggleReminder,
+            )
+        }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_reminder_time_label),
+                value = reminderTimeLabel(reminderHour, reminderMinute),
+                onClick = if (onReminderTimeChange != null) {
+                    { showTimePicker = true }
+                } else {
+                    null
+                },
+            )
+        }
+
+        item {
             SettingsSectionHeader(text = stringResource(R.string.settings_section_about))
         }
         item {
@@ -217,7 +257,71 @@ fun SettingsScreen(
             }
         }
     }
+
+    if (showTimePicker && onReminderTimeChange != null) {
+        ReminderTimePickerDialog(
+            initialHour = reminderHour,
+            initialMinute = reminderMinute,
+            onConfirm = { hour, minute ->
+                onReminderTimeChange(hour, minute)
+                showTimePicker = false
+            },
+            onDismiss = { showTimePicker = false },
+        )
+    }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderTimePickerDialog(
+    initialHour: Int,
+    initialMinute: Int,
+    onConfirm: (Int, Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = ReelTheme.colors
+    val picker = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = true,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.elevated,
+        titleContentColor = colors.textPrimary,
+        textContentColor = colors.textSecondary,
+        title = {
+            Text(
+                text = stringResource(R.string.settings_reminder_time_title),
+                style = ReelTheme.type.titleM,
+            )
+        },
+        text = {
+            TimePicker(state = picker)
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(picker.hour, picker.minute) }) {
+                Text(
+                    text = stringResource(R.string.settings_time_save),
+                    style = ReelTheme.type.label,
+                    color = colors.gold,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.settings_time_cancel),
+                    style = ReelTheme.type.label,
+                    color = colors.textSecondary,
+                )
+            }
+        },
+    )
+}
+
+private fun reminderTimeLabel(hour: Int, minute: Int): String =
+    String.format(Locale.US, "%02d:%02d", hour, minute)
 
 @Composable
 private fun SettingsSectionHeader(text: String) {

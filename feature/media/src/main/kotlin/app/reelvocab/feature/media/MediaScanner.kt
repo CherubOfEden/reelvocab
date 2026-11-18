@@ -17,35 +17,85 @@ class MediaScanner @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     suspend fun scan(): List<MediaItem> = withContext(Dispatchers.IO) {
-        val videos = query(
-            collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-            kind = MediaKind.Video,
-        )
-        val audio = query(
-            collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            kind = MediaKind.Audio,
-        )
-        (videos + audio).sortedByDescending { it.id }
+        val videos = safely {
+            query(
+                collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                kind = MediaKind.Video,
+                hasDuration = true,
+                selection = "${MediaStore.MediaColumns.DURATION} > 0",
+            )
+        }
+        val images = safely {
+            query(
+                collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                kind = MediaKind.Image,
+                hasDuration = false,
+            )
+        }
+        val audio = safely {
+            query(
+                collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                kind = MediaKind.Audio,
+                hasDuration = true,
+                selection = "${MediaStore.MediaColumns.DURATION} > 0",
+            )
+        }
+        val documents = safely {
+            val mime = MediaStore.MediaColumns.MIME_TYPE
+            query(
+                collection = MediaStore.Files.getContentUri("external"),
+                kind = MediaKind.Document,
+                hasDuration = false,
+                selection = "$mime IS NOT NULL AND " +
+                    "$mime NOT LIKE 'video/%' AND " +
+                    "$mime NOT LIKE 'image/%' AND " +
+                    "$mime NOT LIKE 'audio/%'",
+            )
+        }
+        (videos + images + audio + documents).distinctBy { it.uri }
     }
 
-    private fun query(collection: Uri, kind: MediaKind): List<MediaItem> {
-        val projection = arrayOf(
-            MediaStore.MediaColumns._ID,
-            MediaStore.MediaColumns.TITLE,
-            MediaStore.MediaColumns.DISPLAY_NAME,
-            MediaStore.MediaColumns.DURATION,
-        )
+    private inline fun <T> safely(block: () -> List<T>): List<T> =
+        runCatching(block).getOrDefault(emptyList())
+
+    private fun query(
+        collection: Uri,
+        kind: MediaKind,
+        hasDuration: Boolean,
+        selection: String? = null,
+    ): List<MediaItem> {
+        val projection = if (hasDuration) {
+            arrayOf(
+                MediaStore.MediaColumns._ID,
+                MediaStore.MediaColumns.TITLE,
+                MediaStore.MediaColumns.DISPLAY_NAME,
+                MediaStore.MediaColumns.MIME_TYPE,
+                MediaStore.MediaColumns.DURATION,
+            )
+        } else {
+            arrayOf(
+                MediaStore.MediaColumns._ID,
+                MediaStore.MediaColumns.TITLE,
+                MediaStore.MediaColumns.DISPLAY_NAME,
+                MediaStore.MediaColumns.MIME_TYPE,
+            )
+        }
         return context.contentResolver.query(
             collection,
             projection,
-            "${MediaStore.MediaColumns.DURATION} > 0",
+            selection,
             null,
             "${MediaStore.MediaColumns.DATE_ADDED} DESC",
         )?.use { cursor ->
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
             val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.TITLE)
             val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
-            val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DURATION)
+            val mimeColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
+            val durationColumn = if (hasDuration) {
+                cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DURATION)
+            } else {
+                -1
+            }
             buildList {
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
@@ -58,8 +108,13 @@ class MediaScanner @Inject constructor(
                             id = id,
                             uri = ContentUris.withAppendedId(collection, id).toString(),
                             title = title,
-                            durationMs = cursor.getLong(durationColumn),
+                            durationMs = if (durationColumn >= 0) {
+                                cursor.getLong(durationColumn)
+                            } else {
+                                0L
+                            },
                             kind = kind,
+                            mimeType = cursor.getString(mimeColumn),
                         ),
                     )
                 }

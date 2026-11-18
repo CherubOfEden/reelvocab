@@ -17,12 +17,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.reelvocab.core.designsystem.component.ConfirmDestructive
 import app.reelvocab.core.designsystem.component.DictionaryDetailLabels
 import app.reelvocab.core.designsystem.component.DictionaryDetailSheet
 import app.reelvocab.core.designsystem.component.EmptyState
@@ -55,6 +58,7 @@ fun DeckScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = ReelTheme.colors
+    var pendingDelete by remember { mutableStateOf<Card?>(null) }
 
     LaunchedEffect(initialFilter) {
         viewModel.applyInitialFilter(initialFilter)
@@ -76,6 +80,7 @@ fun DeckScreen(
         more = stringResource(R.string.deck_more),
         synonyms = stringResource(R.string.deck_synonyms),
         antonyms = stringResource(R.string.deck_antonyms),
+        delete = stringResource(R.string.deck_delete),
     )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -175,6 +180,7 @@ fun DeckScreen(
                         onTts = {},
                         onTag = { viewModel.openTagEditor(card) },
                         onMore = { viewModel.openDetail(card) },
+                        onDelete = { pendingDelete = card },
                     )
                 }
             }
@@ -213,6 +219,20 @@ fun DeckScreen(
                 onRemove = viewModel::removeTag,
                 onSave = viewModel::saveTags,
                 onDismiss = viewModel::closeTagEditor,
+            )
+        }
+
+        pendingDelete?.let { card ->
+            ConfirmDestructive(
+                title = stringResource(R.string.deck_delete_title),
+                body = stringResource(R.string.deck_delete_body, card.headword),
+                confirmLabel = stringResource(R.string.deck_delete_confirm),
+                dismissLabel = stringResource(R.string.deck_delete_cancel),
+                onConfirm = {
+                    viewModel.deleteCard(card.id)
+                    pendingDelete = null
+                },
+                onDismiss = { pendingDelete = null },
             )
         }
     }
