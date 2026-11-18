@@ -14,6 +14,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import app.reelvocab.core.designsystem.component.CardSurface
+import app.reelvocab.core.designsystem.component.ReelButton
+import app.reelvocab.core.designsystem.component.ReelButtonStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
@@ -44,6 +47,7 @@ fun TodayScreen(
     state: TodayUiState,
     onOpenSettings: () -> Unit,
     onOpenDeck: () -> Unit,
+    onStartReview: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = ReelTheme.colors
@@ -105,6 +109,28 @@ fun TodayScreen(
 
         item {
             Spacer(Modifier.height(ReelTheme.spacing.xxxl))
+        }
+
+        item {
+            CardSurface {
+                Text(
+                    text = stringResource(R.string.today_review_title),
+                    style = ReelTheme.type.titleM,
+                    color = colors.textPrimary,
+                )
+                Spacer(Modifier.height(ReelTheme.spacing.xs))
+                Text(
+                    text = stringResource(R.string.today_review_body),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textSecondary,
+                )
+                Spacer(Modifier.height(ReelTheme.spacing.m))
+                ReelButton(
+                    text = stringResource(R.string.today_review_cta),
+                    onClick = onStartReview,
+                    style = ReelButtonStyle.Secondary,
+                )
+            }
         }
 
         item {

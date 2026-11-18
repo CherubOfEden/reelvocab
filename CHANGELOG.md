@@ -20,6 +20,11 @@ semantic versioning once it ships.
   `mediaProjection` foreground session that captures one frame per tap.
 - Bundled ML Kit Latin OCR (no network, no Play Services model download) and
   a word-selection save sheet that writes a card.
+- SM-2 review scheduler in `:core:domain` with Room `reviews`/`review_logs`
+  tables and a v1→v2 migration; new cards are scheduled for 08:00 the next
+  morning and `Again` re-queues after ten minutes.
+- Morning review screen with the shared word card and the Again/Hard/Good/Easy
+  grade bar, entered from Today.
 - Thesaurus rows on the word card (synonyms in teal, antonyms in rose), plus a
   debug-only dictionary probe screen reachable from Settings.
 

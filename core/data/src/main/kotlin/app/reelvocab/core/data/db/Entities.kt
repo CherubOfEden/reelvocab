@@ -82,3 +82,48 @@ data class CardEntity(
     @ColumnInfo(name = "has_audio") val hasAudio: Boolean,
     @ColumnInfo(name = "created_at") val createdAtEpochMs: Long,
 )
+
+@Entity(
+    tableName = "reviews",
+    foreignKeys = [
+        ForeignKey(
+            entity = CardEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["card_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("due_at")],
+)
+data class ReviewEntity(
+    @PrimaryKey
+    @ColumnInfo(name = "card_id") val cardId: Long,
+    val repetitions: Int,
+    @ColumnInfo(name = "ease_factor") val easeFactor: Double,
+    @ColumnInfo(name = "interval_days") val intervalDays: Int,
+    @ColumnInfo(name = "due_at") val dueAtEpochMs: Long,
+    @ColumnInfo(name = "last_reviewed_at") val lastReviewedAtEpochMs: Long?,
+    val lapses: Int,
+)
+
+@Entity(
+    tableName = "review_logs",
+    foreignKeys = [
+        ForeignKey(
+            entity = CardEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["card_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("card_id"), Index("reviewed_at")],
+)
+data class ReviewLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "card_id") val cardId: Long,
+    val grade: String,
+    @ColumnInfo(name = "reviewed_at") val reviewedAtEpochMs: Long,
+    val repetitions: Int,
+    @ColumnInfo(name = "ease_factor") val easeFactor: Double,
+    @ColumnInfo(name = "interval_days") val intervalDays: Int,
+)

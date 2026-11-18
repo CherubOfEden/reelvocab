@@ -40,8 +40,14 @@ morning. Local-first, dark-first, no account, no backend.
 | `cards` | Capture cards: word, context line, film source, timestamp, audio state |
 | `films` | Film/source titles shown on cards |
 | `capture_sessions` | (M3) start/end, consent timestamp, recorded clip path |
+| `reviews` | SM-2 state per card: repetitions, ease, interval, due date, lapses |
+| `review_logs` | Every grade with the resulting intervals, for history and stats |
 
-Review scheduling (`reviews`, `review_logs`) arrives in M4.
+Scheduling is SM-2 with the four grades the deck UI already uses. A new card is
+due at 08:00 the next morning; `Again` resets the ladder and reappears after ten
+minutes; `Hard`, `Good`, `Easy` map to qualities 3, 4, 5. Ease never drops below
+1.3. `Sm2Scheduler` is pure Kotlin in `:core:domain` and unit-tested with fixed
+clock and zone inputs. Reminder notifications are the remaining M4 piece.
 
 ### Bundled dictionary (`assets/dict.db`, read-only)
 

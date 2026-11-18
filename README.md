@@ -100,7 +100,7 @@ pill, use the notification Stop action, or wait 15 minutes to end a session.
 | M1 ✅ | Skeleton, design system, onboarding, CI |
 | M2 ✅ | Data foundation: Room, bundled dictionary with thesaurus, enrichment and transcription fakes |
 | M3 ✅ | PIP-style floating pill, capture session with OCR overlay, in-app media player |
-| M4 | SRS scheduler and morning review |
+| M4 🚧 | SM-2 scheduler and morning review shipped; reminder notifications remain |
 | M5 | Deck and library content, search, tags, dictionary detail |
 | M6 | Settings depth, reminders, full-screen alarm |
 | M7 | Encryption hardening, export, accessibility pass |

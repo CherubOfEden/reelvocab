@@ -9,4 +9,28 @@
         <item quantity="one">%d-day streak</item>
         <item quantity="other">%d-day streak</item>
     </plurals>
+    <string name="today_review_title">Morning review</string>
+    <string name="today_review_body">Words you captured yesterday are waiting. Four grades, one pass.</string>
+    <string name="today_review_cta">Start review</string>
+
+    <string name="review_title">Morning review</string>
+    <string name="review_back">Back</string>
+    <string name="review_loading">Shuffling your words…</string>
+    <string name="review_progress">%1$d of %2$d</string>
+    <string name="review_empty_title">Nothing due yet</string>
+    <string name="review_empty_body">Capture a word from a film today and it will be waiting here tomorrow morning.</string>
+    <string name="review_empty_cta">Back to Today</string>
+    <string name="review_done_title">That is the morning done</string>
+    <string name="review_done_body">Every card has a new date. Come back tomorrow.</string>
+    <string name="review_done_cta">Finish</string>
+    <string name="review_grade_again">Again</string>
+    <string name="review_grade_hard">Hard</string>
+    <string name="review_grade_good">Good</string>
+    <string name="review_grade_easy">Easy</string>
+    <string name="review_ai_badge">AI</string>
+    <string name="review_play">Play pronunciation</string>
+    <string name="review_tag">Tag</string>
+    <string name="review_more">More</string>
+    <string name="review_synonyms">Same as</string>
+    <string name="review_antonyms">Opposite</string>
 </resources>

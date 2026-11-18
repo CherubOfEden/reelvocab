@@ -44,6 +44,8 @@ import app.reelvocab.feature.media.PlayerRoute
 import app.reelvocab.feature.media.PlayerScreen
 import app.reelvocab.feature.settings.SettingsRoute
 import app.reelvocab.feature.settings.SettingsScreen
+import app.reelvocab.feature.today.ReviewRoute
+import app.reelvocab.feature.today.ReviewScreen
 import app.reelvocab.feature.today.TodayRoute
 import app.reelvocab.feature.today.TodayScreen
 import app.reelvocab.feature.today.TodayUiState
@@ -100,7 +102,12 @@ fun MainScaffold(modifier: Modifier = Modifier) {
                     state = TodayUiState(),
                     onOpenSettings = { navController.navigate(SettingsRoute) },
                     onOpenDeck = { navController.navigateTab(ReelTab.Deck) },
+                    onStartReview = { navController.navigate(ReviewRoute) },
                 )
+            }
+
+            composable<ReviewRoute> {
+                ReviewScreen(onBack = { navController.popBackStack() })
             }
 
             composable<DeckRoute> { entry ->

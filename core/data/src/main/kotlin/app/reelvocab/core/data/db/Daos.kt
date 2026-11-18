@@ -41,3 +41,24 @@ interface FilmDao {
     @Query("SELECT * FROM films ORDER BY title")
     fun observeAll(): Flow<List<FilmEntity>>
 }
+
+@Dao
+interface ReviewDao {
+    @Query("SELECT * FROM reviews WHERE due_at <= :now ORDER BY due_at ASC LIMIT :limit")
+    suspend fun due(now: Long, limit: Int): List<ReviewEntity>
+
+    @Query("SELECT COUNT(*) FROM reviews WHERE due_at <= :now")
+    fun observeDueCount(now: Long): Flow<Int>
+
+    @Query("SELECT * FROM reviews WHERE card_id = :cardId")
+    suspend fun byCard(cardId: Long): ReviewEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(review: ReviewEntity)
+
+    @Insert
+    suspend fun insertLog(log: ReviewLogEntity)
+
+    @Query("SELECT * FROM review_logs WHERE card_id = :cardId ORDER BY reviewed_at DESC LIMIT :limit")
+    suspend fun history(cardId: Long, limit: Int): List<ReviewLogEntity>
+}

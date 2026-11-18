@@ -9,12 +9,15 @@ import androidx.room.RoomDatabase
         WordSenseEntity::class,
         FilmEntity::class,
         CardEntity::class,
+        ReviewEntity::class,
+        ReviewLogEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class ReelDatabase : RoomDatabase() {
     abstract fun cardDao(): CardDao
     abstract fun wordDao(): WordDao
     abstract fun filmDao(): FilmDao
+    abstract fun reviewDao(): ReviewDao
 }
