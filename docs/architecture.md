@@ -1,6 +1,6 @@
 # Architecture
 
-Status: revision 3 (M2 approved, M2/M3 scope extended). Supersedes revision 2.
+Status: revision 4 (M3 implemented). Supersedes revision 3.
 
 ## Product in one line
 
@@ -15,7 +15,8 @@ morning. Local-first, dark-first, no account, no backend.
  ├─ :feature:deck ──┤
  ├─ :feature:library┤──▶ :core:designsystem
  ├─ :feature:settings┘
- ├─ :feature:media          (M3)
+ ├─ :feature:media
+ ├─ :feature:capture
  └─ :core:data ──▶ :core:domain ──▶ :core:common
 ```
 
@@ -24,7 +25,9 @@ morning. Local-first, dark-first, no account, no backend.
 - `:core:data` — Room, asset dictionary, repository implementations, fakes.
 - `:core:designsystem` — tokens and components only.
 - Features never talk to each other; `:app` owns navigation and wiring.
-- `:feature:media` is added in M3 for the in-app player.
+- `:feature:media` — MediaStore scan and the Media3 player.
+- `:feature:capture` — OCR, word selection, save sheet, the floating pill
+  service and the projection session. Media depends on it for in-app capture.
 
 ## Data layer
 
@@ -77,9 +80,10 @@ dictionary probe both show the real data.
 2. **Permission.** First tap asks for `SYSTEM_ALERT_WINDOW` via
    `ACTION_MANAGE_OVERLAY_PERMISSION`; the capture session asks for
    `MediaProjection` consent once per 15-minute session.
-3. **Capture.** Tap the pill → translucent `CaptureActivity` starts (no
-   activity recreation of the film), grabs one frame, runs OCR off the main
-   thread, and shows the word-selection overlay in place.
+3. **Capture.** Tap the pill → `MediaProjection` consent (once per session)
+   → `CaptureSessionService` grabs one frame, runs bundled ML Kit OCR off the
+   main thread, and `CaptureActivity` shows the word-selection overlay in a
+   translucent window. The pill stays draggable and snaps to the nearest edge.
 4. **Save.** Selecting a word opens the save sheet (context line, film source,
    timestamp, optional audio). Saving writes a card and marks the session.
 5. **End.** The session ends on notification action, after 15 minutes, or when

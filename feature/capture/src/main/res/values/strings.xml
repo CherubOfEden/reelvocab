@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_pick_title">Pick a word</string>
+    <string name="capture_scanning">Reading the frame…</string>
+    <string name="capture_error">The frame could not be read.</string>
+    <string name="capture_retry">Try again</string>
+    <string name="capture_empty">No readable words in this frame.</string>
+    <string name="capture_close">Close</string>
+    <string name="capture_save_title">Save word</string>
+    <string name="capture_word_label">Word</string>
+    <string name="capture_context_label">Line in the film</string>
+    <string name="capture_source_format">From %1$s · %2$s</string>
+    <string name="capture_save">Save to deck</string>
+    <string name="capture_cancel">Cancel</string>
+    <string name="capture_saved">Saved to your deck</string>
+    <string name="capture_channel_name">Word capture</string>
+    <string name="capture_channel_description">Keeps the floating word pill and screen capture session alive.</string>
+    <string name="capture_notification_title">Word capture ready</string>
+    <string name="capture_notification_text">Tap the floating pill to grab a word from the screen.</string>
+    <string name="capture_stop">Stop</string>
+    <string name="capture_pill_description">Capture a word</string>
+    <string name="capture_screen_source">Screen capture</string>
+</resources>

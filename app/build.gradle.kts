@@ -62,6 +62,8 @@ dependencies {
     implementation(project(":feature:deck"))
     implementation(project(":feature:library"))
     implementation(project(":feature:settings"))
+    implementation(project(":feature:media"))
+    implementation(project(":feature:capture"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

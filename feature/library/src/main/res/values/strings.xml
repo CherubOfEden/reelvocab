@@ -4,4 +4,6 @@
     <string name="library_empty_title">The shelf is being stocked</string>
     <string name="library_empty_body">Short annotated scenes are on the way: the line, the sounds, the grammar, and two ways to use it outside the film.</string>
     <string name="library_cta_deck">Go to your deck</string>
+    <string name="library_media_title">Play a film</string>
+    <string name="library_media_body">Open local video or audio, pause on a line, and capture a word from the frame.</string>
 </resources>

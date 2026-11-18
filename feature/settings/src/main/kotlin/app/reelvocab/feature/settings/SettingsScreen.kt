@@ -31,6 +31,7 @@ fun SettingsScreen(
     onOpenDesignSystem: (() -> Unit)?,
     modifier: Modifier = Modifier,
     onOpenDictionaryProbe: (() -> Unit)? = null,
+    onEnableFloatingCapture: (() -> Unit)? = null,
 ) {
     val colors = ReelTheme.colors
 
@@ -70,6 +71,17 @@ fun SettingsScreen(
             SettingsRow(
                 label = stringResource(R.string.settings_appearance_label),
                 value = stringResource(R.string.settings_appearance_value),
+            )
+        }
+
+        item {
+            SettingsSectionHeader(text = stringResource(R.string.settings_section_capture))
+        }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_floating_capture_label),
+                value = stringResource(R.string.settings_floating_capture_value),
+                onClick = onEnableFloatingCapture,
             )
         }
 

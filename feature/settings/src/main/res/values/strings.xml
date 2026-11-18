@@ -7,6 +7,9 @@
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_appearance_label">Theme</string>
     <string name="settings_appearance_value">Follows the system</string>
+    <string name="settings_section_capture">Capture</string>
+    <string name="settings_floating_capture_label">Floating word pill</string>
+    <string name="settings_floating_capture_value">Tap over any app</string>
     <string name="settings_section_about">About</string>
     <string name="settings_licenses_label">Fonts and licences</string>
     <string name="settings_design_system_label">Design system (debug)</string>

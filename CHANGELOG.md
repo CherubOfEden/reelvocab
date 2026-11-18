@@ -14,6 +14,12 @@ semantic versioning once it ships.
 - Bundled offline dictionary `assets/dict.db` (12.5 MB): 31,679 headwords, 68,455
   WordNet 3.1 senses, 55,738 synonyms, 3,420 antonyms, CMUdict-derived US IPA and
   frequency ranks. Built by `tools/build_dict.py`, gated by `tools/verify_dict.py`.
+- Media menu: MediaStore scan for local video/audio with an `ACTION_OPEN_DOCUMENT`
+  fallback, Media3 player, and in-app frame capture through the shared OCR sheet.
+- Floating word pill (`SYSTEM_ALERT_WINDOW`) plus a 15-minute
+  `mediaProjection` foreground session that captures one frame per tap.
+- Bundled ML Kit Latin OCR (no network, no Play Services model download) and
+  a word-selection save sheet that writes a card.
 - Thesaurus rows on the word card (synonyms in teal, antonyms in rose), plus a
   debug-only dictionary probe screen reachable from Settings.
 

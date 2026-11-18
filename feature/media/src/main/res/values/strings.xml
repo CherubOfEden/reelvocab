@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_title">Media</string>
+    <string name="media_subtitle">Play a film or an audio file, pause, and keep the words you hear.</string>
+    <string name="media_permission_title">Let ReelVocab see your media</string>
+    <string name="media_permission_body">The list is built on this device from your local video and audio. Nothing is uploaded.</string>
+    <string name="media_permission_cta">Allow media access</string>
+    <string name="media_open_file">Open a file instead</string>
+    <string name="media_section_videos">Videos</string>
+    <string name="media_section_audio">Audio</string>
+    <string name="media_empty_title">No local media found</string>
+    <string name="media_empty_body">Add a film to your device, or open one directly with the file picker.</string>
+    <string name="media_loading">Scanning your library…</string>
+    <string name="media_error">The media library could not be read.</string>
+    <string name="media_retry">Try again</string>
+    <string name="media_back">Back</string>
+    <string name="media_capture">Capture a word</string>
+    <string name="media_saved">Saved to your deck</string>
+    <string name="media_capture_failed">That frame could not be captured.</string>
+    <string name="media_capture_audio_unavailable">Capture needs a video frame. Play a film to capture words.</string>
+</resources>
