@@ -50,7 +50,16 @@ jobs:
         run: python3 tools/verify_dict.py
 
       - name: Assemble debug
-        run: ./gradlew --no-daemon assembleDebug
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon assembleDebug 2>&1 | tee assemble.log
+
+      - name: Surface build errors
+        if: failure()
+        run: |
+          grep -E '^e: |What went wrong|FAILURE:' assemble.log | head -60 | while IFS= read -r line; do
+            printf '::error title=Gradle::%s\n' "$line"
+          done
 
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest :core:common:test :core:domain:test
