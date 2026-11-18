@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -147,6 +149,26 @@ fun MainScaffold(
                     selectedTab = selectedTab,
                     onSelect = { tab -> navController.navigateTab(tab, currentRoute) },
                 )
+            }
+        },
+        floatingActionButton = {
+            if (showBottomBar && selectedTab == ReelTab.Home) {
+                FloatingActionButton(
+                    onClick = {
+                        if (pipActive) {
+                            CaptureSessionService.requestCapture(context)
+                        } else {
+                            startPip()
+                        }
+                    },
+                    containerColor = ReelTheme.colors.gold,
+                    contentColor = ReelTheme.colors.onAccent,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CameraAlt,
+                        contentDescription = stringResource(R.string.capture_fab),
+                    )
+                }
             }
         },
     ) { innerPadding ->
@@ -385,19 +407,11 @@ private fun NavController.navigateTab(tab: ReelTab, currentRoute: String?) {
     if (!onTopLevelDestination) {
         popBackStack(graph.findStartDestination().id, inclusive = false)
     }
-    if (tab == ReelTab.Home) {
-        navigate(TodayRoute) {
-            popUpTo(graph.findStartDestination().id) {
-                inclusive = false
-                saveState = false
-            }
-            launchSingleTop = true
-            restoreState = false
-        }
-        return
-    }
     navigate(tab.route) {
-        popUpTo(graph.findStartDestination().id) { saveState = true }
+        popUpTo(graph.findStartDestination().id) {
+            inclusive = false
+            saveState = true
+        }
         launchSingleTop = true
         restoreState = true
     }

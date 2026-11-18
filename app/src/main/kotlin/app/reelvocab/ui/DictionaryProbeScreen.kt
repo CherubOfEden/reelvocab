@@ -183,10 +183,11 @@ private fun EntryBlock(entry: DictionaryEntry) {
                 style = ReelTheme.type.titleL,
                 color = colors.textPrimary,
             )
-            if (entry.ipa != null) {
+            val ipa = entry.ipa
+            if (ipa != null) {
                 Spacer(Modifier.height(ReelTheme.spacing.xxs))
                 Text(
-                    text = "  ${entry.ipa}",
+                    text = "  $ipa",
                     style = ReelTheme.type.ipa,
                     color = colors.textSecondary,
                 )

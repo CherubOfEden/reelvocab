@@ -149,9 +149,10 @@ private fun DictionaryResult(
             style = ReelTheme.type.titleM,
             color = colors.textPrimary,
         )
-        if (entry.ipa != null) {
+        val ipa = entry.ipa
+        if (ipa != null) {
             Text(
-                text = entry.ipa,
+                text = ipa,
                 style = ReelTheme.type.ipa,
                 color = colors.textSecondary,
             )

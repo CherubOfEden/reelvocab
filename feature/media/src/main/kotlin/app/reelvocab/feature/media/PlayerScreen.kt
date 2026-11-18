@@ -463,6 +463,22 @@ private fun PlayerMenu(
         onDismissRequest = onDismiss,
     ) {
         if (player != null) {
+            val playing = player.isPlaying
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(
+                            if (playing) R.string.media_menu_pause else R.string.media_menu_play,
+                        ),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.textPrimary,
+                    )
+                },
+                onClick = {
+                    if (playing) player.pause() else player.play()
+                    onDismiss()
+                },
+            )
             RepeatOption(
                 label = stringResource(R.string.media_menu_repeat_off),
                 selected = player.repeatMode == Player.REPEAT_MODE_OFF,

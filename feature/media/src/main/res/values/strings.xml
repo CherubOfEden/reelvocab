@@ -27,6 +27,8 @@
     <string name="media_capture_failed">That frame could not be captured.</string>
     <string name="media_capture_audio_unavailable">Capture needs a video frame. Play a film to capture words.</string>
     <string name="media_menu_more">Player options</string>
+    <string name="media_menu_play">Play</string>
+    <string name="media_menu_pause">Pause</string>
     <string name="media_menu_repeat_off">Repeat off</string>
     <string name="media_menu_repeat_one">Repeat one</string>
     <string name="media_menu_repeat_all">Repeat all</string>

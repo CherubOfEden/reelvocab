@@ -76,7 +76,7 @@ fun TodayScreen(
             start = ReelTheme.spacing.screenH,
             end = ReelTheme.spacing.screenH,
             top = ReelTheme.spacing.xl,
-            bottom = ReelTheme.spacing.screenBottom,
+            bottom = ReelTheme.spacing.screenBottom + ReelTheme.spacing.colossal,
         ),
         verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.l),
     ) {

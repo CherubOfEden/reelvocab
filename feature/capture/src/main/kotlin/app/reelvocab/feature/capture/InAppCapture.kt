@@ -416,9 +416,10 @@ private fun DictionaryPreview(preview: Enrichment) {
         color = colors.textTertiary,
     )
     Spacer(Modifier.height(ReelTheme.spacing.xs))
-    if (preview.ipa != null) {
+    val ipa = preview.ipa
+    if (ipa != null) {
         Text(
-            text = preview.ipa,
+            text = ipa,
             style = ReelTheme.type.ipa,
             color = colors.textSecondary,
         )
