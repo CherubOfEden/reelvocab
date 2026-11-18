@@ -215,6 +215,10 @@ class CaptureSessionService : Service() {
                     onPillTapped()
                     return true
                 }
+
+                override fun onLongPress(e: MotionEvent) {
+                    stopEverything()
+                }
             },
         )
         val slop = android.view.ViewConfiguration.get(this).scaledTouchSlop
