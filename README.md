@@ -9,9 +9,9 @@ no analytics.
 
 ## Status
 
-`0.1.0` — milestone **M1: skeleton and design system**. Navigation shell, onboarding,
-theme tokens, component gallery, and CI gates exist. Capture, dictionary enrichment,
-scheduling, and review are M2–M4.
+`0.1.0` — milestones **M1–M4** are done and **M5** is landing. The app has the
+navigation shell, offline dictionary, floating capture, SM-2 review, a searchable
+deck with tags, and a dictionary detail sheet.
 
 ## Building
 
@@ -101,7 +101,7 @@ pill, use the notification Stop action, or wait 15 minutes to end a session.
 | M2 ✅ | Data foundation: Room, bundled dictionary with thesaurus, enrichment and transcription fakes |
 | M3 ✅ | PIP-style floating pill, capture session with OCR overlay, in-app media player |
 | M4 ✅ | SM-2 scheduler, morning review, opt-in 08:00 reminder |
-| M5 🚧 | Cloud definitions opt-in shipped; deck search/tags and dictionary detail remain |
+| M5 ✅ | Deck search and tags, dictionary detail sheet, due-count wiring, optional cloud definitions |
 | M6 | Settings depth, reminders, full-screen alarm |
 | M7 | Encryption hardening, export, accessibility pass |
 | M8 | Gated billing stub |

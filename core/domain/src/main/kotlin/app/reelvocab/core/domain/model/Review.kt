@@ -31,6 +31,7 @@ data class ReviewCard(
 
 interface ReviewRepository {
     fun observeDueCount(nowEpochMs: Long): Flow<Int>
+    fun observeDueCardIds(nowEpochMs: Long): Flow<Set<Long>>
     suspend fun dueCards(nowEpochMs: Long, limit: Int = 50): List<ReviewCard>
     suspend fun grade(cardId: Long, grade: ReviewGrade, nowEpochMs: Long): ReviewState?
     suspend fun ensureScheduled(cardId: Long, nowEpochMs: Long): ReviewState

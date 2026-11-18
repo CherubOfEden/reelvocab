@@ -1,6 +1,6 @@
 # Architecture
 
-Status: revision 4 (M3 implemented). Supersedes revision 3.
+Status: revision 5 (M5 implemented). Supersedes revision 4.
 
 ## Product in one line
 
@@ -37,7 +37,7 @@ morning. Local-first, dark-first, no account, no backend.
 | --- | --- |
 | `words` | Saved headwords: lemma, normalized form, IPA, POS, difficulty, timestamps |
 | `word_senses` | Definitions attached to a saved word (dictionary or AI context) |
-| `cards` | Capture cards: word, context line, film source, timestamp, audio state |
+| `cards` | Capture cards: word, context line, film source, timestamp, audio state, tags |
 | `films` | Film/source titles shown on cards |
 | `capture_sessions` | (M3) start/end, consent timestamp, recorded clip path |
 | `reviews` | SM-2 state per card: repetitions, ease, interval, due date, lapses |
@@ -74,9 +74,24 @@ show dots without a learner model.
 
 `WordCardModel` carries `synonyms` and `antonyms` resolved at enrichment time
 (WordNet `syn`/`ant` relations, max 6 each, self and case-duplicates removed).
-The card renders two labelled chip rows under the definition. Tapping a chip
+The card renders two labelled chip rows under the definition. Tapping the card
 opens the dictionary detail sheet (M5). The debug gallery and the debug
 dictionary probe both show the real data.
+
+## Deck and dictionary details (M5)
+
+The Deck observes `cards` from Room and the scheduler's due ids in one view model.
+Search is local and case-insensitive across the headword, tags and film title;
+filters are All, Due, Words (no captured line) and Sentences (with a line). Tags
+are stored on the card row as a normalized comma-separated list, so editing them
+is a single update and searching needs no join. The Today tab observes
+`reviews.due_at <= now` directly for its due count and refreshes it periodically.
+
+Tapping a card in the Deck or during review opens a bottom sheet backed by
+`DictionaryRepository.lookup`: every WordNet sense, example, IPA, part of speech,
+difficulty and thesaurus edge. Words missing from the offline dictionary fall
+back to the meaning saved with the card. The tag editor writes through
+`CardRepository.updateTags` and updates the visible card immediately.
 
 ## Capture pipeline (M3)
 
@@ -148,7 +163,7 @@ theme accents are darkened to hold AA when used as text.
 | M2 | `:core:common/domain/data`, Room, `dict.db` with thesaurus, fakes, WordCard thesaurus UI, debug probe |
 | M3 | PIP-style floating pill, capture session + OCR overlay, Media menu player |
 | M4 | SRS scheduler, morning review, reminders |
-| M5 | Deck/library search and tags, dictionary detail sheet, real enrichment |
+| M5 ✅ | Deck/library search and tags, dictionary detail sheet, due-count wiring, optional cloud definitions |
 | M6 | Settings depth, full-screen alarm |
 | M7 | Encryption hardening, export, accessibility pass |
 | M8 | Gated billing stub |

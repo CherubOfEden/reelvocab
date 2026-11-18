@@ -12,6 +12,15 @@
     <string name="today_review_title">Morning review</string>
     <string name="today_review_body">Words you captured yesterday are waiting. Four grades, one pass.</string>
     <string name="today_review_cta">Start review</string>
+    <plurals name="today_due_now">
+        <item quantity="one">%d word due now</item>
+        <item quantity="other">%d words due now</item>
+    </plurals>
+    <string name="today_deck_title">Your deck</string>
+    <plurals name="today_deck_count">
+        <item quantity="one">%d saved card, with its line and film</item>
+        <item quantity="other">%d saved cards, with their lines and films</item>
+    </plurals>
 
     <string name="review_title">Morning review</string>
     <string name="review_back">Back</string>
@@ -33,4 +42,17 @@
     <string name="review_more">More</string>
     <string name="review_synonyms">Same as</string>
     <string name="review_antonyms">Opposite</string>
+
+    <string name="review_dictionary_title">Dictionary</string>
+    <string name="review_definitions">Definitions</string>
+    <string name="review_not_found">Not in the offline dictionary. Showing the meaning saved with this card.</string>
+    <string name="review_lookup">Looking up in the dictionary…</string>
+    <string name="review_close">Close</string>
+
+    <string name="review_tags_title">Tags</string>
+    <string name="review_tag_hint">Add a tag</string>
+    <string name="review_tag_add">Add tag</string>
+    <string name="review_tag_save">Save tags</string>
+    <string name="review_tag_empty">No tags yet. Add one to find this card later by mood, film, or grammar.</string>
+    <string name="review_tag_remove">Remove tag</string>
 </resources>

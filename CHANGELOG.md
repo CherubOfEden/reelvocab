@@ -8,6 +8,13 @@ semantic versioning once it ships.
 
 ### Added
 
+- M5 deck: a real vocabulary listing with local search over headwords, tags and
+  film titles; All/Due/Words/Sentences filters; and per-card tag editing stored
+  through a Room v2→v3 migration.
+- M5 dictionary detail sheet with every WordNet sense, example, IPA, part of
+  speech, difficulty and thesaurus edge, opened from the Deck or during review.
+- Today now shows the live SM-2 due count from the `reviews` table instead of a
+  static placeholder, and the deck's Due filter uses the same scheduler ids.
 - M2 data foundation: `:core:common`, `:core:domain`, and `:core:data` modules,
   Room schema v1 (words, senses, films, cards), repository implementations, and
   fake enrichment/transcription services behind Hilt bindings.

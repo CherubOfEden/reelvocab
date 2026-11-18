@@ -1,5 +1,6 @@
 package app.reelvocab.core.data.db
 
+import app.reelvocab.core.common.Tags
 import app.reelvocab.core.domain.model.Card
 import app.reelvocab.core.domain.model.ReviewState
 import app.reelvocab.core.domain.model.WordClass
@@ -15,6 +16,7 @@ internal fun CardEntity.toDomain(): Card = Card(
     sourceTimestampMs = sourceTimestampMs,
     hasAudio = hasAudio,
     createdAtEpochMs = createdAtEpochMs,
+    tags = Tags.decode(tags),
 )
 
 internal fun ReviewEntity.toDomain(): ReviewState = ReviewState(

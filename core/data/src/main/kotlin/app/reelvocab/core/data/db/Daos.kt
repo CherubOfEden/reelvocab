@@ -20,6 +20,9 @@ interface CardDao {
     @Insert
     suspend fun insert(card: CardEntity): Long
 
+    @Query("UPDATE cards SET tags = :tags WHERE id = :id")
+    suspend fun updateTags(id: Long, tags: String)
+
     @Query("DELETE FROM cards WHERE id = :id")
     suspend fun delete(id: Long)
 }
@@ -49,6 +52,9 @@ interface ReviewDao {
 
     @Query("SELECT COUNT(*) FROM reviews WHERE due_at <= :now")
     fun observeDueCount(now: Long): Flow<Int>
+
+    @Query("SELECT card_id FROM reviews WHERE due_at <= :now")
+    fun observeDueCardIds(now: Long): Flow<List<Long>>
 
     @Query("SELECT * FROM reviews WHERE card_id = :cardId")
     suspend fun byCard(cardId: Long): ReviewEntity?

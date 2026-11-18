@@ -38,4 +38,5 @@ interface CardRepository {
     fun observeCount(): Flow<Int>
     suspend fun addCard(card: NewCard): Long
     suspend fun deleteCard(id: Long)
+    suspend fun updateTags(cardId: Long, tags: List<String>)
 }

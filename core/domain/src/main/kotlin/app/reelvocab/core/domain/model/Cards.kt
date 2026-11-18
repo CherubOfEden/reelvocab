@@ -11,6 +11,7 @@ data class Card(
     val sourceTimestampMs: Long?,
     val hasAudio: Boolean,
     val createdAtEpochMs: Long,
+    val tags: List<String> = emptyList(),
 )
 
 data class NewCard(
@@ -22,6 +23,7 @@ data class NewCard(
     val sourceTitle: String? = null,
     val sourceTimestampMs: Long? = null,
     val hasAudio: Boolean = false,
+    val tags: List<String> = emptyList(),
 )
 
 data class Film(

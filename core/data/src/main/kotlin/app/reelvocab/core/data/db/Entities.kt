@@ -81,6 +81,7 @@ data class CardEntity(
     @ColumnInfo(name = "source_timestamp_ms") val sourceTimestampMs: Long?,
     @ColumnInfo(name = "has_audio") val hasAudio: Boolean,
     @ColumnInfo(name = "created_at") val createdAtEpochMs: Long,
+    @ColumnInfo(defaultValue = "''") val tags: String = "",
 )
 
 @Entity(

@@ -2,12 +2,20 @@ package app.reelvocab.feature.today
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.reelvocab.core.common.Tags
+import app.reelvocab.core.designsystem.component.DictionaryDetailModel
+import app.reelvocab.core.designsystem.component.DictionarySenseModel
+import app.reelvocab.core.designsystem.component.TagEditorModel
+import app.reelvocab.core.domain.model.CardRepository
+import app.reelvocab.core.domain.model.DictionaryEntry
+import app.reelvocab.core.domain.model.DictionaryRepository
 import app.reelvocab.core.domain.model.ReviewCard
 import app.reelvocab.core.domain.model.ReviewGrade
 import app.reelvocab.core.domain.model.ReviewRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +27,10 @@ data class ReviewUiState(
     val queue: List<ReviewCard> = emptyList(),
     val position: Int = 0,
     val reviewed: Int = 0,
+    val detail: DictionaryDetailModel? = null,
+    val detailLoading: Boolean = false,
+    val tagEditor: TagEditorModel? = null,
+    val tagEditorCardId: Long? = null,
 ) {
     val current: ReviewCard? get() = queue.getOrNull(position)
     val total: Int get() = queue.size
@@ -29,6 +41,8 @@ data class ReviewUiState(
 @HiltViewModel
 class ReviewViewModel @Inject constructor(
     private val reviews: ReviewRepository,
+    private val cards: CardRepository,
+    private val dictionary: DictionaryRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReviewUiState())
@@ -36,6 +50,7 @@ class ReviewViewModel @Inject constructor(
 
     private var started = false
     private var grading = false
+    private var detailJob: Job? = null
 
     fun start() {
         if (started) return
@@ -71,6 +86,10 @@ class ReviewViewModel @Inject constructor(
                         queue = queue,
                         position = state.position + 1,
                         reviewed = state.reviewed + 1,
+                        detail = null,
+                        detailLoading = false,
+                        tagEditor = null,
+                        tagEditorCardId = null,
                     )
                 }
             } catch (cancelled: CancellationException) {
@@ -82,4 +101,134 @@ class ReviewViewModel @Inject constructor(
             }
         }
     }
+
+    fun openDetail() {
+        val card = _state.value.current?.card ?: return
+        detailJob?.cancel()
+        _state.update {
+            it.copy(
+                detail = DictionaryDetailModel(
+                    headword = card.headword,
+                    fallbackMeaning = card.meaning,
+                    isKnown = false,
+                ),
+                detailLoading = true,
+            )
+        }
+        detailJob = viewModelScope.launch {
+            val entry = try {
+                dictionary.lookup(card.headword)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                null
+            }
+            _state.update { current ->
+                if (current.detail?.headword != card.headword) {
+                    current
+                } else {
+                    current.copy(
+                        detail = entry.toDictionaryDetail(card.headword, card.meaning),
+                        detailLoading = false,
+                    )
+                }
+            }
+        }
+    }
+
+    fun closeDetail() {
+        detailJob?.cancel()
+        _state.update { it.copy(detail = null, detailLoading = false) }
+    }
+
+    fun openTagEditor() {
+        val card = _state.value.current?.card ?: return
+        _state.update {
+            it.copy(
+                tagEditor = TagEditorModel(headword = card.headword, tags = card.tags),
+                tagEditorCardId = card.id,
+            )
+        }
+    }
+
+    fun closeTagEditor() {
+        _state.update { it.copy(tagEditor = null, tagEditorCardId = null) }
+    }
+
+    fun onTagDraftChange(draft: String) {
+        _state.update { it.copy(tagEditor = it.tagEditor?.copy(draft = draft)) }
+    }
+
+    fun addTag() {
+        _state.update { state ->
+            val editor = state.tagEditor ?: return@update state
+            state.copy(
+                tagEditor = editor.copy(
+                    tags = Tags.withAdded(editor.tags, editor.draft),
+                    draft = "",
+                ),
+            )
+        }
+    }
+
+    fun removeTag(tag: String) {
+        _state.update { state ->
+            val editor = state.tagEditor ?: return@update state
+            state.copy(tagEditor = editor.copy(tags = Tags.without(editor.tags, tag)))
+        }
+    }
+
+    fun saveTags() {
+        val cardId = _state.value.tagEditorCardId ?: return
+        val editor = _state.value.tagEditor ?: return
+        viewModelScope.launch {
+            try {
+                cards.updateTags(cardId, editor.tags)
+                _state.update { state ->
+                    state.copy(
+                        queue = state.queue.map { reviewCard ->
+                            if (reviewCard.card.id == cardId) {
+                                reviewCard.copy(card = reviewCard.card.copy(tags = editor.tags))
+                            } else {
+                                reviewCard
+                            }
+                        },
+                        tagEditor = null,
+                        tagEditorCardId = null,
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                // Keep the sheet open so the edit is not silently lost.
+            }
+        }
+    }
+}
+
+internal fun DictionaryEntry?.toDictionaryDetail(
+    headword: String,
+    fallbackMeaning: String?,
+): DictionaryDetailModel {
+    val entry = this
+    if (entry == null) {
+        return DictionaryDetailModel(
+            headword = headword,
+            fallbackMeaning = fallbackMeaning,
+            isKnown = false,
+        )
+    }
+    return DictionaryDetailModel(
+        headword = entry.lemma,
+        ipa = entry.ipa,
+        partOfSpeech = entry.wordClass?.storageValue,
+        difficulty = entry.difficulty,
+        senses = entry.senses.map { sense ->
+            DictionarySenseModel(definition = sense.definition, example = sense.example)
+        },
+        synonyms = entry.thesaurus.synonyms,
+        antonyms = entry.thesaurus.antonyms,
+        fallbackMeaning = fallbackMeaning,
+        isKnown = true,
+    )
 }

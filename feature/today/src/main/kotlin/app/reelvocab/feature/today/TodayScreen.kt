@@ -40,6 +40,9 @@ data object TodayRoute
 @Immutable
 data class TodayUiState(
     val streakDays: Int = 0,
+    val dueCount: Int = 0,
+    val cardCount: Int = 0,
+    val loading: Boolean = true,
 )
 
 @Composable
@@ -120,6 +123,16 @@ fun TodayScreen(
                 )
                 Spacer(Modifier.height(ReelTheme.spacing.xs))
                 Text(
+                    text = pluralStringResource(
+                        R.plurals.today_due_now,
+                        state.dueCount,
+                        state.dueCount,
+                    ),
+                    style = ReelTheme.type.titleM,
+                    color = if (state.dueCount > 0) colors.gold else colors.textSecondary,
+                )
+                Spacer(Modifier.height(ReelTheme.spacing.xs))
+                Text(
                     text = stringResource(R.string.today_review_body),
                     style = ReelTheme.type.bodyM,
                     color = colors.textSecondary,
@@ -133,14 +146,38 @@ fun TodayScreen(
             }
         }
 
-        item {
-            EmptyState(
-                title = stringResource(R.string.today_empty_title),
-                body = stringResource(R.string.today_empty_body),
-                ctaLabel = stringResource(R.string.today_cta_deck),
-                onCta = onOpenDeck,
-                illustration = ReelIllustration.Poster,
-            )
+        if (!state.loading && state.cardCount == 0) {
+            item {
+                EmptyState(
+                    title = stringResource(R.string.today_empty_title),
+                    body = stringResource(R.string.today_empty_body),
+                    ctaLabel = stringResource(R.string.today_cta_deck),
+                    onCta = onOpenDeck,
+                    illustration = ReelIllustration.Poster,
+                )
+            }
+        }
+
+        if (!state.loading && state.cardCount > 0) {
+            item {
+                CardSurface(onClick = onOpenDeck) {
+                    Text(
+                        text = stringResource(R.string.today_deck_title),
+                        style = ReelTheme.type.titleM,
+                        color = colors.textPrimary,
+                    )
+                    Spacer(Modifier.height(ReelTheme.spacing.xs))
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.today_deck_count,
+                            state.cardCount,
+                            state.cardCount,
+                        ),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.textSecondary,
+                    )
+                }
+            }
         }
     }
 }

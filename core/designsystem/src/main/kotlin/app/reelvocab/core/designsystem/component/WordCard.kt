@@ -2,6 +2,7 @@ package app.reelvocab.core.designsystem.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalMovies
@@ -58,6 +60,7 @@ data class WordCardModel(
     val difficulty: Int? = null,
     val synonyms: List<String> = emptyList(),
     val antonyms: List<String> = emptyList(),
+    val tags: List<String> = emptyList(),
 )
 
 @Composable
@@ -139,6 +142,20 @@ fun WordCard(
             overflow = TextOverflow.Ellipsis,
         )
 
+        if (model.tags.isNotEmpty()) {
+            Spacer(Modifier.height(ReelTheme.spacing.m))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs),
+            ) {
+                model.tags.forEach { tag ->
+                    TagChip(text = tag, onClick = onTag)
+                }
+            }
+        }
+
         if (model.synonyms.isNotEmpty() || model.antonyms.isNotEmpty()) {
             Spacer(Modifier.height(ReelTheme.spacing.m))
             Column(verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs)) {
@@ -171,13 +188,13 @@ fun WordCard(
         }
 
         val sourceTitle = model.sourceTitle
-        if (sourceTitle != null) {
-            Spacer(Modifier.height(ReelTheme.spacing.m))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        Spacer(Modifier.height(ReelTheme.spacing.m))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (sourceTitle != null) {
                 Box(modifier = Modifier.weight(1f)) {
                     SourceChip(
                         title = sourceTitle,
@@ -185,20 +202,22 @@ fun WordCard(
                         tint = model.sourceTint,
                     )
                 }
-                IconButton(onClick = onTag) {
-                    Icon(
-                        imageVector = Icons.Filled.Style,
-                        contentDescription = labels.tag,
-                        tint = colors.textTertiary,
-                    )
-                }
-                IconButton(onClick = onMore) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreHoriz,
-                        contentDescription = labels.more,
-                        tint = colors.textTertiary,
-                    )
-                }
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
+            IconButton(onClick = onTag) {
+                Icon(
+                    imageVector = Icons.Filled.Style,
+                    contentDescription = labels.tag,
+                    tint = colors.textTertiary,
+                )
+            }
+            IconButton(onClick = onMore) {
+                Icon(
+                    imageVector = Icons.Filled.MoreHoriz,
+                    contentDescription = labels.more,
+                    tint = colors.textTertiary,
+                )
             }
         }
     }

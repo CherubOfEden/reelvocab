@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,7 +47,6 @@ import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.feature.capture.CaptureSessionService
 import app.reelvocab.feature.deck.DeckRoute
 import app.reelvocab.feature.deck.DeckScreen
-import app.reelvocab.feature.deck.DeckUiState
 import app.reelvocab.feature.library.LibraryRoute
 import app.reelvocab.feature.library.LibraryScreen
 import app.reelvocab.feature.media.MediaRoute
@@ -64,7 +64,7 @@ import app.reelvocab.feature.today.ReviewRoute
 import app.reelvocab.feature.today.ReviewScreen
 import app.reelvocab.feature.today.TodayRoute
 import app.reelvocab.feature.today.TodayScreen
-import app.reelvocab.feature.today.TodayUiState
+import app.reelvocab.feature.today.TodayViewModel
 import app.reelvocab.ui.DesignSystemGallery
 import app.reelvocab.ui.DictionaryProbeRoute
 import app.reelvocab.ui.DictionaryProbeScreen
@@ -114,8 +114,13 @@ fun MainScaffold(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable<TodayRoute> {
+                val todayViewModel: TodayViewModel = hiltViewModel()
+                val todayState by todayViewModel.state.collectAsStateWithLifecycle()
+                LaunchedEffect(Unit) {
+                    todayViewModel.refresh()
+                }
                 TodayScreen(
-                    state = TodayUiState(),
+                    state = todayState,
                     onOpenSettings = { navController.navigate(SettingsRoute) },
                     onOpenDeck = { navController.navigateTab(ReelTab.Deck) },
                     onStartReview = { navController.navigate(ReviewRoute) },
@@ -129,13 +134,7 @@ fun MainScaffold(modifier: Modifier = Modifier) {
             composable<DeckRoute> { entry ->
                 val route = entry.toRoute<DeckRoute>()
                 DeckScreen(
-                    state = DeckUiState(filter = route.filter),
-                    onFilterChange = { filter ->
-                        navController.navigate(DeckRoute(filter)) {
-                            popUpTo<DeckRoute> { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
+                    initialFilter = route.filter,
                     onOpenLibrary = { navController.navigateTab(ReelTab.Library) },
                 )
             }

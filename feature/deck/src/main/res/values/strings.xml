@@ -1,11 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="deck_title">Deck</string>
+    <plurals name="deck_count">
+        <item quantity="one">%d saved card</item>
+        <item quantity="other">%d saved cards</item>
+    </plurals>
     <string name="deck_filter_all">All</string>
     <string name="deck_filter_due">Due</string>
     <string name="deck_filter_words">Words</string>
     <string name="deck_filter_sentences">Sentences</string>
+    <string name="deck_search_hint">Search words, tags, films</string>
+    <string name="deck_search_clear">Clear search</string>
     <string name="deck_empty_title">No cards yet</string>
     <string name="deck_empty_body">Every word you keep from a film becomes a card here, with its line, its timestamp and its meaning in that scene.</string>
     <string name="deck_cta_library">See the library</string>
+    <string name="deck_no_results_title">Nothing matches yet</string>
+    <string name="deck_no_results_body">Try another word, a tag, or the film title.</string>
+    <string name="deck_clear_search">Clear search</string>
+
+    <string name="deck_ai_badge">AI</string>
+    <string name="deck_play">Play pronunciation</string>
+    <string name="deck_edit_tags">Edit tags</string>
+    <string name="deck_more">More options</string>
+    <string name="deck_synonyms">Same as</string>
+    <string name="deck_antonyms">Opposite</string>
+
+    <string name="deck_dictionary_title">Dictionary</string>
+    <string name="deck_definitions">Definitions</string>
+    <string name="deck_not_found">Not in the offline dictionary. Showing the meaning saved with this card.</string>
+    <string name="deck_lookup">Looking up in the dictionary…</string>
+    <string name="deck_close">Close</string>
+
+    <string name="deck_tags_title">Tags</string>
+    <string name="deck_tag_hint">Add a tag</string>
+    <string name="deck_tag_add">Add tag</string>
+    <string name="deck_tag_save">Save tags</string>
+    <string name="deck_tag_empty">No tags yet. Add one to find this card later by mood, film, or grammar.</string>
+    <string name="deck_tag_remove">Remove tag</string>
 </resources>

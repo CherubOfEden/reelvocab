@@ -8,6 +8,7 @@ import app.reelvocab.core.data.cards.CardRepositoryImpl
 import app.reelvocab.core.data.db.CardDao
 import app.reelvocab.core.data.db.FilmDao
 import app.reelvocab.core.data.db.MIGRATION_1_2
+import app.reelvocab.core.data.db.MIGRATION_2_3
 import app.reelvocab.core.data.db.ReelDatabase
 import app.reelvocab.core.data.db.ReviewDao
 import app.reelvocab.core.data.db.WordDao
@@ -41,7 +42,7 @@ object DataModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ReelDatabase =
         Room.databaseBuilder(context, ReelDatabase::class.java, "reelvocab.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides

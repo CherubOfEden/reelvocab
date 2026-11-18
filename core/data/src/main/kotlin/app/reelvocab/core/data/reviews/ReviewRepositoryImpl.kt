@@ -14,6 +14,7 @@ import app.reelvocab.core.domain.scheduler.Sm2Scheduler
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 @Singleton
 class ReviewRepositoryImpl @Inject constructor(
@@ -23,6 +24,9 @@ class ReviewRepositoryImpl @Inject constructor(
 
     override fun observeDueCount(nowEpochMs: Long): Flow<Int> =
         reviewDao.observeDueCount(nowEpochMs)
+
+    override fun observeDueCardIds(nowEpochMs: Long): Flow<Set<Long>> =
+        reviewDao.observeDueCardIds(nowEpochMs).map { it.toSet() }
 
     override suspend fun dueCards(nowEpochMs: Long, limit: Int): List<ReviewCard> =
         reviewDao.due(nowEpochMs, limit).mapNotNull { review ->

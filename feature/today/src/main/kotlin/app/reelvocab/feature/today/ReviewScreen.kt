@@ -1,6 +1,7 @@
 package app.reelvocab.feature.today
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,12 +25,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.reelvocab.core.designsystem.component.DictionaryDetailLabels
+import app.reelvocab.core.designsystem.component.DictionaryDetailSheet
 import app.reelvocab.core.designsystem.component.EmptyState
 import app.reelvocab.core.designsystem.component.GradeBar
 import app.reelvocab.core.designsystem.component.GradeLabels
 import app.reelvocab.core.designsystem.component.GradeTone
 import app.reelvocab.core.designsystem.component.ReelButton
 import app.reelvocab.core.designsystem.component.ReelButtonStyle
+import app.reelvocab.core.designsystem.component.TagEditorLabels
+import app.reelvocab.core.designsystem.component.TagEditorSheet
 import app.reelvocab.core.designsystem.component.WordCard
 import app.reelvocab.core.designsystem.component.WordCardLabels
 import app.reelvocab.core.designsystem.component.WordCardModel
@@ -54,64 +59,106 @@ fun ReviewScreen(
         viewModel.start()
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = ReelTheme.spacing.screenH),
+    Box(
+        modifier = modifier.fillMaxSize(),
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = ReelTheme.spacing.m),
-            verticalAlignment = Alignment.CenterVertically,
+                .fillMaxSize()
+                .padding(horizontal = ReelTheme.spacing.screenH),
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.review_back),
-                    tint = colors.textPrimary,
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = ReelTheme.spacing.m),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.review_back),
+                        tint = colors.textPrimary,
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.review_title),
+                    style = ReelTheme.type.titleL,
+                    color = colors.textPrimary,
                 )
             }
-            Text(
-                text = stringResource(R.string.review_title),
-                style = ReelTheme.type.titleL,
-                color = colors.textPrimary,
+
+            when {
+                state.loading -> Text(
+                    text = stringResource(R.string.review_loading),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(top = ReelTheme.spacing.l),
+                )
+
+                state.empty -> Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    EmptyState(
+                        title = stringResource(R.string.review_empty_title),
+                        body = stringResource(R.string.review_empty_body),
+                        ctaLabel = stringResource(R.string.review_empty_cta),
+                        onCta = onBack,
+                    )
+                }
+
+                state.finished -> ReviewDone(onBack = onBack)
+
+                else -> {
+                    val current = state.current
+                    if (current != null) {
+                        ReviewBody(
+                            card = current,
+                            position = state.position + 1,
+                            total = state.queue.size,
+                            onGrade = viewModel::grade,
+                            onOpenDetail = viewModel::openDetail,
+                            onOpenTags = viewModel::openTagEditor,
+                        )
+                    }
+                }
+            }
+        }
+
+        state.detail?.let { detail ->
+            DictionaryDetailSheet(
+                model = detail,
+                loading = state.detailLoading,
+                labels = DictionaryDetailLabels(
+                    title = stringResource(R.string.review_dictionary_title),
+                    definitions = stringResource(R.string.review_definitions),
+                    synonyms = stringResource(R.string.review_synonyms),
+                    antonyms = stringResource(R.string.review_antonyms),
+                    notFound = stringResource(R.string.review_not_found),
+                    loading = stringResource(R.string.review_lookup),
+                    close = stringResource(R.string.review_close),
+                ),
+                onDismiss = viewModel::closeDetail,
             )
         }
 
-        when {
-            state.loading -> Text(
-                text = stringResource(R.string.review_loading),
-                style = ReelTheme.type.bodyM,
-                color = colors.textSecondary,
-                modifier = Modifier.padding(top = ReelTheme.spacing.l),
+        state.tagEditor?.let { editor ->
+            TagEditorSheet(
+                model = editor,
+                labels = TagEditorLabels(
+                    title = stringResource(R.string.review_tags_title),
+                    hint = stringResource(R.string.review_tag_hint),
+                    add = stringResource(R.string.review_tag_add),
+                    save = stringResource(R.string.review_tag_save),
+                    empty = stringResource(R.string.review_tag_empty),
+                    removeDescription = stringResource(R.string.review_tag_remove),
+                ),
+                onDraftChange = viewModel::onTagDraftChange,
+                onAdd = viewModel::addTag,
+                onRemove = viewModel::removeTag,
+                onSave = viewModel::saveTags,
+                onDismiss = viewModel::closeTagEditor,
             )
-
-            state.empty -> Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-            ) {
-                EmptyState(
-                    title = stringResource(R.string.review_empty_title),
-                    body = stringResource(R.string.review_empty_body),
-                    ctaLabel = stringResource(R.string.review_empty_cta),
-                    onCta = onBack,
-                )
-            }
-
-            state.finished -> ReviewDone(onBack = onBack)
-
-            else -> {
-                val current = state.current
-                if (current != null) {
-                    ReviewBody(
-                        card = current,
-                        position = state.position + 1,
-                        total = state.queue.size,
-                        onGrade = viewModel::grade,
-                    )
-                }
-            }
         }
     }
 }
@@ -122,6 +169,8 @@ private fun ReviewBody(
     position: Int,
     total: Int,
     onGrade: (ReviewGrade) -> Unit,
+    onOpenDetail: () -> Unit,
+    onOpenTags: () -> Unit,
 ) {
     val colors = ReelTheme.colors
     val labels = GradeLabels(
@@ -151,6 +200,7 @@ private fun ReviewBody(
         isAiContext = false,
         hasAudio = card.card.hasAudio,
         difficulty = null,
+        tags = card.card.tags,
     )
 
     Column(
@@ -172,10 +222,10 @@ private fun ReviewBody(
             WordCard(
                 model = model,
                 labels = cardLabels,
-                onClick = {},
+                onClick = onOpenDetail,
                 onTts = {},
-                onTag = {},
-                onMore = {},
+                onTag = onOpenTags,
+                onMore = onOpenDetail,
             )
         }
         GradeBar(

@@ -1,5 +1,6 @@
 package app.reelvocab.core.data.cards
 
+import app.reelvocab.core.common.Tags
 import app.reelvocab.core.data.db.CardDao
 import app.reelvocab.core.data.db.CardEntity
 import app.reelvocab.core.data.db.ReviewDao
@@ -40,6 +41,7 @@ class CardRepositoryImpl @Inject constructor(
                 sourceTimestampMs = card.sourceTimestampMs,
                 hasAudio = card.hasAudio,
                 createdAtEpochMs = now,
+                tags = Tags.encode(card.tags),
             ),
         )
         reviewDao.upsert(Sm2Scheduler.initial(id, now).toEntity())
@@ -47,4 +49,8 @@ class CardRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteCard(id: Long) = cardDao.delete(id)
+
+    override suspend fun updateTags(cardId: Long, tags: List<String>) {
+        cardDao.updateTags(cardId, Tags.encode(tags))
+    }
 }
