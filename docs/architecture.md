@@ -123,12 +123,16 @@ local media with `MediaStore` (`mp4`, `mkv`, common audio), with a SAF
 ## Enrichment and transcription
 
 - `EnrichmentService` and `TranscriptionService` are interfaces in
-  `:core:domain`. M2 ships deterministic fakes:
-  - dictionary lookup first (IPA, definitions, thesaurus);
-  - fallback definition when the word is unknown;
-  - transcription returns a canned line keyed by clip name.
-- M5 replaces the fakes with on-device implementations; call sites and tests
-  do not change.
+  `:core:domain`.
+- Enrichment is dictionary first (IPA, definitions, thesaurus). Unknown words
+  fall back to "not in the offline dictionary".
+- Optional cloud definitions (M5): when enabled in Settings with a
+  chat-completions URL and model, the router asks that endpoint once for the
+  unknown headword plus film line. Any timeout, HTTP error, or empty answer
+  silently falls back offline, so capture never blocks. Off by default; only
+  those two fields leave the device. Dictionary lookups stay local.
+- Transcription remains the deterministic fake until the on-device recognizer
+  lands.
 
 ## Motion, type, colour
 

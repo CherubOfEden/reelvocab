@@ -27,6 +27,9 @@ semantic versioning once it ships.
   notification that opens the app; only fires with notification permission.
 - Morning review screen with the shared word card and the Again/Hard/Good/Easy
   grade bar, entered from Today.
+- Optional cloud definitions for words missing from `dict.db`: off by default,
+  OpenAI-compatible chat endpoint, dictionary results still win, failures fall
+  back offline. Configured in Settings and stored on-device.
 - Thesaurus rows on the word card (synonyms in teal, antonyms in rose), plus a
   debug-only dictionary probe screen reachable from Settings.
 

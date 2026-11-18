@@ -28,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -51,9 +53,12 @@ import app.reelvocab.feature.media.MediaRoute
 import app.reelvocab.feature.media.MediaScreen
 import app.reelvocab.feature.media.PlayerRoute
 import app.reelvocab.feature.media.PlayerScreen
+import app.reelvocab.feature.settings.CloudSettingsUi
 import app.reelvocab.feature.settings.SettingsRoute
 import app.reelvocab.reminders.ReminderPrefs
 import app.reelvocab.reminders.ReminderScheduler
+import app.reelvocab.ui.CloudSettingsState
+import app.reelvocab.ui.CloudSettingsViewModel
 import app.reelvocab.feature.settings.SettingsScreen
 import app.reelvocab.feature.today.ReviewRoute
 import app.reelvocab.feature.today.ReviewScreen
@@ -158,6 +163,8 @@ fun MainScaffold(modifier: Modifier = Modifier) {
             }
 
             composable<SettingsRoute> {
+                val cloudViewModel: CloudSettingsViewModel = hiltViewModel()
+                val cloudState by cloudViewModel.state.collectAsStateWithLifecycle()
                 var reminderEnabled by remember {
                     mutableStateOf(ReminderPrefs.isEnabled(context))
                 }
@@ -209,6 +216,22 @@ fun MainScaffold(modifier: Modifier = Modifier) {
                             ReminderScheduler.cancel(context)
                         }
                         reminderEnabled = enabled
+                    },
+                    cloud = CloudSettingsUi(
+                        enabled = cloudState.enabled,
+                        endpoint = cloudState.endpoint,
+                        model = cloudState.model,
+                        apiKey = cloudState.apiKey,
+                    ),
+                    onCloudChange = { ui ->
+                        cloudViewModel.save(
+                            CloudSettingsState(
+                                enabled = ui.enabled,
+                                endpoint = ui.endpoint,
+                                model = ui.model,
+                                apiKey = ui.apiKey,
+                            ),
+                        )
                     },
                 )
             }

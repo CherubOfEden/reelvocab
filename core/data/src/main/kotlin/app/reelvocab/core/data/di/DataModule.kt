@@ -12,6 +12,7 @@ import app.reelvocab.core.data.db.ReelDatabase
 import app.reelvocab.core.data.db.ReviewDao
 import app.reelvocab.core.data.db.WordDao
 import app.reelvocab.core.data.dictionary.DictionaryRepositoryImpl
+import app.reelvocab.core.data.enrichment.EnrichmentRouter
 import app.reelvocab.core.data.enrichment.FakeEnrichmentService
 import app.reelvocab.core.data.enrichment.FakeTranscriptionService
 import app.reelvocab.core.data.reviews.ReviewRepositoryImpl
@@ -74,7 +75,7 @@ abstract class DataBindingsModule {
 
     @Binds
     @Singleton
-    abstract fun bindEnrichmentService(impl: FakeEnrichmentService): EnrichmentService
+    abstract fun bindEnrichmentService(impl: EnrichmentRouter): EnrichmentService
 
     @Binds
     @Singleton

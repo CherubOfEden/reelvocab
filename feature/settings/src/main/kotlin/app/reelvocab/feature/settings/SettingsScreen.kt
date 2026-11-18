@@ -13,17 +13,28 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import app.reelvocab.core.designsystem.component.CardSurface
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import kotlinx.serialization.Serializable
 
 @Serializable
 data object SettingsRoute
+
+@Immutable
+data class CloudSettingsUi(
+    val enabled: Boolean = false,
+    val endpoint: String = "",
+    val model: String = "",
+    val apiKey: String = "",
+)
 
 @Composable
 fun SettingsScreen(
@@ -34,6 +45,8 @@ fun SettingsScreen(
     onEnableFloatingCapture: (() -> Unit)? = null,
     reminderEnabled: Boolean = false,
     onToggleReminder: (() -> Unit)? = null,
+    cloud: CloudSettingsUi = CloudSettingsUi(),
+    onCloudChange: ((CloudSettingsUi) -> Unit)? = null,
 ) {
     val colors = ReelTheme.colors
 
@@ -102,6 +115,61 @@ fun SettingsScreen(
                 ),
                 onClick = onToggleReminder,
             )
+        }
+
+        item {
+            SettingsSectionHeader(text = stringResource(R.string.settings_section_cloud))
+        }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_cloud_toggle),
+                value = stringResource(
+                    if (cloud.enabled) {
+                        R.string.settings_cloud_on
+                    } else {
+                        R.string.settings_cloud_off
+                    },
+                ),
+                onClick = onCloudChange?.let { change ->
+                    { change(cloud.copy(enabled = !cloud.enabled)) }
+                },
+            )
+        }
+        if (cloud.enabled && onCloudChange != null) {
+            item {
+                CardSurface {
+                    OutlinedTextField(
+                        value = cloud.endpoint,
+                        onValueChange = { value -> onCloudChange(cloud.copy(endpoint = value)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.settings_cloud_endpoint)) },
+                    )
+                    Spacer(Modifier.height(ReelTheme.spacing.s))
+                    OutlinedTextField(
+                        value = cloud.model,
+                        onValueChange = { value -> onCloudChange(cloud.copy(model = value)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.settings_cloud_model)) },
+                    )
+                    Spacer(Modifier.height(ReelTheme.spacing.s))
+                    OutlinedTextField(
+                        value = cloud.apiKey,
+                        onValueChange = { value -> onCloudChange(cloud.copy(apiKey = value)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.settings_cloud_key)) },
+                        visualTransformation = PasswordVisualTransformation(),
+                    )
+                    Spacer(Modifier.height(ReelTheme.spacing.s))
+                    Text(
+                        text = stringResource(R.string.settings_cloud_note),
+                        style = ReelTheme.type.label,
+                        color = colors.textTertiary,
+                    )
+                }
+            }
         }
 
         item {

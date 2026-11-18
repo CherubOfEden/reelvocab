@@ -101,7 +101,7 @@ pill, use the notification Stop action, or wait 15 minutes to end a session.
 | M2 ✅ | Data foundation: Room, bundled dictionary with thesaurus, enrichment and transcription fakes |
 | M3 ✅ | PIP-style floating pill, capture session with OCR overlay, in-app media player |
 | M4 ✅ | SM-2 scheduler, morning review, opt-in 08:00 reminder |
-| M5 | Deck and library content, search, tags, dictionary detail |
+| M5 🚧 | Cloud definitions opt-in shipped; deck search/tags and dictionary detail remain |
 | M6 | Settings depth, reminders, full-screen alarm |
 | M7 | Encryption hardening, export, accessibility pass |
 | M8 | Gated billing stub |
