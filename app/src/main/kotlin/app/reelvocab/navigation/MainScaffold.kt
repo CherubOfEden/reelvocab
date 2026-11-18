@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,6 +46,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -64,6 +66,7 @@ import app.reelvocab.feature.media.MediaRoute
 import app.reelvocab.feature.media.MediaScreen
 import app.reelvocab.feature.media.PlayerRoute
 import app.reelvocab.feature.media.PlayerScreen
+import app.reelvocab.feature.media.PlayerTrack
 import app.reelvocab.feature.settings.CloudSettingsUi
 import app.reelvocab.feature.settings.SettingsRoute
 import app.reelvocab.feature.settings.SettingsScreen
@@ -85,6 +88,8 @@ import app.reelvocab.ui.DictionaryProbeScreen
 import app.reelvocab.ui.LicensesRoute
 import app.reelvocab.ui.LicensesScreen
 import kotlin.reflect.KClass
+import kotlin.reflect.typeOf
+import kotlinx.serialization.json.Json
 
 private enum class ReelTab(
     val labelRes: Int,
@@ -97,6 +102,23 @@ private enum class ReelTab(
     Dictionary(R.string.tab_dictionary, Icons.Filled.Search, DictionaryRoute, DictionaryRoute::class),
     Library(R.string.tab_library, Icons.Filled.Book, LibraryRoute, LibraryRoute::class),
     Media(R.string.tab_media, Icons.Filled.PlayCircle, MediaRoute, MediaRoute::class),
+}
+
+private object PlayerTrackListNavType : NavType<List<PlayerTrack>>(isNullableAllowed = false) {
+    override val name: String = "List<PlayerTrack>"
+
+    override fun put(bundle: Bundle, key: String, value: List<PlayerTrack>) {
+        bundle.putString(key, Json.encodeToString(value))
+    }
+
+    override fun get(bundle: Bundle, key: String): List<PlayerTrack>? =
+        bundle.getString(key)?.let { Json.decodeFromString(it) }
+
+    override fun parseValue(value: String): List<PlayerTrack> =
+        Json.decodeFromString(value)
+
+    override fun serializeAsValue(value: List<PlayerTrack>): String =
+        Uri.encode(Json.encodeToString(value))
 }
 
 @Composable
@@ -229,7 +251,9 @@ fun MainScaffold(
                 )
             }
 
-            composable<PlayerRoute> { entry ->
+            composable<PlayerRoute>(
+                typeMap = mapOf(typeOf<List<PlayerTrack>>() to PlayerTrackListNavType),
+            ) { entry ->
                 val route = entry.toRoute<PlayerRoute>()
                 PlayerScreen(
                     route = route,
