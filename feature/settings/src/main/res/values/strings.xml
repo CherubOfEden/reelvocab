@@ -6,7 +6,11 @@
     <string name="settings_plan_value">Free — billing arrives later</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_appearance_label">Theme</string>
-    <string name="settings_appearance_value">Follows the system</string>
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_system">Follow the system</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_close">Close</string>
     <string name="settings_section_capture">Capture</string>
     <string name="settings_floating_capture_label">Floating word pill</string>
     <string name="settings_floating_capture_value">Tap over any app</string>
@@ -18,6 +22,10 @@
     <string name="settings_time_cancel">Cancel</string>
     <string name="settings_reminder_on">On</string>
     <string name="settings_reminder_off">Off</string>
+    <string name="settings_full_screen_label">Full-screen morning alarm</string>
+    <string name="settings_full_screen_allow_label">Allow full-screen alarms</string>
+    <string name="settings_full_screen_blocked">Not allowed yet</string>
+    <string name="settings_full_screen_summary">When the reminder fires, ReelVocab can wake the screen and open the morning review over the lock screen. Android may ask you to allow full-screen alarms.</string>
     <string name="settings_section_cloud">AI dictionary</string>
     <string name="settings_ai_title">Define words your dictionary misses</string>
     <string name="settings_ai_summary">The bundled offline dictionary is always used first. Missing words fall back to the free Dictionary API while online. You can optionally add an AI endpoint for slang, phrases and unusual context.</string>
@@ -29,6 +37,7 @@
     <string name="settings_cloud_key">API key (optional)</string>
     <string name="settings_cloud_note">The offline dictionary is always tried first, then the free Dictionary API when you are online. Turning this on sends only the word and its film line to your own AI endpoint for tough phrases. The key stays on this device.</string>
     <string name="settings_section_about">About</string>
+    <string name="settings_version_label">Version</string>
     <string name="settings_licenses_label">Fonts and licences</string>
     <string name="settings_design_system_label">Design system (debug)</string>
     <string name="settings_privacy_title">Your data stays here</string>

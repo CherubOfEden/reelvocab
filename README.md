@@ -9,10 +9,11 @@ no analytics.
 
 ## Status
 
-`0.1.0` — milestones **M1–M5** are done and the **M5.5 polish** pass is landing.
-The app has a five-tab navigation shell, offline dictionary with an optional online
-fallback, persistent floating capture, SM-2 review, a searchable deck with tags and
-deletion, a media hub, and an adaptive local player.
+`0.1.0` — milestones **M1–M6** are done. The app has a five-tab navigation shell,
+offline dictionary with an
+optional online fallback, persistent floating capture, SM-2 review, a searchable
+deck with tags and deletion, a media hub, an adaptive local player, an app-wide
+theme choice, and an opt-in full-screen morning alarm.
 
 ## Building
 
@@ -74,7 +75,8 @@ the live theme.
 
 Nothing is requested during onboarding. Screen capture, microphone,
 notifications, and "display over other apps" are each requested the first time
-their feature is used. The floating word pill is a PIP-style overlay drawn with
+their feature is used. The full-screen morning alarm is opt-in; on Android 14+
+Settings shows a shortcut when the system still needs to allow it. The floating word pill is a PIP-style overlay drawn with
 `SYSTEM_ALERT_WINDOW`, not the PiP API: it must sit above other apps without
 replacing the video surface.
 
@@ -105,7 +107,7 @@ no Play Services model download.
 | M4 ✅ | SM-2 scheduler, morning review, opt-in 08:00 reminder |
 | M5 ✅ | Deck search and tags, dictionary detail sheet, due-count wiring, optional cloud definitions |
 | M5.5 ✅ | Five-tab shell, persistent small pill, capture preview/phrase selection, deck delete, dictionary tab, media hub, reminder time picker, AI settings |
-| M6 | Settings depth, full-screen alarm |
+| M6 ✅ | Settings depth, theme choice, full-screen alarm |
 | M7 | Encryption hardening, export, accessibility pass |
 | M8 | Gated billing stub |
 | M9 | Release polish, store metadata |

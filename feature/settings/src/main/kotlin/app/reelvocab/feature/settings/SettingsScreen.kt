@@ -1,5 +1,6 @@
 package app.reelvocab.feature.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,6 +17,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -38,6 +41,12 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object SettingsRoute
 
+enum class ThemeMode(val labelRes: Int) {
+    System(R.string.settings_theme_system),
+    Dark(R.string.settings_theme_dark),
+    Light(R.string.settings_theme_light),
+}
+
 @Immutable
 data class CloudSettingsUi(
     val enabled: Boolean = false,
@@ -53,16 +62,24 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onOpenDictionaryProbe: (() -> Unit)? = null,
     onEnableFloatingCapture: (() -> Unit)? = null,
+    themeMode: ThemeMode = ThemeMode.System,
+    onThemeModeChange: ((ThemeMode) -> Unit)? = null,
     reminderEnabled: Boolean = false,
     reminderHour: Int = 8,
     reminderMinute: Int = 0,
     onToggleReminder: (() -> Unit)? = null,
     onReminderTimeChange: ((Int, Int) -> Unit)? = null,
+    fullScreenAlarm: Boolean = true,
+    fullScreenAlarmAvailable: Boolean = true,
+    onToggleFullScreenAlarm: (() -> Unit)? = null,
+    onOpenFullScreenAlarmSettings: (() -> Unit)? = null,
+    appVersion: String = "",
     cloud: CloudSettingsUi = CloudSettingsUi(),
     onCloudChange: ((CloudSettingsUi) -> Unit)? = null,
 ) {
     val colors = ReelTheme.colors
     var showTimePicker by remember { mutableStateOf(false) }
+    var showThemePicker by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -169,7 +186,12 @@ fun SettingsScreen(
         item {
             SettingsRow(
                 label = stringResource(R.string.settings_appearance_label),
-                value = stringResource(R.string.settings_appearance_value),
+                value = stringResource(themeMode.labelRes),
+                onClick = if (onThemeModeChange != null) {
+                    { showThemePicker = true }
+                } else {
+                    null
+                },
             )
         }
 
@@ -211,9 +233,50 @@ fun SettingsScreen(
                 },
             )
         }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_full_screen_label),
+                value = stringResource(
+                    if (fullScreenAlarm) {
+                        R.string.settings_reminder_on
+                    } else {
+                        R.string.settings_reminder_off
+                    },
+                ),
+                onClick = onToggleFullScreenAlarm,
+            )
+        }
+        if (fullScreenAlarm && !fullScreenAlarmAvailable) {
+            item {
+                SettingsRow(
+                    label = stringResource(R.string.settings_full_screen_allow_label),
+                    value = stringResource(R.string.settings_full_screen_blocked),
+                    onClick = onOpenFullScreenAlarmSettings,
+                )
+            }
+        }
+        if (fullScreenAlarm) {
+            item {
+                CardSurface {
+                    Text(
+                        text = stringResource(R.string.settings_full_screen_summary),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.textSecondary,
+                    )
+                }
+            }
+        }
 
         item {
             SettingsSectionHeader(text = stringResource(R.string.settings_section_about))
+        }
+        if (appVersion.isNotEmpty()) {
+            item {
+                SettingsRow(
+                    label = stringResource(R.string.settings_version_label),
+                    value = appVersion,
+                )
+            }
         }
         item {
             SettingsRow(
@@ -269,6 +332,76 @@ fun SettingsScreen(
             onDismiss = { showTimePicker = false },
         )
     }
+
+    if (showThemePicker && onThemeModeChange != null) {
+        ThemePickerDialog(
+            selected = themeMode,
+            onSelect = { mode ->
+                onThemeModeChange(mode)
+                showThemePicker = false
+            },
+            onDismiss = { showThemePicker = false },
+        )
+    }
+}
+
+@Composable
+private fun ThemePickerDialog(
+    selected: ThemeMode,
+    onSelect: (ThemeMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = ReelTheme.colors
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.elevated,
+        titleContentColor = colors.textPrimary,
+        textContentColor = colors.textSecondary,
+        title = {
+            Text(
+                text = stringResource(R.string.settings_theme_title),
+                style = ReelTheme.type.titleM,
+            )
+        },
+        text = {
+            Column {
+                ThemeMode.entries.forEach { mode ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(mode) }
+                            .padding(vertical = ReelTheme.spacing.s),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = mode == selected,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = colors.gold,
+                                unselectedColor = colors.textTertiary,
+                            ),
+                        )
+                        Text(
+                            text = stringResource(mode.labelRes),
+                            style = ReelTheme.type.bodyL,
+                            color = colors.textPrimary,
+                            modifier = Modifier.padding(start = ReelTheme.spacing.s),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.settings_close),
+                    style = ReelTheme.type.label,
+                    color = colors.textSecondary,
+                )
+            }
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

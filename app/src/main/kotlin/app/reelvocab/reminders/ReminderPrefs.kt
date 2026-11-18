@@ -9,6 +9,7 @@ object ReminderPrefs {
     private const val KEY_MORNING_ENABLED = "morning_enabled"
     private const val KEY_MORNING_HOUR = "morning_hour"
     private const val KEY_MORNING_MINUTE = "morning_minute"
+    private const val KEY_FULL_SCREEN = "morning_full_screen"
 
     const val DEFAULT_HOUR = 8
     const val DEFAULT_MINUTE = 0
@@ -32,6 +33,13 @@ object ReminderPrefs {
             .putInt(KEY_MORNING_HOUR, hour.coerceIn(0, 23))
             .putInt(KEY_MORNING_MINUTE, minute.coerceIn(0, 59))
             .apply()
+    }
+
+    fun fullScreen(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_FULL_SCREEN, true)
+
+    fun setFullScreen(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_FULL_SCREEN, enabled).apply()
     }
 
     fun timeLabel(context: Context): String =

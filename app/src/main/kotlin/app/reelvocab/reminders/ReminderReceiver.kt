@@ -33,40 +33,56 @@ class ReminderReceiver : BroadcastReceiver() {
 
         createChannel(context)
 
-        val contentIntent = PendingIntent.getActivity(
+        val reviewIntent = Intent(context, MainActivity::class.java)
+            .putExtra(MainActivity.EXTRA_OPEN_REVIEW, true)
+            .addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
+            )
+        val reviewPendingIntent = PendingIntent.getActivity(
             context,
-            0,
-            Intent(context, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            REVIEW_REQUEST_CODE,
+            reviewIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(R.string.reminder_title))
             .setContentText(context.getString(R.string.reminder_body))
-            .setContentIntent(contentIntent)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(reviewPendingIntent)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
-            .build()
+
+        if (ReminderPrefs.fullScreen(context) && FullScreenAlarms.isAllowed(context)) {
+            builder.setFullScreenIntent(reviewPendingIntent, true)
+        }
 
         runCatching {
-            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, builder.build())
         }
     }
 
     private fun createChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        manager.deleteNotificationChannel(LEGACY_CHANNEL_ID)
         val channel = NotificationChannel(
             CHANNEL_ID,
             context.getString(R.string.reminder_channel_name),
-            NotificationManager.IMPORTANCE_DEFAULT,
+            NotificationManager.IMPORTANCE_HIGH,
         )
         channel.description = context.getString(R.string.reminder_channel_description)
+        channel.setShowBadge(false)
         manager.createNotificationChannel(channel)
     }
 
     private companion object {
-        const val CHANNEL_ID = "morning_review"
+        const val CHANNEL_ID = "morning_alarm"
+        const val LEGACY_CHANNEL_ID = "morning_review"
         const val NOTIFICATION_ID = 8201
+        const val REVIEW_REQUEST_CODE = 8202
     }
 }

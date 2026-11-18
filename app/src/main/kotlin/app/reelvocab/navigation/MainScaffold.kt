@@ -23,6 +23,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -36,6 +37,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -61,11 +65,13 @@ import app.reelvocab.feature.media.PlayerScreen
 import app.reelvocab.feature.settings.CloudSettingsUi
 import app.reelvocab.feature.settings.SettingsRoute
 import app.reelvocab.feature.settings.SettingsScreen
+import app.reelvocab.feature.settings.ThemeMode
 import app.reelvocab.feature.today.ReviewRoute
 import app.reelvocab.feature.today.ReviewScreen
 import app.reelvocab.feature.today.TodayRoute
 import app.reelvocab.feature.today.TodayScreen
 import app.reelvocab.feature.today.TodayViewModel
+import app.reelvocab.reminders.FullScreenAlarms
 import app.reelvocab.reminders.ReminderPrefs
 import app.reelvocab.reminders.ReminderScheduler
 import app.reelvocab.ui.CloudSettingsState
@@ -92,11 +98,26 @@ private enum class ReelTab(
 }
 
 @Composable
-fun MainScaffold(modifier: Modifier = Modifier) {
+fun MainScaffold(
+    modifier: Modifier = Modifier,
+    themeMode: ThemeMode = ThemeMode.System,
+    onThemeModeChange: ((ThemeMode) -> Unit)? = null,
+    openReviewRequest: Boolean = false,
+    onReviewRequestHandled: () -> Unit = {},
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+
+    LaunchedEffect(openReviewRequest) {
+        if (openReviewRequest) {
+            navController.navigate(ReviewRoute) {
+                launchSingleTop = true
+            }
+            onReviewRequestHandled()
+        }
+    }
     val selectedTab = ReelTab.entries.firstOrNull { tab ->
         tab.routeClass.qualifiedName?.let { name -> currentRoute?.contains(name) } == true
     } ?: ReelTab.Home
@@ -206,6 +227,22 @@ fun MainScaffold(modifier: Modifier = Modifier) {
                 var reminderMinute by remember {
                     mutableIntStateOf(ReminderPrefs.minute(context))
                 }
+                var fullScreenAlarm by remember {
+                    mutableStateOf(ReminderPrefs.fullScreen(context))
+                }
+                var fullScreenAvailable by remember {
+                    mutableStateOf(FullScreenAlarms.isAllowed(context))
+                }
+                val lifecycleOwner = LocalLifecycleOwner.current
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) {
+                            fullScreenAvailable = FullScreenAlarms.isAllowed(context)
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                }
                 val notificationPermission = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestPermission(),
                 ) { }
@@ -222,6 +259,8 @@ fun MainScaffold(modifier: Modifier = Modifier) {
                         null
                     },
                     onEnableFloatingCapture = startPip,
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange,
                     reminderEnabled = reminderEnabled,
                     reminderHour = reminderHour,
                     reminderMinute = reminderMinute,
@@ -254,6 +293,20 @@ fun MainScaffold(modifier: Modifier = Modifier) {
                             ReminderScheduler.schedule(context)
                         }
                     },
+                    fullScreenAlarm = fullScreenAlarm,
+                    fullScreenAlarmAvailable = fullScreenAvailable,
+                    onToggleFullScreenAlarm = {
+                        val enabled = !fullScreenAlarm
+                        ReminderPrefs.setFullScreen(context, enabled)
+                        fullScreenAlarm = enabled
+                        fullScreenAvailable = FullScreenAlarms.isAllowed(context)
+                    },
+                    onOpenFullScreenAlarmSettings = {
+                        FullScreenAlarms.settingsIntent(context)?.let { intent ->
+                            runCatching { context.startActivity(intent) }
+                        }
+                    },
+                    appVersion = BuildConfig.VERSION_NAME,
                     cloud = CloudSettingsUi(
                         enabled = cloudState.enabled,
                         endpoint = cloudState.endpoint,

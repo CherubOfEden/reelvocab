@@ -8,6 +8,12 @@ semantic versioning once it ships.
 
 ### Added
 
+- M6 settings depth: an app-wide System/Dark/Light theme choice that applies
+  immediately, a version row in About, and a full-screen morning alarm toggle.
+  The alarm channel is now high-importance with a full-screen intent; on Android
+  14+ Settings explains when the system still needs to allow full-screen
+  notifications and links straight to that screen. Tapping the reminder now opens
+  the morning review instead of the home tab.
 - M5.5 polish: five-tab shell (Home, Deck, Dictionary, Library, Media) with
   per-tab state, a compact persistent floating pill that no longer times out,
   capture previews and long-press phrase selection, deck-card deletion,
