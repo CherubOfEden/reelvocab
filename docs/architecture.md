@@ -47,7 +47,9 @@ Scheduling is SM-2 with the four grades the deck UI already uses. A new card is
 due at 08:00 the next morning; `Again` resets the ladder and reappears after ten
 minutes; `Hard`, `Good`, `Easy` map to qualities 3, 4, 5. Ease never drops below
 1.3. `Sm2Scheduler` is pure Kotlin in `:core:domain` and unit-tested with fixed
-clock and zone inputs. Reminder notifications are the remaining M4 piece.
+clock and zone inputs. The morning reminder is an inexact daily `AlarmManager`
+alarm at 08:00, opt-in from Settings, restored on boot, and gated on
+`POST_NOTIFICATIONS` on Android 13+.
 
 ### Bundled dictionary (`assets/dict.db`, read-only)
 

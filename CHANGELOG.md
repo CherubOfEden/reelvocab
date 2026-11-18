@@ -23,6 +23,8 @@ semantic versioning once it ships.
 - SM-2 review scheduler in `:core:domain` with Room `reviews`/`review_logs`
   tables and a v1→v2 migration; new cards are scheduled for 08:00 the next
   morning and `Again` re-queues after ten minutes.
+- Opt-in morning reminder: inexact daily alarm at 08:00, boot restore, and a
+  notification that opens the app; only fires with notification permission.
 - Morning review screen with the shared word card and the Again/Hard/Good/Easy
   grade bar, entered from Today.
 - Thesaurus rows on the word card (synonyms in teal, antonyms in rose), plus a

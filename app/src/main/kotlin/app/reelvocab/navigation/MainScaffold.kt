@@ -2,8 +2,11 @@ package app.reelvocab.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
@@ -15,10 +18,16 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,6 +52,8 @@ import app.reelvocab.feature.media.MediaScreen
 import app.reelvocab.feature.media.PlayerRoute
 import app.reelvocab.feature.media.PlayerScreen
 import app.reelvocab.feature.settings.SettingsRoute
+import app.reelvocab.reminders.ReminderPrefs
+import app.reelvocab.reminders.ReminderScheduler
 import app.reelvocab.feature.settings.SettingsScreen
 import app.reelvocab.feature.today.ReviewRoute
 import app.reelvocab.feature.today.ReviewScreen
@@ -147,6 +158,12 @@ fun MainScaffold(modifier: Modifier = Modifier) {
             }
 
             composable<SettingsRoute> {
+                var reminderEnabled by remember {
+                    mutableStateOf(ReminderPrefs.isEnabled(context))
+                }
+                val notificationPermission = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission(),
+                ) { }
                 SettingsScreen(
                     onOpenLicenses = { navController.navigate(LicensesRoute) },
                     onOpenDesignSystem = if (BuildConfig.DEBUG) {
@@ -170,6 +187,28 @@ fun MainScaffold(modifier: Modifier = Modifier) {
                                 ),
                             )
                         }
+                    },
+                    reminderEnabled = reminderEnabled,
+                    onToggleReminder = {
+                        val enabled = !reminderEnabled
+                        ReminderPrefs.setEnabled(context, enabled)
+                        if (enabled) {
+                            if (
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.POST_NOTIFICATIONS,
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                notificationPermission.launch(
+                                    Manifest.permission.POST_NOTIFICATIONS,
+                                )
+                            }
+                            ReminderScheduler.schedule(context)
+                        } else {
+                            ReminderScheduler.cancel(context)
+                        }
+                        reminderEnabled = enabled
                     },
                 )
             }

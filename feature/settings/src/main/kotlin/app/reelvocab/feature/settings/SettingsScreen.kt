@@ -32,6 +32,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onOpenDictionaryProbe: (() -> Unit)? = null,
     onEnableFloatingCapture: (() -> Unit)? = null,
+    reminderEnabled: Boolean = false,
+    onToggleReminder: (() -> Unit)? = null,
 ) {
     val colors = ReelTheme.colors
 
@@ -82,6 +84,23 @@ fun SettingsScreen(
                 label = stringResource(R.string.settings_floating_capture_label),
                 value = stringResource(R.string.settings_floating_capture_value),
                 onClick = onEnableFloatingCapture,
+            )
+        }
+
+        item {
+            SettingsSectionHeader(text = stringResource(R.string.settings_section_reminders))
+        }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_reminder_label),
+                value = stringResource(
+                    if (reminderEnabled) {
+                        R.string.settings_reminder_on
+                    } else {
+                        R.string.settings_reminder_off
+                    },
+                ),
+                onClick = onToggleReminder,
             )
         }
 
