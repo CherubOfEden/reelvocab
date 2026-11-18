@@ -13,7 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -70,6 +70,7 @@ import androidx.media3.ui.PlayerView
 import app.reelvocab.core.designsystem.component.ReelButton
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.feature.capture.InAppCapture
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -241,11 +242,33 @@ fun PlayerScreen(
                     .fillMaxHeight(0.72f)
                     .fillMaxWidth(0.30f)
                     .pointerInput(player, activity) {
-                        detectVerticalDragGestures { change, dragAmount ->
-                            change.consume()
-                            val next = applyBrightness(activity, -dragAmount / 600f)
-                            gestureFeedback = GestureFeedback(GestureKind.Brightness, next)
-                        }
+                        var totalX = 0f
+                        var totalY = 0f
+                        var horizontal: Boolean? = null
+                        detectDragGestures(
+                            onDragStart = {
+                                totalX = 0f
+                                totalY = 0f
+                                horizontal = null
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                totalX += dragAmount.x
+                                totalY += dragAmount.y
+                                if (horizontal == null && (abs(totalX) > 12f || abs(totalY) > 12f)) {
+                                    horizontal = abs(totalX) > abs(totalY)
+                                }
+                                val delta = when (horizontal) {
+                                    true -> dragAmount.x / 600f
+                                    false -> -dragAmount.y / 600f
+                                    null -> 0f
+                                }
+                                if (delta != 0f) {
+                                    val next = applyBrightness(activity, delta)
+                                    gestureFeedback = GestureFeedback(GestureKind.Brightness, next)
+                                }
+                            },
+                        )
                     },
             )
             Box(
@@ -254,13 +277,35 @@ fun PlayerScreen(
                     .fillMaxHeight(0.72f)
                     .fillMaxWidth(0.30f)
                     .pointerInput(player) {
-                        detectVerticalDragGestures { change, dragAmount ->
-                            change.consume()
-                            val exo = player ?: return@detectVerticalDragGestures
-                            val next = (exo.volume - dragAmount / 600f).coerceIn(0f, 1f)
-                            exo.volume = next
-                            gestureFeedback = GestureFeedback(GestureKind.Volume, next)
-                        }
+                        val exo = player ?: return@pointerInput
+                        var totalX = 0f
+                        var totalY = 0f
+                        var horizontal: Boolean? = null
+                        detectDragGestures(
+                            onDragStart = {
+                                totalX = 0f
+                                totalY = 0f
+                                horizontal = null
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                totalX += dragAmount.x
+                                totalY += dragAmount.y
+                                if (horizontal == null && (abs(totalX) > 12f || abs(totalY) > 12f)) {
+                                    horizontal = abs(totalX) > abs(totalY)
+                                }
+                                val delta = when (horizontal) {
+                                    true -> dragAmount.x / 600f
+                                    false -> -dragAmount.y / 600f
+                                    null -> 0f
+                                }
+                                if (delta != 0f) {
+                                    val next = (exo.volume + delta).coerceIn(0f, 1f)
+                                    exo.volume = next
+                                    gestureFeedback = GestureFeedback(GestureKind.Volume, next)
+                                }
+                            },
+                        )
                     },
             )
         }

@@ -1,6 +1,6 @@
 # Architecture
 
-Status: revision 6 (M5.5 implemented). Supersedes revision 5.
+Status: revision 7 (M6 implemented). Supersedes revision 6.
 
 ## Product in one line
 
@@ -114,12 +114,16 @@ the same repository entry, so local and online results render identically.
    `MediaProjection` consent once per service session.
 3. **Capture.** Tap the pill → `MediaProjection` consent (once per session)
    → `CaptureSessionService` grabs one frame, runs bundled ML Kit OCR off the
-   main thread, and `CaptureActivity` shows word chips over the frame in its own
-   task. Long-pressing a word starts a phrase range; tapping the last word selects
-   the phrase.
+   main thread, and `CaptureActivity` presents the word chips as a translucent
+   bottom sheet over the still-visible film. The capture flow never navigates to
+   the main app or paints an opaque screen, so the viewer stays in the film.
+   Long-pressing a word starts a phrase range; tapping the last word selects the
+   phrase.
 4. **Preview and save.** Selecting a word opens a save sheet with an editable
-   headword, context line, source, timestamp and a dictionary preview. The preview
-   is fetched before saving, but an offline lookup never blocks the save.
+   headword, context line, source, timestamp and a dictionary preview. The card is
+   written to Room off the main thread and the overlay closes back to the film, so
+   the save is silent from the viewer's perspective. The preview is fetched before
+   saving, but an offline lookup never blocks the save.
 5. **End.** The session ends on the notification Stop action or by long-pressing
    the pill; media projection is stopped, the overlay is removed, and the
    notification is cleared.
@@ -142,9 +146,10 @@ Videos, Images, Audio and Documents. Documents are ordinary non-media files from
   embedded album art. Results are de-duplicated by URI.
 - Playback uses Media3 ExoPlayer in an app-owned player screen. Images use a
   fit viewer, documents open in another app, and audio/video share a bounded queue.
-- Player gestures: vertical drag on the left changes window brightness; on the
-  right it changes volume. The overflow menu holds repeat off/one/all, next, and
-  subtitle selection.
+- Player gestures: drag horizontally or vertically on the left half to change
+  window brightness, and on the right half to change volume; no static
+  brightness/volume buttons. The overflow menu holds repeat off/one/all, next,
+  and subtitle selection.
 - Captions can come from a sidecar `.srt`/`.vtt`/`.ttml` chosen by the user.
 - Capture from media uses the same OCR/selection/preview pipeline, invoked in-app
   (no overlay needed, no projection consent): the player pauses, a frame is
@@ -185,7 +190,7 @@ theme accents are darkened to hold AA when used as text.
 | M4 | SRS scheduler, morning review, reminders |
 | M5 ✅ | Deck/library search and tags, dictionary detail sheet, due-count wiring, optional cloud definitions |
 | M5.5 ✅ | Five-tab shell, persistent small pill, phrase preview, deck delete, dictionary tab, media hub/player, reminder time picker, AI settings |
-| M6 | Settings depth, full-screen alarm |
+| M6 ✅ | Settings depth, theme choice, full-screen alarm |
 | M7 | Encryption hardening, export, accessibility pass |
 | M8 | Gated billing stub |
 | M9 | Release polish, store metadata |

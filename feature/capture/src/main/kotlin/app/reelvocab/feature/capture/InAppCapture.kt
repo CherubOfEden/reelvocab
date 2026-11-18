@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,7 +30,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -81,16 +79,26 @@ fun InAppCapture(
             decorFitsSystemWindows = false,
         ),
     ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = colors.base,
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.scrim.copy(alpha = 0.18f)),
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .heightIn(max = 520.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = ReelTheme.radius.sheetTop,
+                            topEnd = ReelTheme.radius.sheetTop,
+                        ),
+                    )
+                    .background(colors.surface)
                     .navigationBarsPadding()
-                    .padding(horizontal = ReelTheme.spacing.screenH),
+                    .padding(horizontal = ReelTheme.spacing.screenH)
+                    .padding(top = ReelTheme.spacing.m, bottom = ReelTheme.spacing.l),
             ) {
                 Row(
                     modifier = Modifier
@@ -118,7 +126,7 @@ fun InAppCapture(
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 220.dp)
+                        .heightIn(max = 140.dp)
                         .clip(RoundedCornerShape(ReelTheme.radius.card)),
                     contentScale = ContentScale.Fit,
                 )
@@ -163,8 +171,10 @@ fun InAppCapture(
                     )
 
                     else -> LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = ReelTheme.spacing.screenBottom),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 300.dp),
+                        contentPadding = PaddingValues(bottom = ReelTheme.spacing.s),
                         verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
                     ) {
                         if (phraseRange != null) {

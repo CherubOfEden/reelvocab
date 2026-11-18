@@ -16,10 +16,12 @@ semantic versioning once it ships.
   the morning review instead of the home tab.
 - M5.5 polish: five-tab shell (Home, Deck, Dictionary, Library, Media) with
   per-tab state, a compact persistent floating pill that no longer times out,
+  a translucent capture sheet that keeps the film visible and saves silently,
   capture previews and long-press phrase selection, deck-card deletion,
-  a dedicated dictionary tab with online fallback, a media hub for video, images,
-  audio and documents, player gestures and subtitles, an editable reminder time,
-  and a clearer AI dictionary section.
+  a dedicated dictionary tab with Free Dictionary API fallback, a media hub with
+  All/Videos/Images/Audio/Documents chips, thumbnails and audio metadata,
+  horizontal or vertical player gestures for brightness and volume, subtitles,
+  an editable reminder time, and a clearer AI dictionary section.
 - M5 deck: a real vocabulary listing with local search over headwords, tags and
   film titles; All/Due/Words/Sentences filters; and per-card tag editing stored
   through a Room v2→v3 migration.

@@ -9,9 +9,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
@@ -58,22 +55,20 @@ class CaptureActivity : ComponentActivity() {
         }
         setContent {
             ReelTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    InAppCapture(
-                        bitmap = bitmap,
-                        sourceTitle = getString(R.string.capture_screen_source),
-                        timestampMs = 0L,
-                        onDismiss = { finishAndRemoveTask() },
-                        onSaved = {
-                            Toast.makeText(
-                                this@CaptureActivity,
-                                R.string.capture_saved,
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                            finishAndRemoveTask()
-                        },
-                    )
-                }
+                InAppCapture(
+                    bitmap = bitmap,
+                    sourceTitle = getString(R.string.capture_screen_source),
+                    timestampMs = 0L,
+                    onDismiss = { finishAndRemoveTask() },
+                    onSaved = {
+                        Toast.makeText(
+                            this@CaptureActivity,
+                            R.string.capture_saved,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        finishAndRemoveTask()
+                    },
+                )
             }
         }
     }
