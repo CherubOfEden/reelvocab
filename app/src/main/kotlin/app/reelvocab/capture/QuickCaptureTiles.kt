@@ -1,5 +1,6 @@
 package app.reelvocab.capture
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
@@ -10,6 +11,7 @@ abstract class BaseCaptureTile : TileService() {
 
     protected abstract val mode: String
 
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()
         val intent = CaptureActivity.recordIntent(this, mode)
