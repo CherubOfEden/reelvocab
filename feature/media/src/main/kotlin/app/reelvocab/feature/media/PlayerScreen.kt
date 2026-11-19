@@ -12,9 +12,11 @@ import android.net.Uri
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +27,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -48,8 +51,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -65,7 +66,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -133,6 +136,7 @@ fun PlayerScreen(
     }
     DisposableEffect(player) {
         player?.repeatMode = Player.REPEAT_MODE_OFF
+        player?.pauseAtEndOfMediaItems = true
         onDispose { player?.release() }
     }
     val initialBrightness = remember(activity) {
@@ -233,6 +237,9 @@ fun PlayerScreen(
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
+                if (!playing) {
+                    controlsVisible = true
+                }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -696,20 +703,60 @@ private fun PlayerTimeline(
             .navigationBarsPadding()
             .padding(horizontal = ReelTheme.spacing.s, vertical = ReelTheme.spacing.xs),
     ) {
-        Slider(
-            value = fraction,
-            onValueChange = { value -> onScrub((value * duration).toLong()) },
-            onValueChangeFinished = onScrubFinished,
-            enabled = duration > 0L,
-            colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = Color.White,
-                inactiveTrackColor = Color.White.copy(alpha = 0.35f),
-                disabledThumbColor = Color.White.copy(alpha = 0.35f),
-                disabledActiveTrackColor = Color.White.copy(alpha = 0.35f),
-                disabledInactiveTrackColor = Color.White.copy(alpha = 0.2f),
-            ),
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(28.dp)
+                .pointerInput(duration) {
+                    if (duration <= 0L) return@pointerInput
+                    detectHorizontalDragGestures(
+                        onDragStart = { offset ->
+                            val target = (offset.x / size.width.toFloat() * duration.toFloat()).toLong()
+                            onScrub(target.coerceIn(0L, duration))
+                        },
+                        onHorizontalDrag = { change, _ ->
+                            change.consume()
+                            val target = (change.position.x / size.width.toFloat() * duration.toFloat()).toLong()
+                            onScrub(target.coerceIn(0L, duration))
+                        },
+                        onDragEnd = onScrubFinished,
+                        onDragCancel = onScrubFinished,
+                    )
+                }
+                .pointerInput(duration) {
+                    if (duration <= 0L) return@pointerInput
+                    detectTapGestures { offset ->
+                        val target = (offset.x / size.width.toFloat() * duration.toFloat()).toLong()
+                        onScrub(target.coerceIn(0L, duration))
+                        onScrubFinished()
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(modifier = Modifier.fillMaxWidth().height(2.dp)) {
+                val centerY = size.height / 2f
+                val activeWidth = size.width * fraction
+                drawLine(
+                    color = Color.White.copy(alpha = 0.35f),
+                    start = Offset(0f, centerY),
+                    end = Offset(size.width, centerY),
+                    strokeWidth = size.height,
+                    cap = StrokeCap.Round,
+                )
+                drawLine(
+                    color = Color.White,
+                    start = Offset(0f, centerY),
+                    end = Offset(activeWidth, centerY),
+                    strokeWidth = size.height,
+                    cap = StrokeCap.Round,
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = 4.dp.toPx(),
+                    center = Offset(activeWidth.coerceIn(0f, size.width), centerY),
+                )
+            }
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -824,6 +871,7 @@ private fun PlayerMenu(
             selected = player.repeatMode == Player.REPEAT_MODE_OFF,
             onClick = {
                 player.repeatMode = Player.REPEAT_MODE_OFF
+                player.pauseAtEndOfMediaItems = true
                 onDismiss()
             },
         )
@@ -832,6 +880,7 @@ private fun PlayerMenu(
             selected = player.repeatMode == Player.REPEAT_MODE_ONE,
             onClick = {
                 player.repeatMode = Player.REPEAT_MODE_ONE
+                player.pauseAtEndOfMediaItems = false
                 onDismiss()
             },
         )
@@ -840,6 +889,7 @@ private fun PlayerMenu(
             selected = player.repeatMode == Player.REPEAT_MODE_ALL,
             onClick = {
                 player.repeatMode = Player.REPEAT_MODE_ALL
+                player.pauseAtEndOfMediaItems = false
                 onDismiss()
             },
         )
