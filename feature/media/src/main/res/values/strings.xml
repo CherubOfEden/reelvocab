@@ -37,6 +37,12 @@
     <string name="media_menu_auto_rotate">Follow device rotation</string>
     <string name="media_seek_forward">15 seconds forward</string>
     <string name="media_seek_back">15 seconds back</string>
+    <string name="media_controls_play">Play</string>
+    <string name="media_controls_pause">Pause</string>
+    <string name="media_controls_previous">Previous</string>
+    <string name="media_controls_next">Next</string>
+    <string name="media_controls_forward">Forward 15 seconds</string>
+    <string name="media_controls_rewind">Rewind 15 seconds</string>
     <string name="media_menu_subtitles">Subtitles</string>
     <string name="media_volume">Volume %1$d%%</string>
     <string name="media_brightness">Brightness %1$d%%</string>

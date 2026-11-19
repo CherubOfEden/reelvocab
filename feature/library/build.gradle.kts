@@ -37,6 +37,8 @@ dependencies {
     api(project(":core:designsystem"))
     implementation(project(":core:domain"))
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.video)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.hilt.android)

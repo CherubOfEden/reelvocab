@@ -1,6 +1,9 @@
 package app.reelvocab.feature.library
 
+import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,21 +13,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,6 +47,11 @@ import app.reelvocab.core.designsystem.illustration.ReelIllustration
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.core.domain.model.VaultItem
 import app.reelvocab.core.domain.model.VaultKind
+import coil.ImageLoader
+import coil.compose.SubcomposeAsyncImage
+import coil.decode.VideoFrameDecoder
+import coil.request.ImageRequest
+import coil.request.videoFrameMillis
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -56,6 +71,16 @@ fun LibraryScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = ReelTheme.colors
+    val context = LocalContext.current
+    val imageLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components { add(VideoFrameDecoder.Factory()) }
+            .crossfade(true)
+            .build()
+    }
+    DisposableEffect(imageLoader) {
+        onDispose { imageLoader.shutdown() }
+    }
     val visible = if (state.category == null) {
         state.items
     } else {
@@ -138,6 +163,7 @@ fun LibraryScreen(
             items(visible, key = { it.id }) { item ->
                 VaultRow(
                     item = item,
+                    imageLoader = imageLoader,
                     onPlay = {
                         onPlay(item.uri, item.title, item.kind.playerKind())
                     },
@@ -151,6 +177,7 @@ fun LibraryScreen(
 @Composable
 private fun VaultRow(
     item: VaultItem,
+    imageLoader: ImageLoader,
     onPlay: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -161,15 +188,10 @@ private fun VaultRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
         ) {
-            Icon(
-                imageVector = when (item.kind) {
-                    VaultKind.Image -> Icons.Filled.Photo
-                    VaultKind.Video -> Icons.Filled.Movie
-                    VaultKind.Audio -> Icons.Filled.MusicNote
-                },
-                contentDescription = null,
-                tint = colors.gold,
-                modifier = Modifier.size(28.dp),
+            VaultThumbnail(
+                item = item,
+                imageLoader = imageLoader,
+                modifier = Modifier.size(72.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -195,6 +217,79 @@ private fun VaultRow(
             }
         }
     }
+}
+
+@Composable
+private fun VaultThumbnail(
+    item: VaultItem,
+    imageLoader: ImageLoader,
+    modifier: Modifier = Modifier,
+) {
+    val colors = ReelTheme.colors
+    val context = LocalContext.current
+    val shape = RoundedCornerShape(ReelTheme.radius.input)
+    if (item.kind == VaultKind.Audio) {
+        Box(
+            modifier = modifier
+                .clip(shape)
+                .background(colors.elevated),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.GraphicEq,
+                contentDescription = null,
+                tint = colors.gold,
+                modifier = Modifier.size(32.dp),
+            )
+        }
+        return
+    }
+    val request = remember(item.uri, item.kind, context) {
+        ImageRequest.Builder(context)
+            .data(Uri.parse(item.uri))
+            .apply {
+                if (item.kind == VaultKind.Video) {
+                    videoFrameMillis(1_000L)
+                }
+            }
+            .size(512, 512)
+            .crossfade(true)
+            .build()
+    }
+    SubcomposeAsyncImage(
+        model = request,
+        imageLoader = imageLoader,
+        contentDescription = item.title,
+        contentScale = ContentScale.Crop,
+        modifier = modifier
+            .clip(shape)
+            .background(colors.elevated),
+        loading = { VaultThumbnailPlaceholder(kind = item.kind) },
+        error = { VaultThumbnailPlaceholder(kind = item.kind) },
+    )
+}
+
+@Composable
+private fun VaultThumbnailPlaceholder(kind: VaultKind) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ReelTheme.colors.elevated),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = kind.thumbnailIcon(),
+            contentDescription = null,
+            tint = ReelTheme.colors.textTertiary,
+            modifier = Modifier.size(28.dp),
+        )
+    }
+}
+
+private fun VaultKind.thumbnailIcon(): ImageVector = when (this) {
+    VaultKind.Image -> Icons.Filled.Photo
+    VaultKind.Video -> Icons.Filled.Movie
+    VaultKind.Audio -> Icons.Filled.GraphicEq
 }
 
 private fun VaultKind.playerKind(): String = when (this) {
