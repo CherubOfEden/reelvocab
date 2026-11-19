@@ -1,8 +1,10 @@
 package app.reelvocab.core.data.dictionary
 
 import app.reelvocab.core.common.Headwords
+import app.reelvocab.core.data.enrichment.CloudEnrichmentClient
 import app.reelvocab.core.domain.model.DictionaryEntry
 import app.reelvocab.core.domain.model.DictionaryRepository
+import app.reelvocab.core.domain.model.DictionarySense
 import app.reelvocab.core.domain.model.Thesaurus
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -11,13 +13,33 @@ import javax.inject.Singleton
 class DictionaryRepositoryImpl @Inject constructor(
     private val asset: DictionaryAsset,
     private val online: FreeDictionaryClient,
+    private val cloud: CloudEnrichmentClient,
 ) : DictionaryRepository {
 
     override suspend fun lookup(rawLemma: String): DictionaryEntry? {
         val lemma = Headwords.normalize(rawLemma)
         if (lemma.isEmpty()) return null
         val local = asset.read { db -> db.entryFor(lemma) }
-        return local ?: online.lookup(lemma)
+        if (local != null) return local
+
+        val onlineEntry = online.lookup(lemma)
+        if (onlineEntry != null) return onlineEntry
+
+        val ai = cloud.definePhrase(lemma) ?: return null
+        return DictionaryEntry(
+            lemma = lemma,
+            wordClass = null,
+            ipa = null,
+            frequencyRank = null,
+            difficulty = null,
+            senses = listOf(
+                DictionarySense(
+                    definition = ai.meaning,
+                    example = ai.example,
+                ),
+            ),
+            thesaurus = Thesaurus(synonyms = ai.synonyms),
+        )
     }
 
     override suspend fun search(prefix: String, limit: Int): List<DictionaryEntry> {

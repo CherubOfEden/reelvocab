@@ -78,22 +78,22 @@ fun DictionaryDetailSheet(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
                 ) {
-                Row(
+                Text(
+                    text = entry.headword,
+                    style = if (entry.headword.contains(' ')) {
+                        ReelTheme.type.titleL
+                    } else {
+                        ReelTheme.type.displayM
+                    },
+                    color = colors.textPrimary,
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Bottom,
-                ) {
+                )
+                if (entry.ipa != null) {
                     Text(
-                        text = entry.headword,
-                        style = ReelTheme.type.displayM,
-                        color = colors.textPrimary,
+                        text = entry.ipa,
+                        style = ReelTheme.type.ipa,
+                        color = colors.textSecondary,
                     )
-                    if (entry.ipa != null) {
-                        Text(
-                            text = "  ${entry.ipa}",
-                            style = ReelTheme.type.ipa,
-                            color = colors.textSecondary,
-                        )
-                    }
                 }
                 Row(
                     modifier = Modifier.padding(top = ReelTheme.spacing.xs),

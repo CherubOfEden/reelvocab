@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -50,7 +49,7 @@ fun DictionaryScreen(
         ),
         verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
     ) {
-        item {
+        item(key = "dictionary-header") {
             Text(
                 text = stringResource(R.string.dictionary_title),
                 style = ReelTheme.type.titleL,
@@ -64,22 +63,22 @@ fun DictionaryScreen(
             )
         }
 
-        if (state.query.isBlank() && state.wordOfTheDay != null) {
-            item(key = "word-of-the-day") {
-                WordOfTheDayCard(
-                    entry = state.wordOfTheDay!!,
-                    onClick = { viewModel.openDetail(state.wordOfTheDay!!) },
+        item(key = "dictionary-controls") {
+            Column(verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m)) {
+                val wordOfTheDay = state.wordOfTheDay
+                if (state.query.isBlank() && wordOfTheDay != null) {
+                    WordOfTheDayCard(
+                        entry = wordOfTheDay,
+                        onClick = { viewModel.openDetail(wordOfTheDay) },
+                    )
+                }
+                ReelSearchField(
+                    value = state.query,
+                    onValueChange = viewModel::onQueryChange,
+                    placeholder = stringResource(R.string.dictionary_search_hint),
+                    clearDescription = stringResource(R.string.dictionary_search_clear),
                 )
             }
-        }
-
-        item {
-            ReelSearchField(
-                value = state.query,
-                onValueChange = viewModel::onQueryChange,
-                placeholder = stringResource(R.string.dictionary_search_hint),
-                clearDescription = stringResource(R.string.dictionary_search_clear),
-            )
         }
 
         when {
@@ -166,6 +165,8 @@ private fun DictionaryResult(
             text = entry.lemma,
             style = ReelTheme.type.titleM,
             color = colors.textPrimary,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
         )
         val ipa = entry.ipa
         if (ipa != null) {
@@ -192,6 +193,19 @@ private fun DictionaryResult(
                 style = ReelTheme.type.bodyM,
                 color = colors.textSecondary,
                 maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        val example = entry.senses.firstNotNullOfOrNull { sense ->
+            sense.example?.trim()?.takeIf { it.isNotEmpty() }
+        }
+        if (example != null) {
+            Spacer(Modifier.height(ReelTheme.spacing.xs))
+            Text(
+                text = "\u201C$example\u201D",
+                style = ReelTheme.type.bodyM,
+                color = colors.textTertiary,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -232,6 +246,19 @@ private fun WordOfTheDayCard(
                 style = ReelTheme.type.bodyM,
                 color = colors.textSecondary,
                 maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        val example = entry.senses.firstNotNullOfOrNull { sense ->
+            sense.example?.trim()?.takeIf { it.isNotEmpty() }
+        }
+        if (example != null) {
+            Spacer(Modifier.height(ReelTheme.spacing.xs))
+            Text(
+                text = "\u201C$example\u201D",
+                style = ReelTheme.type.bodyM,
+                color = colors.textTertiary,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }

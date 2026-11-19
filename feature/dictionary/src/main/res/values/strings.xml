@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="dictionary_title">Dictionary</string>
-    <string name="dictionary_subtitle">Search the bundled offline dictionary first. Missing words are looked up online when you have a connection.</string>
+    <string name="dictionary_subtitle">Search the bundled dictionary first. Words and phrases are then looked up online, with an AI fallback when configured.</string>
     <string name="dictionary_search_hint">Word or phrase</string>
     <string name="dictionary_search_clear">Clear search</string>
-    <string name="dictionary_prompt_title">Find any word</string>
-    <string name="dictionary_prompt_body">Start typing to browse definitions, examples, pronunciation and thesaurus entries.</string>
-    <string name="dictionary_empty">No entry found. Check the spelling or try again when online.</string>
+    <string name="dictionary_prompt_title">Find any word or phrase</string>
+    <string name="dictionary_prompt_body">Type a word or a whole phrase to see definitions, examples, pronunciation and related expressions.</string>
+    <string name="dictionary_empty">No entry found. Try the exact phrase, check the spelling, or try again when online.</string>
     <string name="dictionary_searching">Searching…</string>
     <string name="dictionary_error">The dictionary could not be read.</string>
     <string name="dictionary_detail_title">Dictionary</string>
     <string name="dictionary_definitions">Definitions</string>
     <string name="dictionary_synonyms">Same as</string>
     <string name="dictionary_antonyms">Opposite</string>
-    <string name="dictionary_not_found">No entry found in the offline or online dictionary.</string>
+    <string name="dictionary_not_found">No entry found offline, online, or with AI.</string>
     <string name="dictionary_lookup">Looking up…</string>
     <string name="dictionary_close">Close</string>
-    <string name="dictionary_save">Save to deck</string>
+    <string name="dictionary_save">Save &amp; close</string>
     <string name="dictionary_saved">Saved to deck</string>
     <string name="dictionary_word_of_the_day">Word of the day</string>
     <string name="dictionary_word_of_the_day_cta">Explore this word →</string>

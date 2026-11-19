@@ -9,10 +9,10 @@
     <string name="deck_filter_favorites">Favorites</string>
     <string name="deck_filter_due">Due</string>
     <string name="deck_filter_words">Words</string>
-    <string name="deck_filter_sentences">Sentences</string>
+    <string name="deck_filter_sentences">Phrases</string>
     <string name="deck_favorite">Add to favorites</string>
     <string name="deck_unfavorite">Remove from favorites</string>
-    <string name="deck_search_hint">Search words, tags, films</string>
+    <string name="deck_search_hint">Search words, phrases, tags, films</string>
     <string name="deck_search_clear">Clear search</string>
     <string name="deck_empty_title">No cards yet</string>
     <string name="deck_empty_body">Every word you keep from a film becomes a card here, with its line, its timestamp and its meaning in that scene.</string>

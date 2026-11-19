@@ -10,6 +10,7 @@ internal fun CardEntity.toDomain(): Card = Card(
     headword = headword,
     ipa = ipa,
     meaning = meaning,
+    example = example,
     wordClass = WordClass.fromStorage(wordClass),
     contextLine = contextLine,
     sourceTitle = sourceTitle,

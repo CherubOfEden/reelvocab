@@ -74,6 +74,7 @@ data class CardEntity(
     val headword: String,
     val ipa: String?,
     val meaning: String,
+    val example: String?,
     @ColumnInfo(name = "word_class") val wordClass: String?,
     @ColumnInfo(name = "context_line") val contextLine: String?,
     @ColumnInfo(name = "film_id") val filmId: Long?,

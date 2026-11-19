@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.LocalMovies
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Style
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,6 +57,7 @@ data class WordCardModel(
     val ipa: String?,
     val partOfSpeech: String?,
     val meaning: String,
+    val example: String? = null,
     val sentence: String?,
     val target: String?,
     val sourceTitle: String?,
@@ -158,10 +161,22 @@ fun WordCard(
         Text(
             text = model.meaning,
             style = type.bodyM,
-            color = colors.textSecondary,
-            maxLines = if (compact) 2 else 4,
+            color = colors.textPrimary,
+            maxLines = if (compact) 3 else 6,
             overflow = TextOverflow.Ellipsis,
         )
+
+        val example = model.example?.trim()?.takeIf { it.isNotEmpty() }
+        if (example != null) {
+            Spacer(Modifier.height(ReelTheme.spacing.s))
+            Text(
+                text = "\u201C$example\u201D",
+                style = type.bodyM.copy(fontStyle = FontStyle.Italic),
+                color = colors.textSecondary,
+                maxLines = if (compact) 2 else 4,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
 
         if (model.tags.isNotEmpty()) {
             Spacer(Modifier.height(ReelTheme.spacing.m))
@@ -210,6 +225,11 @@ fun WordCard(
 
         val sourceTitle = model.sourceTitle
         Spacer(Modifier.height(ReelTheme.spacing.m))
+        HorizontalDivider(
+            thickness = ReelTheme.spacing.hairline,
+            color = colors.strokeSubtle,
+        )
+        Spacer(Modifier.height(ReelTheme.spacing.xs))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

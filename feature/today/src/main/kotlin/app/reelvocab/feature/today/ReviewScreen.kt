@@ -3,7 +3,6 @@ package app.reelvocab.feature.today
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -192,6 +191,7 @@ private fun ReviewBody(
         ipa = card.card.ipa,
         partOfSpeech = card.card.wordClass?.storageValue,
         meaning = card.card.meaning,
+        example = card.card.example,
         sentence = card.card.contextLine,
         target = card.card.headword,
         sourceTitle = card.card.sourceTitle,

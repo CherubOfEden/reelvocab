@@ -34,6 +34,7 @@ class CardRepositoryImpl @Inject constructor(
                 headword = card.headword,
                 ipa = card.ipa,
                 meaning = card.meaning,
+                example = card.example,
                 wordClass = card.wordClass?.storageValue,
                 contextLine = card.contextLine,
                 filmId = null,

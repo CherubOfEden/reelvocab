@@ -7,11 +7,9 @@ import app.reelvocab.core.designsystem.component.DictionarySenseModel
 import app.reelvocab.core.domain.model.CardRepository
 import app.reelvocab.core.domain.model.DictionaryEntry
 import app.reelvocab.core.domain.model.DictionaryRepository
-import app.reelvocab.core.domain.model.DictionarySense
 import app.reelvocab.core.domain.model.Enrichment
 import app.reelvocab.core.domain.model.EnrichmentService
 import app.reelvocab.core.domain.model.NewCard
-import app.reelvocab.core.domain.model.Thesaurus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -94,11 +92,8 @@ class DictionaryViewModel @Inject constructor(
             }
             try {
                 var matches = dictionary.search(term)
-                if (matches.isEmpty()) {
+                if (matches.isEmpty() && !term.contains(' ')) {
                     dictionary.lookup(term)?.let { matches = listOf(it) }
-                }
-                if (matches.isEmpty() && term.contains(' ')) {
-                    phraseFallback(term)?.let { matches = listOf(it) }
                 }
                 _state.update { current ->
                     if (current.query.trim() == term) {
@@ -183,6 +178,10 @@ class DictionaryViewModel @Inject constructor(
             val fallback = detail.senses.firstOrNull()?.definition
                 ?: detail.fallbackMeaning
                 ?: detail.headword
+            val example = entry?.senses
+                ?.firstNotNullOfOrNull { sense ->
+                    sense.example?.trim()?.takeIf { it.isNotEmpty() }
+                }
             try {
                 val enriched = if (entry != null) {
                     null
@@ -200,12 +199,24 @@ class DictionaryViewModel @Inject constructor(
                         headword = entry?.lemma ?: detail.headword,
                         meaning = enriched?.definitions?.firstOrNull()?.definition
                             ?: fallback,
+                        example = example ?: enriched?.definitions
+                            ?.firstNotNullOfOrNull { sense ->
+                                sense.example?.trim()?.takeIf { it.isNotEmpty() }
+                            },
                         ipa = entry?.ipa ?: enriched?.ipa,
                         wordClass = entry?.wordClass ?: enriched?.wordClass,
                         tags = listOf("dictionary"),
                     ),
                 )
-                _state.update { it.copy(saving = false, saved = true) }
+                detailEntry = null
+                _state.update {
+                    it.copy(
+                        saving = false,
+                        saved = true,
+                        detail = null,
+                        detailLoading = false,
+                    )
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
@@ -218,37 +229,6 @@ class DictionaryViewModel @Inject constructor(
         detailJob?.cancel()
         detailEntry = null
         _state.update { it.copy(detail = null, detailLoading = false, saved = false) }
-    }
-
-    private suspend fun phraseFallback(phrase: String): DictionaryEntry? {
-        val words = phrase.split(' ')
-            .map { it.trim() }
-            .filter { it.length >= 2 }
-        if (words.isEmpty()) return null
-        val parts = words.mapNotNull { word ->
-            try {
-                dictionary.lookup(word)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                null
-            }
-        }
-        if (parts.isEmpty()) return null
-        val senses = parts.mapIndexed { index, entry ->
-            DictionarySense(
-                definition = "${words[index]}: ${entry.senses.firstOrNull()?.definition.orEmpty()}",
-            )
-        }
-        return DictionaryEntry(
-            lemma = phrase,
-            wordClass = null,
-            ipa = null,
-            frequencyRank = null,
-            difficulty = null,
-            senses = senses,
-            thesaurus = Thesaurus(),
-        )
     }
 
     private companion object {

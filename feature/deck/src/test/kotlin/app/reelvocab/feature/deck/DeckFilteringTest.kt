@@ -2,6 +2,8 @@ package app.reelvocab.feature.deck
 
 import app.reelvocab.core.domain.model.Card
 import app.reelvocab.core.domain.model.WordClass
+import java.time.Instant
+import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -57,6 +59,13 @@ class DeckFilteringTest {
             listOf(phrase),
             filterDeckCards(sample, DeckFilter.Sentences, emptySet(), ""),
         )
+    }
+
+    @Test
+    fun `due window includes everything scheduled through the end of today`() {
+        val now = Instant.parse("2026-11-19T10:15:00Z").toEpochMilli()
+        val expected = Instant.parse("2026-11-20T00:00:00Z").toEpochMilli() - 1
+        assertEquals(expected, dueThroughToday(now, ZoneOffset.UTC))
     }
 
     @Test

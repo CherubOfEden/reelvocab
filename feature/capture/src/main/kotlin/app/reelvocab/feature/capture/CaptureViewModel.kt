@@ -191,6 +191,12 @@ class CaptureViewModel @Inject constructor(
                         NewCard(
                             headword = word.text,
                             meaning = meaning,
+                            example = selected.enrichment?.definitions
+                                ?.firstNotNullOfOrNull { sense ->
+                                    sense.example?.trim()?.takeIf { value ->
+                                        value.isNotEmpty() && !value.equals(word.line, ignoreCase = true)
+                                    }
+                                },
                             ipa = selected.enrichment?.ipa,
                             wordClass = selected.enrichment?.wordClass,
                             contextLine = word.line,
@@ -209,6 +215,13 @@ class CaptureViewModel @Inject constructor(
                     NewCard(
                         headword = selection.phrase,
                         meaning = phraseMeaning,
+                        example = selection.phraseEnrichment?.definitions
+                            ?.firstNotNullOfOrNull { sense ->
+                                sense.example?.trim()?.takeIf { value ->
+                                    value.isNotEmpty() &&
+                                        !value.equals(selection.line, ignoreCase = true)
+                                }
+                            },
                         ipa = selection.phraseEnrichment?.ipa,
                         wordClass = selection.phraseEnrichment?.wordClass,
                         contextLine = selection.line,
@@ -276,6 +289,12 @@ class CaptureViewModel @Inject constructor(
                     NewCard(
                         headword = headword,
                         meaning = meaning,
+                        example = enriched?.definitions
+                            ?.firstNotNullOfOrNull { sense ->
+                                sense.example?.trim()?.takeIf { value ->
+                                    value.isNotEmpty() && !value.equals(word.line, ignoreCase = true)
+                                }
+                            },
                         ipa = enriched?.ipa,
                         wordClass = enriched?.wordClass,
                         contextLine = word.line,

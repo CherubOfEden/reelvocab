@@ -5,6 +5,7 @@ data class Card(
     val headword: String,
     val ipa: String?,
     val meaning: String,
+    val example: String? = null,
     val wordClass: WordClass?,
     val contextLine: String?,
     val sourceTitle: String?,
@@ -18,6 +19,7 @@ data class Card(
 data class NewCard(
     val headword: String,
     val meaning: String,
+    val example: String? = null,
     val ipa: String? = null,
     val wordClass: WordClass? = null,
     val contextLine: String? = null,

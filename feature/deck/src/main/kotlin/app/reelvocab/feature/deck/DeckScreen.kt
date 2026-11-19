@@ -246,6 +246,7 @@ private fun Card.toWordCardModel(colors: ReelColors): WordCardModel = WordCardMo
     ipa = ipa,
     partOfSpeech = wordClass?.storageValue,
     meaning = meaning,
+    example = example,
     sentence = contextLine,
     target = headword,
     sourceTitle = sourceTitle,

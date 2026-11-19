@@ -75,7 +75,7 @@ class DeckViewModel @Inject constructor(
 
     private suspend fun refreshDueCount() {
         try {
-            val due = reviews.observeDueCardIds(System.currentTimeMillis()).first()
+            val due = reviews.observeDueCardIds(dueThroughToday(System.currentTimeMillis())).first()
             _state.update { it.copy(dueCardIds = due) }
         } catch (cancelled: CancellationException) {
             throw cancelled
