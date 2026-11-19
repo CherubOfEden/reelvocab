@@ -89,6 +89,8 @@ import app.reelvocab.ui.LicensesRoute
 import app.reelvocab.ui.LicensesScreen
 import kotlin.reflect.KClass
 import kotlin.reflect.typeOf
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private enum class ReelTab(
@@ -108,17 +110,17 @@ private object PlayerTrackListNavType : NavType<List<PlayerTrack>>(isNullableAll
     override val name: String = "List<PlayerTrack>"
 
     override fun put(bundle: Bundle, key: String, value: List<PlayerTrack>) {
-        bundle.putString(key, Json.encodeToString(value))
+        bundle.putString(key, Json.encodeToString<List<PlayerTrack>>(value))
     }
 
     override fun get(bundle: Bundle, key: String): List<PlayerTrack>? =
-        bundle.getString(key)?.let { Json.decodeFromString(it) }
+        bundle.getString(key)?.let { Json.decodeFromString<List<PlayerTrack>>(it) }
 
     override fun parseValue(value: String): List<PlayerTrack> =
-        Json.decodeFromString(value)
+        Json.decodeFromString<List<PlayerTrack>>(value)
 
     override fun serializeAsValue(value: List<PlayerTrack>): String =
-        Uri.encode(Json.encodeToString(value))
+        Uri.encode(Json.encodeToString<List<PlayerTrack>>(value))
 }
 
 @Composable
