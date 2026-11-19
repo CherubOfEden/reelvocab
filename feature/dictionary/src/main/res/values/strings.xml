@@ -16,4 +16,8 @@
     <string name="dictionary_not_found">No entry found in the offline or online dictionary.</string>
     <string name="dictionary_lookup">Looking up…</string>
     <string name="dictionary_close">Close</string>
+    <string name="dictionary_save">Save to deck</string>
+    <string name="dictionary_saved">Saved to deck</string>
+    <string name="dictionary_word_of_the_day">Word of the day</string>
+    <string name="dictionary_word_of_the_day_cta">Explore this word →</string>
 </resources>

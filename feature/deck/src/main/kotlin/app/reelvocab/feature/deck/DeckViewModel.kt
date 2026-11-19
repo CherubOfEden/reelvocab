@@ -172,6 +172,32 @@ class DeckViewModel @Inject constructor(
         }
     }
 
+    fun toggleFavorite(card: Card) {
+        val next = !card.isFavorite
+        _state.update { state ->
+            state.copy(
+                cards = state.cards.map {
+                    if (it.id == card.id) it.copy(isFavorite = next) else it
+                },
+            )
+        }
+        viewModelScope.launch {
+            try {
+                cards.setFavorite(card.id, next)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                _state.update { state ->
+                    state.copy(
+                        cards = state.cards.map {
+                            if (it.id == card.id) it.copy(isFavorite = card.isFavorite) else it
+                        },
+                    )
+                }
+            }
+        }
+    }
+
     fun deleteCard(cardId: Long) {
         viewModelScope.launch {
             try {

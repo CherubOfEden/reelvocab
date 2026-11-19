@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -37,6 +38,8 @@ fun DictionaryScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = ReelTheme.colors
 
+    LaunchedEffect(Unit) { viewModel.loadWordOfTheDay() }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -59,6 +62,15 @@ fun DictionaryScreen(
                 style = ReelTheme.type.bodyM,
                 color = colors.textSecondary,
             )
+        }
+
+        if (state.query.isBlank() && state.wordOfTheDay != null) {
+            item(key = "word-of-the-day") {
+                WordOfTheDayCard(
+                    entry = state.wordOfTheDay!!,
+                    onClick = { viewModel.openDetail(state.wordOfTheDay!!) },
+                )
+            }
         }
 
         item {
@@ -113,8 +125,14 @@ fun DictionaryScreen(
                 notFound = stringResource(R.string.dictionary_not_found),
                 loading = stringResource(R.string.dictionary_lookup),
                 close = stringResource(R.string.dictionary_close),
+                save = stringResource(R.string.dictionary_save),
+                saved = stringResource(R.string.dictionary_saved),
             ),
             onDismiss = viewModel::closeDetail,
+            onWordClick = viewModel::openWord,
+            onSave = viewModel::saveDetail,
+            saving = state.saving,
+            saved = state.saved,
         )
     }
 }
@@ -177,5 +195,51 @@ private fun DictionaryResult(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+}
+
+@Composable
+private fun WordOfTheDayCard(
+    entry: DictionaryEntry,
+    onClick: () -> Unit,
+) {
+    val colors = ReelTheme.colors
+    CardSurface(onClick = onClick) {
+        Text(
+            text = stringResource(R.string.dictionary_word_of_the_day).uppercase(),
+            style = ReelTheme.type.label,
+            color = colors.gold,
+        )
+        Spacer(Modifier.height(ReelTheme.spacing.xs))
+        Text(
+            text = entry.lemma,
+            style = ReelTheme.type.displayM,
+            color = colors.textPrimary,
+        )
+        val partOfSpeech = entry.wordClass?.storageValue
+        if (partOfSpeech != null) {
+            Text(
+                text = partOfSpeech,
+                style = ReelTheme.type.label,
+                color = colors.teal,
+            )
+        }
+        val definition = entry.senses.firstOrNull()?.definition
+        if (definition != null) {
+            Spacer(Modifier.height(ReelTheme.spacing.s))
+            Text(
+                text = definition,
+                style = ReelTheme.type.bodyM,
+                color = colors.textSecondary,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(Modifier.height(ReelTheme.spacing.s))
+        Text(
+            text = stringResource(R.string.dictionary_word_of_the_day_cta),
+            style = ReelTheme.type.label,
+            color = colors.gold,
+        )
     }
 }

@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -25,6 +27,9 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -55,7 +60,9 @@ import androidx.navigation.toRoute
 import app.reelvocab.BuildConfig
 import app.reelvocab.R
 import app.reelvocab.core.designsystem.theme.ReelTheme
+import app.reelvocab.feature.capture.CapturePreferences
 import app.reelvocab.feature.capture.CaptureSessionService
+import app.reelvocab.feature.capture.PipCaptureMode
 import app.reelvocab.feature.deck.DeckRoute
 import app.reelvocab.feature.deck.DeckScreen
 import app.reelvocab.feature.dictionary.DictionaryRoute
@@ -68,6 +75,7 @@ import app.reelvocab.feature.media.PlayerRoute
 import app.reelvocab.feature.media.PlayerScreen
 import app.reelvocab.feature.media.PlayerTrack
 import app.reelvocab.feature.settings.CloudSettingsUi
+import app.reelvocab.feature.settings.PipMode
 import app.reelvocab.feature.settings.SettingsRoute
 import app.reelvocab.feature.settings.SettingsScreen
 import app.reelvocab.feature.settings.ThemeMode
@@ -133,6 +141,11 @@ fun MainScaffold(
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
+    var showAlarmPicker by remember { mutableStateOf(false) }
+    var pipMode by remember { mutableStateOf(CapturePreferences.pipMode(context)) }
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
@@ -217,8 +230,8 @@ fun MainScaffold(
                             startPip()
                         }
                     },
-                    onOpenReminder = { navController.navigate(SettingsRoute) },
-                    onOpenAiSettings = { navController.navigate(SettingsRoute) },
+                    onOpenAlarm = { showAlarmPicker = true },
+                    onOpenSettings = { navController.navigate(SettingsRoute) },
                     onOpenDeck = { navController.navigateTab(ReelTab.Deck, currentRoute) },
                     onStartReview = { navController.navigate(ReviewRoute) },
                 )
@@ -243,7 +256,11 @@ fun MainScaffold(
             composable<LibraryRoute> {
                 LibraryScreen(
                     onOpenDeck = { navController.navigateTab(ReelTab.Deck, currentRoute) },
-                    onOpenMedia = { navController.navigateTab(ReelTab.Media, currentRoute) },
+                    onPlay = { uri, title, kind ->
+                        navController.navigate(
+                            PlayerRoute(uri = uri, title = title, kind = kind),
+                        )
+                    },
                 )
             }
 
@@ -307,6 +324,23 @@ fun MainScaffold(
                         null
                     },
                     onEnableFloatingCapture = startPip,
+                    pipMode = pipMode.toSettingsMode(),
+                    onPipModeChange = { mode ->
+                        val captureMode = mode.toCaptureMode()
+                        CapturePreferences.setPipMode(context, captureMode)
+                        pipMode = captureMode
+                    },
+                    overlayAvailable = Settings.canDrawOverlays(context),
+                    onOpenOverlaySettings = {
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:${context.packageName}"),
+                                ),
+                            )
+                        }
+                    },
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
                     reminderEnabled = reminderEnabled,
@@ -388,6 +422,76 @@ fun MainScaffold(
             }
         }
     }
+
+    if (showAlarmPicker) {
+        QuickAlarmDialog(
+            initialHour = ReminderPrefs.hour(context),
+            initialMinute = ReminderPrefs.minute(context),
+            onConfirm = { hour, minute ->
+                ReminderPrefs.setTime(context, hour, minute)
+                ReminderPrefs.setEnabled(context, true)
+                if (
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS,
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                ReminderScheduler.schedule(context)
+                showAlarmPicker = false
+            },
+            onDismiss = { showAlarmPicker = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuickAlarmDialog(
+    initialHour: Int,
+    initialMinute: Int,
+    onConfirm: (Int, Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = ReelTheme.colors
+    val picker = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = true,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.elevated,
+        titleContentColor = colors.textPrimary,
+        textContentColor = colors.textSecondary,
+        title = {
+            Text(
+                text = stringResource(R.string.quick_alarm_title),
+                style = ReelTheme.type.titleM,
+            )
+        },
+        text = { TimePicker(state = picker) },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(picker.hour, picker.minute) }) {
+                Text(
+                    text = stringResource(R.string.quick_alarm_save),
+                    style = ReelTheme.type.label,
+                    color = colors.gold,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.quick_alarm_cancel),
+                    style = ReelTheme.type.label,
+                    color = colors.textSecondary,
+                )
+            }
+        },
+    )
 }
 
 @Composable
@@ -441,4 +545,18 @@ private fun NavController.navigateTab(tab: ReelTab, currentRoute: String?) {
         launchSingleTop = true
         restoreState = true
     }
+}
+
+private fun PipCaptureMode.toSettingsMode(): PipMode = when (this) {
+    PipCaptureMode.WordsOnly -> PipMode.WordsOnly
+    PipCaptureMode.Video -> PipMode.Video
+    PipCaptureMode.Audio -> PipMode.Audio
+    PipCaptureMode.All -> PipMode.All
+}
+
+private fun PipMode.toCaptureMode(): PipCaptureMode = when (this) {
+    PipMode.WordsOnly -> PipCaptureMode.WordsOnly
+    PipMode.Video -> PipCaptureMode.Video
+    PipMode.Audio -> PipCaptureMode.Audio
+    PipMode.All -> PipCaptureMode.All
 }

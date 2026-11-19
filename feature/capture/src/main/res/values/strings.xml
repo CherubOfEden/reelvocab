@@ -27,4 +27,17 @@
     <string name="capture_stop">Stop</string>
     <string name="capture_pill_description">Capture a word</string>
     <string name="capture_screen_source">Screen capture</string>
+    <string name="capture_select_hint">Selection mode. Tap more words, then OK.</string>
+    <string name="capture_select_ok">OK</string>
+    <string name="capture_selection_title">Selected words</string>
+    <string name="capture_phrase_title">Together</string>
+    <string name="capture_save_selection">Save all to deck</string>
+    <string name="capture_recording">Recording…</string>
+    <string name="capture_record_start">Start recording</string>
+    <string name="capture_record_stop">Stop recording</string>
+    <string name="capture_choose_mode">Capture</string>
+    <string name="capture_mode_words">Words</string>
+    <string name="capture_mode_video">Video</string>
+    <string name="capture_mode_audio">Audio</string>
+    <string name="capture_permission_audio">Microphone access is needed to record audio and video.</string>
 </resources>

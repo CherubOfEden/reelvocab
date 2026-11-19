@@ -44,7 +44,7 @@ import app.reelvocab.core.domain.model.Card
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class DeckFilter { All, Due, Words, Sentences }
+enum class DeckFilter { All, Favorites, Due, Words, Sentences }
 
 @Serializable
 data class DeckRoute(val filter: DeckFilter = DeckFilter.All)
@@ -81,6 +81,8 @@ fun DeckScreen(
         synonyms = stringResource(R.string.deck_synonyms),
         antonyms = stringResource(R.string.deck_antonyms),
         delete = stringResource(R.string.deck_delete),
+        favorite = stringResource(R.string.deck_favorite),
+        unfavorite = stringResource(R.string.deck_unfavorite),
     )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -181,6 +183,7 @@ fun DeckScreen(
                         onTag = { viewModel.openTagEditor(card) },
                         onMore = { viewModel.openDetail(card) },
                         onDelete = { pendingDelete = card },
+                        onFavorite = { viewModel.toggleFavorite(card) },
                     )
                 }
             }
@@ -252,10 +255,12 @@ private fun Card.toWordCardModel(colors: ReelColors): WordCardModel = WordCardMo
     hasAudio = hasAudio,
     difficulty = null,
     tags = tags,
+    isFavorite = isFavorite,
 )
 
 private fun DeckFilter.labelRes(): Int = when (this) {
     DeckFilter.All -> R.string.deck_filter_all
+    DeckFilter.Favorites -> R.string.deck_filter_favorites
     DeckFilter.Due -> R.string.deck_filter_due
     DeckFilter.Words -> R.string.deck_filter_words
     DeckFilter.Sentences -> R.string.deck_filter_sentences

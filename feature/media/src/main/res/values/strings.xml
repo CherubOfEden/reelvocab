@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="media_title">Media</string>
-    <string name="media_subtitle">Your local videos, images, audio and documents. Open anything and keep the words you hear or see.</string>
+    <string name="media_subtitle">Your local videos, images and audio. Open anything and keep the words you hear or see.</string>
     <string name="media_permission_title">Let ReelVocab see your media</string>
     <string name="media_permission_body">The list is built on this device from your local videos, images and audio. Nothing is uploaded.</string>
     <string name="media_permission_cta">Allow media access</string>
@@ -10,11 +10,9 @@
     <string name="media_section_videos">Videos</string>
     <string name="media_section_images">Images</string>
     <string name="media_section_audio">Audio</string>
-    <string name="media_section_documents">Documents</string>
     <string name="media_kind_video">Video</string>
     <string name="media_kind_image">Image</string>
     <string name="media_kind_audio">Audio</string>
-    <string name="media_kind_document">Document</string>
     <string name="media_empty_title">No local media found</string>
     <string name="media_empty_body">Add something to your device, or open a file directly with the picker.</string>
     <string name="media_empty_category">Nothing in this category yet.</string>
@@ -32,7 +30,13 @@
     <string name="media_menu_repeat_off">Repeat off</string>
     <string name="media_menu_repeat_one">Repeat one</string>
     <string name="media_menu_repeat_all">Repeat all</string>
+    <string name="media_menu_previous">Previous</string>
     <string name="media_menu_next">Next</string>
+    <string name="media_menu_portrait">Rotate to portrait</string>
+    <string name="media_menu_landscape">Rotate to landscape</string>
+    <string name="media_menu_auto_rotate">Follow device rotation</string>
+    <string name="media_seek_forward">15 seconds forward</string>
+    <string name="media_seek_back">15 seconds back</string>
     <string name="media_menu_subtitles">Subtitles</string>
     <string name="media_volume">Volume %1$d%%</string>
     <string name="media_brightness">Brightness %1$d%%</string>

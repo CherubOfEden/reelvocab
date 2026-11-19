@@ -1,5 +1,9 @@
 package app.reelvocab.onboarding
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -30,6 +34,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Screenshot
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -65,7 +71,9 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = ReelTheme.colors
+    val context = LocalContext.current
     val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
+    var showPermissionDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val isLast = pagerState.currentPage == PAGE_COUNT - 1
     val pageOf = stringResource(
@@ -128,7 +136,7 @@ fun OnboardingScreen(
                 ),
                 onClick = {
                     if (isLast) {
-                        onFinished()
+                        showPermissionDialog = true
                     } else {
                         scope.launch {
                             pagerState.animateScrollToPage(pagerState.currentPage + 1)
@@ -138,6 +146,71 @@ fun OnboardingScreen(
                 modifier = Modifier.width(150.dp),
             )
         }
+    }
+
+    if (showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog = false },
+            containerColor = colors.elevated,
+            titleContentColor = colors.textPrimary,
+            textContentColor = colors.textSecondary,
+            title = {
+                Text(
+                    text = stringResource(R.string.onboarding_permission_title),
+                    style = ReelTheme.type.titleM,
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s)) {
+                    Text(
+                        text = stringResource(R.string.onboarding_permission_body),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.textSecondary,
+                    )
+                    Text(
+                        text = stringResource(R.string.onboarding_permission_overlay),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.textSecondary,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPermissionDialog = false
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:${context.packageName}"),
+                                ),
+                            )
+                        }
+                        onFinished()
+                    },
+                ) {
+                    Text(
+                        text = stringResource(R.string.onboarding_permission_allow),
+                        style = ReelTheme.type.label,
+                        color = colors.gold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPermissionDialog = false
+                        onFinished()
+                    },
+                ) {
+                    Text(
+                        text = stringResource(R.string.onboarding_permission_later),
+                        style = ReelTheme.type.label,
+                        color = colors.textSecondary,
+                    )
+                }
+            },
+        )
     }
 }
 

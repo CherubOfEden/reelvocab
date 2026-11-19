@@ -23,6 +23,9 @@ interface CardDao {
     @Query("UPDATE cards SET tags = :tags WHERE id = :id")
     suspend fun updateTags(id: Long, tags: String)
 
+    @Query("UPDATE cards SET is_favorite = :favorite WHERE id = :id")
+    suspend fun updateFavorite(id: Long, favorite: Boolean)
+
     @Query("DELETE FROM cards WHERE id = :id")
     suspend fun delete(id: Long)
 }

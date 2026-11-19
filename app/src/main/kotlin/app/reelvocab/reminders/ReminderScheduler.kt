@@ -12,6 +12,8 @@ import java.time.ZonedDateTime
 object ReminderScheduler {
 
     private const val REQUEST_CODE = 8001
+    private const val SNOOZE_REQUEST_CODE = 8003
+    private const val SNOOZE_MS = 10 * 60 * 1000L
 
     fun scheduleIfEnabled(context: Context) {
         if (ReminderPrefs.isEnabled(context)) schedule(context)
@@ -32,6 +34,29 @@ object ReminderScheduler {
         }
     }
 
+    fun scheduleSnooze(context: Context) {
+        val manager = context.getSystemService(AlarmManager::class.java) ?: return
+        runCatching {
+            manager.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + SNOOZE_MS,
+                snoozeIntent(context, PendingIntent.FLAG_UPDATE_CURRENT),
+            )
+        }
+    }
+
+    fun cancelSnooze(context: Context) {
+        val manager = context.getSystemService(AlarmManager::class.java)
+        val pending = PendingIntent.getBroadcast(
+            context,
+            SNOOZE_REQUEST_CODE,
+            snoozeIntent(context),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+        ) ?: return
+        manager?.cancel(pending)
+        pending.cancel()
+    }
+
     fun cancel(context: Context) {
         val manager = context.getSystemService(AlarmManager::class.java)
         val pending = PendingIntent.getBroadcast(
@@ -43,6 +68,18 @@ object ReminderScheduler {
         manager?.cancel(pending)
         pending.cancel()
     }
+
+    private fun snoozeIntent(context: Context): Intent =
+        Intent(context, ReminderReceiver::class.java)
+            .putExtra(ReminderReceiver.EXTRA_SNOOZE, true)
+
+    private fun snoozeIntent(context: Context, flags: Int): PendingIntent =
+        PendingIntent.getBroadcast(
+            context,
+            SNOOZE_REQUEST_CODE,
+            snoozeIntent(context),
+            flags or PendingIntent.FLAG_IMMUTABLE,
+        )
 
     private fun pendingIntent(context: Context, flags: Int): PendingIntent =
         PendingIntent.getBroadcast(

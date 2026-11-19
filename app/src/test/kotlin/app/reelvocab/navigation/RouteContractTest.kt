@@ -75,7 +75,7 @@ class RouteContractTest {
             DeckFilter.serializer().descriptor.serialName,
         )
         assertEquals(
-            listOf("All", "Due", "Words", "Sentences"),
+            listOf("All", "Favorites", "Due", "Words", "Sentences"),
             DeckFilter.entries.map { it.name },
         )
     }

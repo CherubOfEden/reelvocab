@@ -4,16 +4,19 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.widget.Toast
+import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,7 +34,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.DropdownMenu
@@ -93,7 +95,7 @@ fun PlayerScreen(
             "video" -> PlayerKind.Video
             "audio" -> PlayerKind.Audio
             "image" -> PlayerKind.Image
-            else -> PlayerKind.Document
+            else -> PlayerKind.Image
         }
     }
     val playable = kind == PlayerKind.Video || kind == PlayerKind.Audio
@@ -126,6 +128,14 @@ fun PlayerScreen(
     }
     DisposableEffect(player) {
         onDispose { player?.release() }
+    }
+    DisposableEffect(activity) {
+        val window = activity?.window
+        window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
     }
 
     var subtitleUri by remember { mutableStateOf<Uri?>(null) }
@@ -226,14 +236,6 @@ fun PlayerScreen(
             PlayerKind.Image -> {
                 ImagePlayer(uri = route.uri)
             }
-
-            PlayerKind.Document -> {
-                DocumentPlayer(
-                    uri = route.uri,
-                    mimeType = route.mimeType,
-                    title = route.title,
-                )
-            }
         }
 
         if (playable) {
@@ -304,6 +306,38 @@ fun PlayerScreen(
                                     val next = (exo.volume + delta).coerceIn(0f, 1f)
                                     exo.volume = next
                                     gestureFeedback = GestureFeedback(GestureKind.Volume, next)
+                                }
+                            },
+                        )
+                    },
+            )
+        }
+
+        if (playable) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth(0.40f)
+                    .fillMaxHeight(0.50f)
+                    .pointerInput(player) {
+                        detectTapGestures(
+                            onDoubleTap = { offset ->
+                                val exo = player ?: return@detectTapGestures
+                                if (offset.x > size.width / 2f) {
+                                    val end = exo.duration.takeIf { it > 0L } ?: Long.MAX_VALUE
+                                    exo.seekTo((exo.currentPosition + 15_000L).coerceAtMost(end))
+                                    Toast.makeText(
+                                        context,
+                                        R.string.media_seek_forward,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                } else {
+                                    exo.seekTo((exo.currentPosition - 15_000L).coerceAtLeast(0L))
+                                    Toast.makeText(
+                                        context,
+                                        R.string.media_seek_back,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
                                 }
                             },
                         )
@@ -385,8 +419,16 @@ fun PlayerScreen(
                         canGoNext = tracks.size > 1,
                         canShowSubtitles = isVideo,
                         onDismiss = { menuOpen = false },
+                        onPrevious = {
+                            player?.seekToPreviousMediaItem()
+                            menuOpen = false
+                        },
                         onNext = {
                             player?.seekToNextMediaItem()
+                            menuOpen = false
+                        },
+                        onOrientation = { orientation ->
+                            activity?.requestedOrientation = orientation
                             menuOpen = false
                         },
                         onSubtitles = {
@@ -440,10 +482,7 @@ fun PlayerScreen(
             sourceTitle = frameTitle,
             timestampMs = frameAtMs,
             onDismiss = { frame = null },
-            onSaved = {
-                frame = null
-                Toast.makeText(context, R.string.media_saved, Toast.LENGTH_SHORT).show()
-            },
+            onSaved = { },
         )
     }
 }
@@ -455,7 +494,9 @@ private fun PlayerMenu(
     canGoNext: Boolean,
     canShowSubtitles: Boolean,
     onDismiss: () -> Unit,
+    onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onOrientation: (Int) -> Unit,
     onSubtitles: () -> Unit,
 ) {
     val colors = ReelTheme.colors
@@ -509,12 +550,60 @@ private fun PlayerMenu(
             DropdownMenuItem(
                 text = {
                     Text(
+                        text = stringResource(R.string.media_menu_previous),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.textPrimary,
+                    )
+                },
+                onClick = onPrevious,
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
                         text = stringResource(R.string.media_menu_next),
                         style = ReelTheme.type.bodyM,
                         color = colors.textPrimary,
                     )
                 },
                 onClick = onNext,
+            )
+        }
+        if (player != null) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(R.string.media_menu_portrait),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.textPrimary,
+                    )
+                },
+                onClick = {
+                    onOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+                },
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(R.string.media_menu_landscape),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.textPrimary,
+                    )
+                },
+                onClick = {
+                    onOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+                },
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(R.string.media_menu_auto_rotate),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.textPrimary,
+                    )
+                },
+                onClick = {
+                    onOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
+                },
             )
         }
         if (canShowSubtitles) {
@@ -581,56 +670,10 @@ private fun ImagePlayer(uri: String) {
     }
 }
 
-@Composable
-private fun DocumentPlayer(
-    uri: String,
-    mimeType: String?,
-    title: String,
-) {
-    val context = LocalContext.current
-    val colors = ReelTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(ReelTheme.spacing.xxl),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Description,
-            contentDescription = null,
-            tint = colors.gold,
-            modifier = Modifier.size(56.dp),
-        )
-        Spacer(Modifier.height(ReelTheme.spacing.l))
-        Text(
-            text = title,
-            style = ReelTheme.type.titleM,
-            color = Color.White,
-        )
-        Spacer(Modifier.height(ReelTheme.spacing.xl))
-        ReelButton(
-            text = stringResource(R.string.media_document_open),
-            onClick = {
-                val type = mimeType ?: context.contentResolver.getType(Uri.parse(uri)) ?: "*/*"
-                val intent = Intent(Intent.ACTION_VIEW)
-                    .setDataAndType(Uri.parse(uri), type)
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                runCatching { context.startActivity(intent) }.onFailure {
-                    Toast.makeText(
-                        context,
-                        R.string.media_document_no_viewer,
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-            },
-        )
-    }
-}
 
 private const val MAX_IMAGE_DIMENSION = 2_048
 
-private enum class PlayerKind { Video, Image, Audio, Document }
+private enum class PlayerKind { Video, Image, Audio }
 
 private enum class GestureKind(
     val icon: ImageVector,

@@ -53,4 +53,8 @@ class CardRepositoryImpl @Inject constructor(
     override suspend fun updateTags(cardId: Long, tags: List<String>) {
         cardDao.updateTags(cardId, Tags.encode(tags))
     }
+
+    override suspend fun setFavorite(cardId: Long, favorite: Boolean) {
+        cardDao.updateFavorite(cardId, favorite)
+    }
 }

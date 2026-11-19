@@ -10,17 +10,37 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import app.reelvocab.MainActivity
 import app.reelvocab.R
+import app.reelvocab.core.domain.model.CardRepository
+import app.reelvocab.core.domain.model.DictionaryRepository
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class ReminderReceiver : BroadcastReceiver() {
+
+    @Inject lateinit var cards: CardRepository
+    @Inject lateinit var dictionary: DictionaryRepository
 
     @SuppressLint("MissingPermission")
     override fun onReceive(context: Context, intent: Intent) {
-        if (!ReminderPrefs.isEnabled(context)) return
+        if (intent.action == ACTION_SNOOZE) {
+            NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+            ReminderScheduler.scheduleSnooze(context)
+            return
+        }
+        val snooze = intent.getBooleanExtra(EXTRA_SNOOZE, false)
+        if (!snooze && !ReminderPrefs.isEnabled(context)) return
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
@@ -30,7 +50,41 @@ class ReminderReceiver : BroadcastReceiver() {
         ) {
             return
         }
+        if (Settings.canDrawOverlays(context)) {
+            MorningOverlayService.start(context)
+        }
 
+        val pending = goAsync()
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                val review = loadReview(context)
+                showNotification(context, review)
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+
+    private suspend fun loadReview(context: Context): ReviewWord {
+        val cardList = runCatching { cards.observeCards().first() }.getOrDefault(emptyList())
+        val card = cardList.firstOrNull()
+        if (card != null) {
+            val entry = runCatching { dictionary.lookup(card.headword) }.getOrNull()
+            return ReviewWord(
+                word = card.headword,
+                definition = entry?.senses?.firstOrNull()?.definition ?: card.meaning,
+            )
+        }
+        val entry = runCatching { dictionary.wordOfTheDay() }.getOrNull()
+        return ReviewWord(
+            word = entry?.lemma ?: context.getString(R.string.reminder_title),
+            definition = entry?.senses?.firstOrNull()?.definition
+                ?: context.getString(R.string.reminder_body),
+        )
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun showNotification(context: Context, review: ReviewWord) {
         createChannel(context)
 
         val reviewIntent = Intent(context, MainActivity::class.java)
@@ -46,18 +100,31 @@ class ReminderReceiver : BroadcastReceiver() {
             reviewIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val snoozeIntent = PendingIntent.getBroadcast(
+            context,
+            SNOOZE_REQUEST_CODE,
+            Intent(context, ReminderReceiver::class.java).setAction(ACTION_SNOOZE),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(R.string.reminder_title))
-            .setContentText(context.getString(R.string.reminder_body))
+            .setContentTitle(context.getString(R.string.reminder_word_title, review.word))
+            .setContentText(review.definition)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(review.definition))
             .setContentIntent(reviewPendingIntent)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
+            .addAction(0, context.getString(R.string.reminder_overlay_snooze), snoozeIntent)
+            .addAction(0, context.getString(R.string.reminder_overlay_review), reviewPendingIntent)
 
-        if (ReminderPrefs.fullScreen(context) && FullScreenAlarms.isAllowed(context)) {
+        if (
+            ReminderPrefs.fullScreen(context) &&
+            FullScreenAlarms.isAllowed(context) &&
+            !Settings.canDrawOverlays(context)
+        ) {
             builder.setFullScreenIntent(reviewPendingIntent, true)
         }
 
@@ -79,10 +146,18 @@ class ReminderReceiver : BroadcastReceiver() {
         manager.createNotificationChannel(channel)
     }
 
-    private companion object {
-        const val CHANNEL_ID = "morning_alarm"
-        const val LEGACY_CHANNEL_ID = "morning_review"
-        const val NOTIFICATION_ID = 8201
-        const val REVIEW_REQUEST_CODE = 8202
+    private data class ReviewWord(
+        val word: String,
+        val definition: String,
+    )
+
+    companion object {
+        const val EXTRA_SNOOZE = "app.reelvocab.extra.SNOOZE"
+        private const val ACTION_SNOOZE = "app.reelvocab.reminder.SNOOZE"
+        private const val CHANNEL_ID = "morning_alarm"
+        private const val LEGACY_CHANNEL_ID = "morning_review"
+        private const val NOTIFICATION_ID = 8201
+        private const val REVIEW_REQUEST_CODE = 8202
+        private const val SNOOZE_REQUEST_CODE = 8203
     }
 }

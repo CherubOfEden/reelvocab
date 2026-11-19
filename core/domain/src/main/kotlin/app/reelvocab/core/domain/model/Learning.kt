@@ -39,4 +39,5 @@ interface CardRepository {
     suspend fun addCard(card: NewCard): Long
     suspend fun deleteCard(id: Long)
     suspend fun updateTags(cardId: Long, tags: List<String>)
+    suspend fun setFavorite(cardId: Long, favorite: Boolean)
 }

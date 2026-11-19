@@ -14,6 +14,16 @@
     <string name="settings_section_capture">Capture</string>
     <string name="settings_floating_capture_label">Floating word pill</string>
     <string name="settings_floating_capture_value">Tap over any app</string>
+    <string name="settings_overlay_label">Display over other apps</string>
+    <string name="settings_overlay_allowed">Allowed</string>
+    <string name="settings_overlay_blocked">Not allowed</string>
+    <string name="settings_pip_mode_label">Pill capture mode</string>
+    <string name="settings_pip_mode_title">Floating pill behaviour</string>
+    <string name="settings_pip_mode_summary">Choose what the floating pill captures. With All, tapping the pill opens a small menu.</string>
+    <string name="settings_pip_words">Words only</string>
+    <string name="settings_pip_video">Record video</string>
+    <string name="settings_pip_audio">Record audio</string>
+    <string name="settings_pip_all">Show a menu (All)</string>
     <string name="settings_section_reminders">Reminders</string>
     <string name="settings_reminder_label">Morning reminder</string>
     <string name="settings_reminder_time_label">Reminder time</string>

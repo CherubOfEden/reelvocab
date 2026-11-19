@@ -8,10 +8,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,9 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import app.reelvocab.core.designsystem.component.EmptyState
 import app.reelvocab.core.designsystem.component.StreakRing
 import app.reelvocab.core.designsystem.illustration.ReelIllustration
@@ -52,8 +55,8 @@ fun TodayScreen(
     state: TodayUiState,
     pipActive: Boolean,
     onTogglePip: () -> Unit,
-    onOpenReminder: () -> Unit,
-    onOpenAiSettings: () -> Unit,
+    onOpenAlarm: () -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenDeck: () -> Unit,
     onStartReview: () -> Unit,
     modifier: Modifier = Modifier,
@@ -92,34 +95,34 @@ fun TodayScreen(
                         style = ReelTheme.type.label,
                         color = colors.textTertiary,
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onTogglePip) {
-                            Icon(
-                                imageVector = Icons.Filled.PictureInPictureAlt,
-                                contentDescription = stringResource(
-                                    if (pipActive) {
-                                        R.string.today_pip_on
-                                    } else {
-                                        R.string.today_pip_off
-                                    },
-                                ),
-                                tint = if (pipActive) colors.gold else colors.textSecondary,
-                            )
-                        }
-                        IconButton(onClick = onOpenReminder) {
-                            Icon(
-                                imageVector = Icons.Filled.Alarm,
-                                contentDescription = stringResource(R.string.today_reminder),
-                                tint = colors.textSecondary,
-                            )
-                        }
-                        IconButton(onClick = onOpenAiSettings) {
-                            Icon(
-                                imageVector = Icons.Filled.AutoAwesome,
-                                contentDescription = stringResource(R.string.today_ai_dictionary),
-                                tint = colors.textSecondary,
-                            )
-                        }
+                    Row(horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs)) {
+                        TodayAction(
+                            icon = Icons.Filled.PictureInPictureAlt,
+                            label = stringResource(R.string.today_label_capture),
+                            contentDescription = stringResource(
+                                if (pipActive) {
+                                    R.string.today_pip_on
+                                } else {
+                                    R.string.today_pip_off
+                                },
+                            ),
+                            tint = if (pipActive) colors.gold else colors.textSecondary,
+                            onClick = onTogglePip,
+                        )
+                        TodayAction(
+                            icon = Icons.Filled.Alarm,
+                            label = stringResource(R.string.today_label_alarm),
+                            contentDescription = stringResource(R.string.today_reminder),
+                            tint = colors.textSecondary,
+                            onClick = onOpenAlarm,
+                        )
+                        TodayAction(
+                            icon = Icons.Filled.Settings,
+                            label = stringResource(R.string.today_label_settings),
+                            contentDescription = stringResource(R.string.today_settings),
+                            tint = colors.textSecondary,
+                            onClick = onOpenSettings,
+                        )
                     }
                 }
                 Spacer(Modifier.height(ReelTheme.spacing.xs))
@@ -210,5 +213,32 @@ fun TodayScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TodayAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    contentDescription: String,
+    tint: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Text(
+            text = label,
+            style = ReelTheme.type.label,
+            color = ReelTheme.colors.textTertiary,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
     }
 }

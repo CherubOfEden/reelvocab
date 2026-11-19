@@ -17,6 +17,7 @@ internal fun CardEntity.toDomain(): Card = Card(
     hasAudio = hasAudio,
     createdAtEpochMs = createdAtEpochMs,
     tags = Tags.decode(tags),
+    isFavorite = isFavorite,
 )
 
 internal fun ReviewEntity.toDomain(): ReviewState = ReviewState(

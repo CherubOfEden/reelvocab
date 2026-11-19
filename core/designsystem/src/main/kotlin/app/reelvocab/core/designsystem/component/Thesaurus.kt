@@ -1,6 +1,7 @@
 package app.reelvocab.core.designsystem.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,7 @@ fun ThesaurusRow(
     words: List<String>,
     tint: Color,
     modifier: Modifier = Modifier,
+    onWordClick: ((String) -> Unit)? = null,
 ) {
     val colors = ReelTheme.colors
     Row(
@@ -44,7 +46,11 @@ fun ThesaurusRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             words.forEach { word ->
-                ThesaurusTag(text = word, tint = tint)
+                ThesaurusTag(
+                    text = word,
+                    tint = tint,
+                    onClick = onWordClick?.let { click -> { click(word) } },
+                )
             }
         }
     }
@@ -54,6 +60,7 @@ fun ThesaurusRow(
 private fun ThesaurusTag(
     text: String,
     tint: Color,
+    onClick: (() -> Unit)? = null,
 ) {
     Text(
         text = text,
@@ -64,6 +71,7 @@ private fun ThesaurusTag(
         modifier = Modifier
             .clip(RoundedCornerShape(ReelTheme.radius.chip))
             .background(tint.copy(alpha = 0.12f))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(
                 horizontal = ReelTheme.spacing.s,
                 vertical = ReelTheme.spacing.xxs,

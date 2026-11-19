@@ -12,6 +12,7 @@ data class Card(
     val hasAudio: Boolean,
     val createdAtEpochMs: Long,
     val tags: List<String> = emptyList(),
+    val isFavorite: Boolean = false,
 )
 
 data class NewCard(
@@ -32,7 +33,7 @@ data class Film(
     val year: Int?,
 )
 
-enum class MediaKind { Video, Image, Audio, Document }
+enum class MediaKind { Video, Image, Audio }
 
 data class MediaItem(
     val id: Long,

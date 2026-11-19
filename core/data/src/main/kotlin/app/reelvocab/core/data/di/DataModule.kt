@@ -9,6 +9,7 @@ import app.reelvocab.core.data.db.CardDao
 import app.reelvocab.core.data.db.FilmDao
 import app.reelvocab.core.data.db.MIGRATION_1_2
 import app.reelvocab.core.data.db.MIGRATION_2_3
+import app.reelvocab.core.data.db.MIGRATION_3_4
 import app.reelvocab.core.data.db.ReelDatabase
 import app.reelvocab.core.data.db.ReviewDao
 import app.reelvocab.core.data.db.WordDao
@@ -17,9 +18,11 @@ import app.reelvocab.core.data.enrichment.EnrichmentRouter
 import app.reelvocab.core.data.enrichment.FakeEnrichmentService
 import app.reelvocab.core.data.enrichment.FakeTranscriptionService
 import app.reelvocab.core.data.reviews.ReviewRepositoryImpl
+import app.reelvocab.core.data.vault.MediaVaultRepositoryImpl
 import app.reelvocab.core.domain.model.CardRepository
 import app.reelvocab.core.domain.model.DictionaryRepository
 import app.reelvocab.core.domain.model.EnrichmentService
+import app.reelvocab.core.domain.model.MediaVaultRepository
 import app.reelvocab.core.domain.model.ReviewRepository
 import app.reelvocab.core.domain.model.TranscriptionService
 import dagger.Binds
@@ -42,7 +45,7 @@ object DataModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ReelDatabase =
         Room.databaseBuilder(context, ReelDatabase::class.java, "reelvocab.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
 
     @Provides
@@ -73,6 +76,10 @@ abstract class DataBindingsModule {
     @Binds
     @Singleton
     abstract fun bindReviewRepository(impl: ReviewRepositoryImpl): ReviewRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMediaVaultRepository(impl: MediaVaultRepositoryImpl): MediaVaultRepository
 
     @Binds
     @Singleton

@@ -13,9 +13,10 @@ internal fun filterDeckCards(
         .filter { card ->
             when (filter) {
                 DeckFilter.All -> true
+                DeckFilter.Favorites -> card.isFavorite
                 DeckFilter.Due -> card.id in dueCardIds
-                DeckFilter.Words -> card.contextLine.isNullOrBlank()
-                DeckFilter.Sentences -> !card.contextLine.isNullOrBlank()
+                DeckFilter.Words -> !card.headword.contains(' ')
+                DeckFilter.Sentences -> card.headword.contains(' ')
             }
         }
         .filter { card -> needle.isEmpty() || card.matches(needle) }

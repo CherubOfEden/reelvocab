@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.LocalMovies
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +45,8 @@ data class WordCardLabels(
     val synonyms: String = "",
     val antonyms: String = "",
     val delete: String = "",
+    val favorite: String = "",
+    val unfavorite: String = "",
 )
 
 @Immutable
@@ -63,6 +66,7 @@ data class WordCardModel(
     val synonyms: List<String> = emptyList(),
     val antonyms: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
+    val isFavorite: Boolean = false,
 )
 
 @Composable
@@ -75,6 +79,7 @@ fun WordCard(
     onMore: () -> Unit,
     modifier: Modifier = Modifier,
     onDelete: (() -> Unit)? = null,
+    onFavorite: (() -> Unit)? = null,
     compact: Boolean = false,
 ) {
     val colors = ReelTheme.colors
@@ -125,6 +130,19 @@ fun WordCard(
                     if (model.difficulty != null) {
                         DifficultyDots(level = model.difficulty)
                     }
+                }
+            }
+            if (onFavorite != null) {
+                IconButton(onClick = onFavorite) {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = if (model.isFavorite) {
+                            labels.unfavorite
+                        } else {
+                            labels.favorite
+                        },
+                        tint = if (model.isFavorite) colors.gold else colors.textTertiary,
+                    )
                 }
             }
             if (model.hasAudio) {

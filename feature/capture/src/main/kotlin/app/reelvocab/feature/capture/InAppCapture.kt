@@ -1,6 +1,7 @@
 package app.reelvocab.feature.capture
 
 import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,14 +24,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -66,7 +72,10 @@ fun InAppCapture(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = ReelTheme.colors
+    val context = LocalContext.current
     var phraseRange by remember(state.lines) { mutableStateOf<PhraseRange?>(null) }
+    var multiSelect by remember(state.lines) { mutableStateOf(false) }
+    var selectedWords by remember(state.lines) { mutableStateOf<Set<CaptureWord>>(emptySet()) }
 
     LaunchedEffect(bitmap) {
         viewModel.recognize(bitmap)
@@ -88,7 +97,7 @@ fun InAppCapture(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .heightIn(max = 520.dp)
+                    .heightIn(max = 680.dp)
                     .clip(
                         RoundedCornerShape(
                             topStart = ReelTheme.radius.sheetTop,
@@ -108,7 +117,13 @@ fun InAppCapture(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = stringResource(R.string.capture_pick_title),
+                        text = stringResource(
+                            if (multiSelect) {
+                                R.string.capture_selection_title
+                            } else {
+                                R.string.capture_pick_title
+                            },
+                        ),
                         style = ReelTheme.type.titleL,
                         color = colors.textPrimary,
                     )
@@ -126,7 +141,7 @@ fun InAppCapture(
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 140.dp)
+                        .heightIn(max = 130.dp)
                         .clip(RoundedCornerShape(ReelTheme.radius.card)),
                     contentScale = ContentScale.Fit,
                 )
@@ -173,11 +188,19 @@ fun InAppCapture(
                     else -> LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 300.dp),
+                            .heightIn(max = 430.dp),
                         contentPadding = PaddingValues(bottom = ReelTheme.spacing.s),
                         verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
                     ) {
-                        if (phraseRange != null) {
+                        if (multiSelect) {
+                            item(key = "multi-hint") {
+                                Text(
+                                    text = stringResource(R.string.capture_select_hint),
+                                    style = ReelTheme.type.label,
+                                    color = colors.green,
+                                )
+                            }
+                        } else if (phraseRange != null) {
                             item(key = "phrase-hint") {
                                 Text(
                                     text = stringResource(R.string.capture_phrase_hint),
@@ -190,29 +213,87 @@ fun InAppCapture(
                             CaptureLineRow(
                                 line = line,
                                 selectedRange = phraseRange?.takeIf { it.lineIndex == lineIndex },
+                                selectedWords = selectedWords,
                                 onWordTap = { wordIndex, word ->
-                                    val active = phraseRange
-                                    if (active != null && active.lineIndex == lineIndex) {
-                                        val start = minOf(active.start, wordIndex)
-                                        val end = maxOf(active.end, wordIndex)
-                                        val phrase = line.words
-                                            .subList(start, end + 1)
-                                            .joinToString(" ") { it.text }
-                                        viewModel.select(CaptureWord(text = phrase, line = line.text))
-                                        phraseRange = null
+                                    if (multiSelect) {
+                                        selectedWords = if (word in selectedWords) {
+                                            selectedWords - word
+                                        } else {
+                                            selectedWords + word
+                                        }
                                     } else {
-                                        phraseRange = null
-                                        viewModel.select(word)
+                                        val active = phraseRange
+                                        if (active != null && active.lineIndex == lineIndex) {
+                                            val start = minOf(active.start, wordIndex)
+                                            val end = maxOf(active.end, wordIndex)
+                                            val phrase = line.words
+                                                .subList(start, end + 1)
+                                                .joinToString(" ") { it.text }
+                                            viewModel.select(CaptureWord(text = phrase, line = line.text))
+                                            phraseRange = null
+                                        } else {
+                                            phraseRange = null
+                                            viewModel.select(word)
+                                        }
                                     }
                                 },
                                 onWordLongPress = { wordIndex ->
-                                    phraseRange = PhraseRange(
-                                        lineIndex = lineIndex,
-                                        start = wordIndex,
-                                        end = wordIndex,
-                                    )
+                                    val word = line.words[wordIndex]
+                                    phraseRange = null
+                                    multiSelect = true
+                                    selectedWords = selectedWords + word
                                 },
                             )
+                        }
+                    }
+                }
+
+                if (multiSelect) {
+                    Spacer(Modifier.height(ReelTheme.spacing.s))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (state.multiLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = colors.green,
+                            )
+                            Text(
+                                text = stringResource(R.string.capture_preview_loading),
+                                style = ReelTheme.type.label,
+                                color = colors.textSecondary,
+                                modifier = Modifier.weight(1f),
+                            )
+                        } else {
+                            TextButton(
+                                onClick = {
+                                    multiSelect = false
+                                    selectedWords = emptySet()
+                                },
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.capture_cancel),
+                                    style = ReelTheme.type.label,
+                                    color = colors.textSecondary,
+                                )
+                            }
+                            Spacer(Modifier.weight(1f))
+                            Box(modifier = Modifier.weight(0.45f)) {
+                                ReelButton(
+                                    text = stringResource(R.string.capture_select_ok),
+                                    onClick = {
+                                        viewModel.prepareSelection(
+                                            state.lines
+                                                .flatMap { it.words }
+                                                .filter { it in selectedWords },
+                                        )
+                                    },
+                                    enabled = selectedWords.isNotEmpty(),
+                                )
+                            }
                         }
                     }
                 }
@@ -231,7 +312,33 @@ fun InAppCapture(
             saving = state.saving,
             saveError = state.saveError,
             onDismiss = viewModel::dismissSelection,
-            onSave = { edited -> viewModel.save(selected, edited, sourceTitle, timestampMs, onSaved) },
+            onSave = { edited ->
+                viewModel.save(selected, edited, sourceTitle, timestampMs) {
+                    Toast.makeText(context, R.string.capture_saved, Toast.LENGTH_SHORT).show()
+                }
+            },
+        )
+    }
+
+    val multiSelection = state.multiSelection
+    if (multiSelection != null) {
+        SaveSelectionSheet(
+            selection = multiSelection,
+            saving = state.multiSaving,
+            saveError = state.multiError,
+            onDismiss = {
+                viewModel.dismissMultiSelection()
+                multiSelect = false
+                selectedWords = emptySet()
+            },
+            onSave = {
+                viewModel.saveSelection(multiSelection, sourceTitle, timestampMs) {
+                    Toast.makeText(context, R.string.capture_saved, Toast.LENGTH_SHORT).show()
+                    multiSelect = false
+                    selectedWords = emptySet()
+                    onSaved()
+                }
+            },
         )
     }
 }
@@ -242,11 +349,12 @@ private data class PhraseRange(
     val end: Int,
 )
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun CaptureLineRow(
     line: CaptureLine,
     selectedRange: PhraseRange?,
+    selectedWords: Set<CaptureWord>,
     onWordTap: (Int, CaptureWord) -> Unit,
     onWordLongPress: (Int) -> Unit,
 ) {
@@ -267,6 +375,7 @@ private fun CaptureLineRow(
                     selected = selectedRange != null &&
                         index >= selectedRange.start &&
                         index <= selectedRange.end,
+                    checked = word in selectedWords,
                     onClick = { onWordTap(index, word) },
                     onLongClick = { onWordLongPress(index) },
                 )
@@ -280,13 +389,16 @@ private fun CaptureLineRow(
 private fun WordChip(
     text: String,
     selected: Boolean,
+    checked: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
     val colors = ReelTheme.colors
     val shape = RoundedCornerShape(ReelTheme.radius.chip)
-    val container = if (selected) colors.gold.copy(alpha = 0.16f) else colors.elevated
-    val border = if (selected) colors.gold.copy(alpha = 0.55f) else colors.strokeSubtle
+    val active = selected || checked
+    val accent = if (checked) colors.green else colors.gold
+    val container = if (active) accent.copy(alpha = 0.16f) else colors.elevated
+    val border = if (active) accent.copy(alpha = 0.55f) else colors.strokeSubtle
     Box(
         modifier = Modifier
             .clip(shape)
@@ -296,13 +408,26 @@ private fun WordChip(
                 onClick = onClick,
                 onLongClick = onLongClick,
             )
-            .padding(horizontal = ReelTheme.spacing.s, vertical = ReelTheme.spacing.xs),
+            .padding(horizontal = ReelTheme.spacing.m, vertical = ReelTheme.spacing.s),
     ) {
-        Text(
-            text = text,
-            style = ReelTheme.type.bodyM,
-            color = if (selected) colors.gold else colors.textSecondary,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs),
+        ) {
+            Text(
+                text = text,
+                style = ReelTheme.type.bodyL,
+                color = if (active) accent else colors.textSecondary,
+            )
+            if (checked) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = colors.green,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
     }
 }
 
@@ -394,6 +519,83 @@ private fun SaveWordSheet(
             onClick = { onSave(edited) },
             loading = saving,
             enabled = edited.isNotBlank(),
+        )
+        Spacer(Modifier.height(ReelTheme.spacing.s))
+        ReelButton(
+            text = stringResource(R.string.capture_cancel),
+            onClick = onDismiss,
+            style = ReelButtonStyle.Ghost,
+            enabled = !saving,
+        )
+    }
+}
+
+@Composable
+private fun SaveSelectionSheet(
+    selection: MultiSelection,
+    saving: Boolean,
+    saveError: Boolean,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit,
+) {
+    val colors = ReelTheme.colors
+    ReelSheet(onDismiss = onDismiss, title = stringResource(R.string.capture_selection_title)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 480.dp)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            selection.words.forEach { selected ->
+                Text(
+                    text = selected.word.text,
+                    style = ReelTheme.type.titleM,
+                    color = colors.textPrimary,
+                )
+                val meaning = selected.enrichment?.definitions?.firstOrNull()?.definition
+                Text(
+                    text = meaning ?: stringResource(R.string.capture_preview_unavailable),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textSecondary,
+                )
+                Spacer(Modifier.height(ReelTheme.spacing.m))
+            }
+            Spacer(Modifier.height(ReelTheme.spacing.xs))
+            Text(
+                text = stringResource(R.string.capture_phrase_title),
+                style = ReelTheme.type.label,
+                color = colors.textTertiary,
+            )
+            Spacer(Modifier.height(ReelTheme.spacing.xxs))
+            Text(
+                text = selection.phrase,
+                style = ReelTheme.type.titleM,
+                color = colors.gold,
+            )
+            val phraseMeaning = selection.phraseEnrichment
+                ?.definitions
+                ?.firstOrNull()
+                ?.definition
+                ?: stringResource(R.string.capture_preview_unavailable)
+            Text(
+                text = phraseMeaning,
+                style = ReelTheme.type.bodyM,
+                color = colors.textSecondary,
+            )
+        }
+        if (saveError) {
+            Spacer(Modifier.height(ReelTheme.spacing.s))
+            Text(
+                text = stringResource(R.string.capture_save_error),
+                style = ReelTheme.type.bodyM,
+                color = colors.rose,
+            )
+        }
+        Spacer(Modifier.height(ReelTheme.spacing.xl))
+        ReelButton(
+            text = stringResource(R.string.capture_save_selection),
+            onClick = onSave,
+            loading = saving,
         )
         Spacer(Modifier.height(ReelTheme.spacing.s))
         ReelButton(

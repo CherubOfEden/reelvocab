@@ -5,7 +5,9 @@
     <string name="today_pip_on">Turn off floating word capture</string>
     <string name="today_pip_off">Turn on floating word capture</string>
     <string name="today_reminder">Reminder settings</string>
-    <string name="today_ai_dictionary">AI dictionary settings</string>
+    <string name="today_label_capture">Capture</string>
+    <string name="today_label_alarm">Alarm</string>
+    <string name="today_label_settings">Settings</string>
     <string name="today_empty_title">Nothing on the reel yet</string>
     <string name="today_empty_body">Capture a word from a film and it lands here the next morning, ready for its first quiz.</string>
     <string name="today_cta_deck">Open the deck</string>

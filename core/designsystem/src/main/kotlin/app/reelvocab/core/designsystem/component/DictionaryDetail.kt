@@ -45,6 +45,8 @@ data class DictionaryDetailLabels(
     val notFound: String,
     val loading: String,
     val close: String,
+    val save: String = "",
+    val saved: String = "",
 )
 
 @Composable
@@ -53,6 +55,10 @@ fun DictionaryDetailSheet(
     loading: Boolean,
     labels: DictionaryDetailLabels,
     onDismiss: () -> Unit,
+    onWordClick: ((String) -> Unit)? = null,
+    onSave: (() -> Unit)? = null,
+    saving: Boolean = false,
+    saved: Boolean = false,
 ) {
     val colors = ReelTheme.colors
     ReelSheet(onDismiss = onDismiss, title = labels.title) {
@@ -155,6 +161,7 @@ fun DictionaryDetailSheet(
                                 label = labels.synonyms,
                                 words = entry.synonyms,
                                 tint = colors.teal,
+                                onWordClick = onWordClick,
                             )
                         }
                         if (entry.antonyms.isNotEmpty()) {
@@ -162,17 +169,34 @@ fun DictionaryDetailSheet(
                                 label = labels.antonyms,
                                 words = entry.antonyms,
                                 tint = colors.rose,
+                                onWordClick = onWordClick,
                             )
                         }
                     }
                 }
 
+                if (onSave != null && labels.save.isNotEmpty()) {
+                    Spacer(Modifier.height(ReelTheme.spacing.xxl))
+                    ReelButton(
+                        text = if (saved) labels.saved else labels.save,
+                        onClick = onSave,
+                        loading = saving,
+                        enabled = !saved,
+                    )
+                    Spacer(Modifier.height(ReelTheme.spacing.s))
+                    ReelButton(
+                        text = labels.close,
+                        onClick = onDismiss,
+                        style = ReelButtonStyle.Ghost,
+                    )
+                } else {
                 Spacer(Modifier.height(ReelTheme.spacing.xxl))
                 ReelButton(
                     text = labels.close,
                     onClick = onDismiss,
                     style = ReelButtonStyle.Secondary,
                 )
+                }
                 }
             }
         }

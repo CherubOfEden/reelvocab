@@ -40,9 +40,33 @@ class DeckFilteringTest {
     }
 
     @Test
-    fun `sentence and word filters split on context`() {
-        assertEquals(listOf(grit), filterDeckCards(cards, DeckFilter.Sentences, emptySet(), ""))
-        assertEquals(listOf(ledger), filterDeckCards(cards, DeckFilter.Words, emptySet(), ""))
+    fun `word and sentence filters split on headword length`() {
+        val phrase = card(
+            id = 3,
+            headword = "break a leg",
+            source = "Theatre",
+            tags = emptyList(),
+            line = null,
+        )
+        val sample = listOf(grit, ledger, phrase)
+        assertEquals(
+            listOf(grit, ledger),
+            filterDeckCards(sample, DeckFilter.Words, emptySet(), ""),
+        )
+        assertEquals(
+            listOf(phrase),
+            filterDeckCards(sample, DeckFilter.Sentences, emptySet(), ""),
+        )
+    }
+
+    @Test
+    fun `favorites filter keeps only starred cards`() {
+        assertEquals(emptyList<Card>(), filterDeckCards(cards, DeckFilter.Favorites, emptySet(), ""))
+        val starred = listOf(grit.copy(isFavorite = true), ledger)
+        assertEquals(
+            listOf(starred.first()),
+            filterDeckCards(starred, DeckFilter.Favorites, emptySet(), ""),
+        )
     }
 
     @Test

@@ -41,6 +41,13 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object SettingsRoute
 
+enum class PipMode(val labelRes: Int) {
+    WordsOnly(R.string.settings_pip_words),
+    Video(R.string.settings_pip_video),
+    Audio(R.string.settings_pip_audio),
+    All(R.string.settings_pip_all),
+}
+
 enum class ThemeMode(val labelRes: Int) {
     System(R.string.settings_theme_system),
     Dark(R.string.settings_theme_dark),
@@ -62,6 +69,10 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onOpenDictionaryProbe: (() -> Unit)? = null,
     onEnableFloatingCapture: (() -> Unit)? = null,
+    pipMode: PipMode = PipMode.WordsOnly,
+    onPipModeChange: ((PipMode) -> Unit)? = null,
+    overlayAvailable: Boolean = true,
+    onOpenOverlaySettings: (() -> Unit)? = null,
     themeMode: ThemeMode = ThemeMode.System,
     onThemeModeChange: ((ThemeMode) -> Unit)? = null,
     reminderEnabled: Boolean = false,
@@ -80,6 +91,7 @@ fun SettingsScreen(
     val colors = ReelTheme.colors
     var showTimePicker by remember { mutableStateOf(false) }
     var showThemePicker by remember { mutableStateOf(false) }
+    var showPipPicker by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -203,6 +215,30 @@ fun SettingsScreen(
                 label = stringResource(R.string.settings_floating_capture_label),
                 value = stringResource(R.string.settings_floating_capture_value),
                 onClick = onEnableFloatingCapture,
+            )
+        }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_overlay_label),
+                value = stringResource(
+                    if (overlayAvailable) {
+                        R.string.settings_overlay_allowed
+                    } else {
+                        R.string.settings_overlay_blocked
+                    },
+                ),
+                onClick = onOpenOverlaySettings,
+            )
+        }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_pip_mode_label),
+                value = stringResource(pipMode.labelRes),
+                onClick = if (onPipModeChange != null) {
+                    { showPipPicker = true }
+                } else {
+                    null
+                },
             )
         }
 
@@ -333,6 +369,17 @@ fun SettingsScreen(
         )
     }
 
+    if (showPipPicker && onPipModeChange != null) {
+        PipModePickerDialog(
+            selected = pipMode,
+            onSelect = { mode ->
+                onPipModeChange(mode)
+                showPipPicker = false
+            },
+            onDismiss = { showPipPicker = false },
+        )
+    }
+
     if (showThemePicker && onThemeModeChange != null) {
         ThemePickerDialog(
             selected = themeMode,
@@ -343,6 +390,71 @@ fun SettingsScreen(
             onDismiss = { showThemePicker = false },
         )
     }
+}
+
+@Composable
+private fun PipModePickerDialog(
+    selected: PipMode,
+    onSelect: (PipMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = ReelTheme.colors
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.elevated,
+        titleContentColor = colors.textPrimary,
+        textContentColor = colors.textSecondary,
+        title = {
+            Text(
+                text = stringResource(R.string.settings_pip_mode_title),
+                style = ReelTheme.type.titleM,
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.settings_pip_mode_summary),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textSecondary,
+                )
+                Spacer(Modifier.height(ReelTheme.spacing.s))
+                PipMode.entries.forEach { mode ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(mode) }
+                            .padding(vertical = ReelTheme.spacing.s),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = mode == selected,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = colors.gold,
+                                unselectedColor = colors.textTertiary,
+                            ),
+                        )
+                        Text(
+                            text = stringResource(mode.labelRes),
+                            style = ReelTheme.type.bodyL,
+                            color = colors.textPrimary,
+                            modifier = Modifier.padding(start = ReelTheme.spacing.s),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.settings_close),
+                    style = ReelTheme.type.label,
+                    color = colors.textSecondary,
+                )
+            }
+        },
+    )
 }
 
 @Composable

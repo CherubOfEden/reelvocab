@@ -17,7 +17,6 @@ enum class MediaCategory(val labelRes: Int) {
     Videos(R.string.media_section_videos),
     Images(R.string.media_section_images),
     Audio(R.string.media_section_audio),
-    Documents(R.string.media_section_documents),
 }
 
 data class MediaUiState(

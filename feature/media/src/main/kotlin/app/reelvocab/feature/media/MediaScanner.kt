@@ -40,19 +40,7 @@ class MediaScanner @Inject constructor(
                 selection = "${MediaStore.MediaColumns.DURATION} > 0",
             )
         }
-        val documents = safely {
-            val mime = MediaStore.MediaColumns.MIME_TYPE
-            query(
-                collection = MediaStore.Files.getContentUri("external"),
-                kind = MediaKind.Document,
-                hasDuration = false,
-                selection = "$mime IS NOT NULL AND " +
-                    "$mime NOT LIKE 'video/%' AND " +
-                    "$mime NOT LIKE 'image/%' AND " +
-                    "$mime NOT LIKE 'audio/%'",
-            )
-        }
-        (videos + images + audio + documents).distinctBy { it.uri }
+        (videos + images + audio).distinctBy { it.uri }
     }
 
     private inline fun <T> safely(block: () -> List<T>): List<T> =

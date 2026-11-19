@@ -82,6 +82,7 @@ data class CardEntity(
     @ColumnInfo(name = "has_audio") val hasAudio: Boolean,
     @ColumnInfo(name = "created_at") val createdAtEpochMs: Long,
     @ColumnInfo(defaultValue = "''") val tags: String = "",
+    @ColumnInfo(name = "is_favorite", defaultValue = "0") val isFavorite: Boolean = false,
 )
 
 @Entity(

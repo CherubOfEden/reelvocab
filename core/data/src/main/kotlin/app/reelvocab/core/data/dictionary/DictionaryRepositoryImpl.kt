@@ -21,8 +21,11 @@ class DictionaryRepositoryImpl @Inject constructor(
     }
 
     override suspend fun search(prefix: String, limit: Int): List<DictionaryEntry> {
-        val term = Headwords.normalize(prefix).filter { it.isLetter() }
+        val term = Headwords.normalize(prefix)
         if (term.length < 2) return emptyList()
+        if (term.contains(' ')) {
+            return listOfNotNull(lookup(term))
+        }
         val safeLimit = limit.coerceIn(1, 50)
         return asset.read { db ->
             val lemmas = mutableListOf<String>()
@@ -48,6 +51,18 @@ class DictionaryRepositoryImpl @Inject constructor(
         val lemma = Headwords.normalize(rawLemma)
         if (lemma.isEmpty()) return Thesaurus()
         return asset.read { db -> db.thesaurusFor(lemma) }
+    }
+
+    override suspend fun wordOfTheDay(): DictionaryEntry? {
+        val lemma = asset.read { db ->
+            db.rawQuery(
+                "SELECT lemma FROM words ORDER BY RANDOM() LIMIT 1",
+                null,
+            ).use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        } ?: return null
+        return asset.read { db -> db.entryFor(lemma) }
     }
 
     override suspend fun isReady(): Boolean = runCatching {

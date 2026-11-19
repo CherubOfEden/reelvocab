@@ -12,6 +12,7 @@ import android.os.Build
 import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -31,7 +32,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Photo
@@ -88,6 +88,7 @@ data class PlayerRoute(
     val index: Int = 0,
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MediaScreen(
     onPlay: (PlayerRoute) -> Unit,
@@ -142,7 +143,6 @@ fun MediaScreen(
             MediaCategory.Videos -> state.items.filter { it.kind == MediaKind.Video }
             MediaCategory.Images -> state.items.filter { it.kind == MediaKind.Image }
             MediaCategory.Audio -> state.items.filter { it.kind == MediaKind.Audio }
-            MediaCategory.Documents -> state.items.filter { it.kind == MediaKind.Document }
         }
     }
     val queue = remember(visibleItems) { visibleItems.map(MediaItem::toTrack) }
@@ -171,10 +171,12 @@ fun MediaScreen(
             )
         }
 
-        item {
+        stickyHeader(key = "media-categories") {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(colors.base)
+                    .padding(vertical = ReelTheme.spacing.xs)
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
             ) {
@@ -266,8 +268,6 @@ private fun launchOpenDocument(
             "video/*",
             "audio/*",
             "image/*",
-            "application/pdf",
-            "text/*",
         ),
     )
 }
@@ -417,7 +417,6 @@ private fun loadThumbnail(context: Context, item: MediaItem): Bitmap? = runCatch
             null,
         )
         MediaKind.Audio -> loadAlbumArt(context, item.uri)
-        MediaKind.Document -> null
     }
 }.getOrNull()
 
@@ -446,22 +445,20 @@ private fun MediaKind.toPlayerKind(): String = when (this) {
     MediaKind.Video -> "video"
     MediaKind.Image -> "image"
     MediaKind.Audio -> "audio"
-    MediaKind.Document -> "document"
 }
 
 private fun kindForMime(mimeType: String?): String = when {
-    mimeType == null -> "document"
+    mimeType == null -> "image"
     mimeType.startsWith("video/") -> "video"
     mimeType.startsWith("image/") -> "image"
     mimeType.startsWith("audio/") -> "audio"
-    else -> "document"
+    else -> "image"
 }
 
 private fun MediaKind.icon() = when (this) {
     MediaKind.Video -> Icons.Filled.Movie
     MediaKind.Image -> Icons.Filled.Photo
     MediaKind.Audio -> Icons.Filled.MusicNote
-    MediaKind.Document -> Icons.Filled.Description
 }
 
 @Composable
@@ -471,7 +468,6 @@ private fun mediaSubtitle(item: MediaItem): String {
             MediaKind.Video -> R.string.media_kind_video
             MediaKind.Image -> R.string.media_kind_image
             MediaKind.Audio -> R.string.media_kind_audio
-            MediaKind.Document -> R.string.media_kind_document
         },
     )
     return if (item.kind == MediaKind.Video || item.kind == MediaKind.Audio) {
