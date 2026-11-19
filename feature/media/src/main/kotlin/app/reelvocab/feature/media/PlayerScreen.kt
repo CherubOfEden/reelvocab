@@ -136,7 +136,7 @@ fun PlayerScreen(
         onDispose { player?.release() }
     }
     val initialBrightness = remember(activity) {
-        activity?.window?.attributes?.brightness ?: -1f
+        activity?.window?.attributes?.screenBrightness ?: -1f
     }
     DisposableEffect(activity) {
         val window = activity?.window
@@ -145,7 +145,7 @@ fun PlayerScreen(
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             window?.let { current ->
                 val attributes = current.attributes
-                attributes.brightness = initialBrightness
+                attributes.screenBrightness = initialBrightness
                 current.attributes = attributes
             }
         }
@@ -357,7 +357,7 @@ fun PlayerScreen(
                                     )
                                 } else {
                                     val window = activity?.window
-                                    startBrightness = window?.attributes?.brightness
+                                    startBrightness = window?.attributes?.screenBrightness
                                         ?.takeIf { it >= 0f } ?: 0.5f
                                     gestureFeedback = GestureFeedback.Brightness(
                                         (startBrightness * 100f).roundToInt(),
@@ -397,7 +397,7 @@ fun PlayerScreen(
                                                 .coerceIn(0.05f, 1f)
                                             activity?.window?.let { window ->
                                                 val attributes = window.attributes
-                                                attributes.brightness = fraction
+                                                attributes.screenBrightness = fraction
                                                 window.attributes = attributes
                                             }
                                             gestureFeedback = GestureFeedback.Brightness(
