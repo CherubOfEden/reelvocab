@@ -851,6 +851,7 @@ private fun ControlButton(
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun PlayerMenu(
     expanded: Boolean,
