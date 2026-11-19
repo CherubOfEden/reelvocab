@@ -6,6 +6,7 @@ import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.AudioManager
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.view.WindowManager
@@ -13,9 +14,14 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,9 +29,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.MoreVert
@@ -33,11 +42,16 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -68,6 +82,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.feature.capture.InAppCapture
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -117,12 +132,23 @@ fun PlayerScreen(
         if (playable) ExoPlayer.Builder(context).build() else null
     }
     DisposableEffect(player) {
+        player?.repeatMode = Player.REPEAT_MODE_OFF
         onDispose { player?.release() }
+    }
+    val initialBrightness = remember(activity) {
+        activity?.window?.attributes?.brightness ?: -1f
     }
     DisposableEffect(activity) {
         val window = activity?.window
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        onDispose { window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            window?.let { current ->
+                val attributes = current.attributes
+                attributes.brightness = initialBrightness
+                current.attributes = attributes
+            }
+        }
     }
 
     var orientation by rememberSaveable {
@@ -155,6 +181,13 @@ fun PlayerScreen(
     var hasNext by remember { mutableStateOf(false) }
     var controlsVisible by remember { mutableStateOf(true) }
     var interactionTick by remember { mutableIntStateOf(0) }
+    var positionMs by remember { mutableLongStateOf(0L) }
+    var durationMs by remember { mutableLongStateOf(0L) }
+    var scrubbing by remember { mutableStateOf(false) }
+    var scrubPositionMs by remember { mutableLongStateOf(0L) }
+    var skipSeconds by rememberSaveable { mutableIntStateOf(15) }
+    var showSkipDialog by remember { mutableStateOf(false) }
+    var gestureFeedback by remember { mutableStateOf<GestureFeedback?>(null) }
 
     fun refreshPlayerState() {
         val exo = player ?: return
@@ -176,11 +209,23 @@ fun PlayerScreen(
         refreshPlayerState()
     }
 
-    fun seekRelative(deltaMs: Long) {
+    fun seekRelative(deltaSeconds: Int) {
         val exo = player ?: return
         val duration = exo.duration.takeIf { it > 0L }
-        val target = (exo.currentPosition + deltaMs).coerceAtLeast(0L)
+        val target = (exo.currentPosition + deltaSeconds * 1_000L).coerceAtLeast(0L)
         exo.seekTo(if (duration != null) target.coerceAtMost(duration) else target)
+        positionMs = exo.currentPosition.coerceAtLeast(0L)
+    }
+
+    LaunchedEffect(player) {
+        val exo = player ?: return@LaunchedEffect
+        while (true) {
+            durationMs = exo.duration.takeIf { it > 0L } ?: 0L
+            if (!scrubbing) {
+                positionMs = exo.currentPosition.coerceAtLeast(0L)
+            }
+            delay(500)
+        }
     }
 
     DisposableEffect(player, tracks) {
@@ -191,6 +236,12 @@ fun PlayerScreen(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED &&
+                    exo?.repeatMode == Player.REPEAT_MODE_OFF
+                ) {
+                    exo?.playWhenReady = false
+                    controlsVisible = true
+                }
                 refreshPlayerState()
             }
 
@@ -198,6 +249,7 @@ fun PlayerScreen(
                 val index = exo?.currentMediaItemIndex ?: return
                 currentTitle = tracks.getOrNull(index)?.title ?: route.title
                 currentUri = tracks.getOrNull(index)?.uri ?: route.uri
+                positionMs = 0L
                 refreshPlayerState()
             }
         }
@@ -247,7 +299,7 @@ fun PlayerScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(player) {
+                    .pointerInput(player, skipSeconds) {
                         detectTapGestures(
                             onTap = {
                                 controlsVisible = !controlsVisible
@@ -255,24 +307,114 @@ fun PlayerScreen(
                             },
                             onDoubleTap = { offset ->
                                 val exo = player ?: return@detectTapGestures
+                                val stepMs = skipSeconds * 1_000L
                                 if (offset.x >= size.width / 2f) {
                                     val end = exo.duration.takeIf { it > 0L } ?: Long.MAX_VALUE
-                                    exo.seekTo((exo.currentPosition + 15_000L).coerceAtMost(end))
+                                    exo.seekTo((exo.currentPosition + stepMs).coerceAtMost(end))
+                                    positionMs = exo.currentPosition.coerceAtLeast(0L)
                                     Toast.makeText(
                                         context,
-                                        R.string.media_seek_forward,
+                                        context.getString(R.string.media_seek_forward, skipSeconds),
                                         Toast.LENGTH_SHORT,
                                     ).show()
                                 } else {
-                                    exo.seekTo((exo.currentPosition - 15_000L).coerceAtLeast(0L))
+                                    exo.seekTo((exo.currentPosition - stepMs).coerceAtLeast(0L))
+                                    positionMs = exo.currentPosition.coerceAtLeast(0L)
                                     Toast.makeText(
                                         context,
-                                        R.string.media_seek_back,
+                                        context.getString(R.string.media_seek_back, skipSeconds),
                                         Toast.LENGTH_SHORT,
                                     ).show()
                                 }
                                 controlsVisible = true
                                 interactionTick++
+                            },
+                        )
+                    }
+                    .pointerInput(player) {
+                        var side: DragSide? = null
+                        var totalDragY = 0f
+                        var startVolumeFraction = 0f
+                        var startBrightness = 0.5f
+                        val audioManager = context.getSystemService(AudioManager::class.java)
+                        detectVerticalDragGestures(
+                            onDragStart = { offset ->
+                                side = if (offset.x < size.width / 2f) {
+                                    DragSide.Brightness
+                                } else {
+                                    DragSide.Volume
+                                }
+                                totalDragY = 0f
+                                if (side == DragSide.Volume) {
+                                    val maxVolume = audioManager
+                                        ?.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                                        ?.coerceAtLeast(1) ?: 1
+                                    val currentVolume = audioManager
+                                        ?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: 0
+                                    startVolumeFraction = currentVolume.toFloat() / maxVolume
+                                    gestureFeedback = GestureFeedback.Volume(
+                                        (startVolumeFraction * 100f).roundToInt(),
+                                    )
+                                } else {
+                                    val window = activity?.window
+                                    startBrightness = window?.attributes?.brightness
+                                        ?.takeIf { it >= 0f } ?: 0.5f
+                                    gestureFeedback = GestureFeedback.Brightness(
+                                        (startBrightness * 100f).roundToInt(),
+                                    )
+                                }
+                            },
+                            onVerticalDrag = { change, dragAmount ->
+                                change.consume()
+                                val activeSide = side
+                                if (activeSide != null) {
+                                    totalDragY += dragAmount
+                                    val fractionDelta = -totalDragY / (size.height * 0.6f)
+                                    when (activeSide) {
+                                        DragSide.Volume -> {
+                                            val maxVolume = audioManager
+                                                ?.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                                                ?.coerceAtLeast(1) ?: 1
+                                            val fraction = (startVolumeFraction + fractionDelta)
+                                                .coerceIn(0f, 1f)
+                                            val index = (fraction * maxVolume)
+                                                .roundToInt()
+                                                .coerceIn(0, maxVolume)
+                                            runCatching {
+                                                audioManager?.setStreamVolume(
+                                                    AudioManager.STREAM_MUSIC,
+                                                    index,
+                                                    0,
+                                                )
+                                            }
+                                            gestureFeedback = GestureFeedback.Volume(
+                                                (index * 100f / maxVolume).roundToInt(),
+                                            )
+                                        }
+
+                                        DragSide.Brightness -> {
+                                            val fraction = (startBrightness + fractionDelta)
+                                                .coerceIn(0.05f, 1f)
+                                            activity?.window?.let { window ->
+                                                val attributes = window.attributes
+                                                attributes.brightness = fraction
+                                                window.attributes = attributes
+                                            }
+                                            gestureFeedback = GestureFeedback.Brightness(
+                                                (fraction * 100f).roundToInt(),
+                                            )
+                                        }
+                                    }
+                                    interactionTick++
+                                }
+                            },
+                            onDragEnd = {
+                                side = null
+                                gestureFeedback = null
+                            },
+                            onDragCancel = {
+                                side = null
+                                gestureFeedback = null
                             },
                         )
                     },
@@ -285,7 +427,6 @@ fun PlayerScreen(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.55f))
                     .statusBarsPadding()
                     .padding(horizontal = ReelTheme.spacing.xs, vertical = ReelTheme.spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
@@ -357,11 +498,16 @@ fun PlayerScreen(
                                 expanded = menuOpen,
                                 player = exo,
                                 orientation = orientation,
+                                skipSeconds = skipSeconds,
                                 onDismiss = { menuOpen = false },
                                 onOrientation = { requested ->
                                     orientation = requested
                                     activity?.requestedOrientation = requested
                                     menuOpen = false
+                                },
+                                onSkipDuration = {
+                                    menuOpen = false
+                                    showSkipDialog = true
                                 },
                             )
                         }
@@ -374,12 +520,13 @@ fun PlayerScreen(
                     isPlaying = isPlaying,
                     canGoPrevious = hasPrevious,
                     canGoNext = hasNext,
+                    skipSeconds = skipSeconds,
                     onPrevious = {
                         player?.seekToPreviousMediaItem()
                         interactionTick++
                     },
                     onRewind = {
-                        seekRelative(-15_000L)
+                        seekRelative(-skipSeconds)
                         interactionTick++
                     },
                     onTogglePlay = {
@@ -387,17 +534,74 @@ fun PlayerScreen(
                         interactionTick++
                     },
                     onForward = {
-                        seekRelative(15_000L)
+                        seekRelative(skipSeconds)
                         interactionTick++
                     },
                     onNext = {
                         player?.seekToNextMediaItem()
                         interactionTick++
                     },
+                    modifier = Modifier.align(Alignment.Center),
+                )
+                PlayerTimeline(
+                    positionMs = if (scrubbing) scrubPositionMs else positionMs,
+                    durationMs = durationMs,
+                    onScrub = { target ->
+                        scrubbing = true
+                        scrubPositionMs = target
+                        interactionTick++
+                    },
+                    onScrubFinished = {
+                        player?.seekTo(scrubPositionMs)
+                        positionMs = scrubPositionMs
+                        scrubbing = false
+                        interactionTick++
+                    },
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
         }
+
+        gestureFeedback?.let { feedback ->
+            val isVolume = feedback is GestureFeedback.Volume
+            Row(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(bottom = 120.dp)
+                    .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = ReelTheme.spacing.m, vertical = ReelTheme.spacing.s),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
+            ) {
+                Icon(
+                    imageVector = if (isVolume) Icons.Filled.VolumeUp else Icons.Filled.BrightnessHigh,
+                    contentDescription = null,
+                    tint = Color.White,
+                )
+                Text(
+                    text = when (feedback) {
+                        is GestureFeedback.Volume ->
+                            stringResource(R.string.media_volume, feedback.percent)
+                        is GestureFeedback.Brightness ->
+                            stringResource(R.string.media_brightness, feedback.percent)
+                    },
+                    style = ReelTheme.type.bodyM,
+                    color = Color.White,
+                )
+            }
+        }
+    }
+
+    if (showSkipDialog) {
+        SkipDurationDialog(
+            selectedSeconds = skipSeconds,
+            onSelect = { seconds ->
+                skipSeconds = seconds
+                showSkipDialog = false
+                interactionTick++
+            },
+            onDismiss = { showSkipDialog = false },
+        )
     }
 
     val captured = frame
@@ -417,6 +621,7 @@ private fun PlayerControls(
     isPlaying: Boolean,
     canGoPrevious: Boolean,
     canGoNext: Boolean,
+    skipSeconds: Int,
     onPrevious: () -> Unit,
     onRewind: () -> Unit,
     onTogglePlay: () -> Unit,
@@ -427,8 +632,6 @@ private fun PlayerControls(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.55f))
-            .navigationBarsPadding()
             .padding(horizontal = ReelTheme.spacing.s, vertical = ReelTheme.spacing.s),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -441,7 +644,7 @@ private fun PlayerControls(
         )
         ControlButton(
             icon = Icons.Filled.FastRewind,
-            description = stringResource(R.string.media_controls_rewind),
+            description = stringResource(R.string.media_controls_rewind, skipSeconds),
             enabled = true,
             onClick = onRewind,
         )
@@ -460,7 +663,7 @@ private fun PlayerControls(
         }
         ControlButton(
             icon = Icons.Filled.FastForward,
-            description = stringResource(R.string.media_controls_forward),
+            description = stringResource(R.string.media_controls_forward, skipSeconds),
             enabled = true,
             onClick = onForward,
         )
@@ -471,6 +674,113 @@ private fun PlayerControls(
             onClick = onNext,
         )
     }
+}
+
+@Composable
+private fun PlayerTimeline(
+    positionMs: Long,
+    durationMs: Long,
+    onScrub: (Long) -> Unit,
+    onScrubFinished: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val duration = durationMs.coerceAtLeast(0L)
+    val fraction = if (duration > 0L) {
+        (positionMs.toFloat() / duration).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = ReelTheme.spacing.s, vertical = ReelTheme.spacing.xs),
+    ) {
+        Slider(
+            value = fraction,
+            onValueChange = { value -> onScrub((value * duration).toLong()) },
+            onValueChangeFinished = onScrubFinished,
+            enabled = duration > 0L,
+            colors = SliderDefaults.colors(
+                thumbColor = Color.White,
+                activeTrackColor = Color.White,
+                inactiveTrackColor = Color.White.copy(alpha = 0.35f),
+                disabledThumbColor = Color.White.copy(alpha = 0.35f),
+                disabledActiveTrackColor = Color.White.copy(alpha = 0.35f),
+                disabledInactiveTrackColor = Color.White.copy(alpha = 0.2f),
+            ),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = formatTimestamp(positionMs),
+                style = ReelTheme.type.mono,
+                color = Color.White,
+            )
+            Text(
+                text = formatTimestamp(duration),
+                style = ReelTheme.type.mono,
+                color = Color.White,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SkipDurationDialog(
+    selectedSeconds: Int,
+    onSelect: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = ReelTheme.colors
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.media_skip_duration_title),
+                style = ReelTheme.type.titleM,
+                color = colors.textPrimary,
+            )
+        },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                SKIP_DURATION_OPTIONS.forEach { seconds ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(seconds) }
+                            .padding(vertical = ReelTheme.spacing.s),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.media_skip_seconds, seconds),
+                            style = ReelTheme.type.bodyM,
+                            color = if (seconds == selectedSeconds) colors.gold else colors.textPrimary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (seconds == selectedSeconds) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = colors.gold,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.media_skip_cancel),
+                    color = colors.gold,
+                )
+            }
+        },
+        containerColor = colors.surface,
+    )
 }
 
 @Composable
@@ -499,8 +809,10 @@ private fun PlayerMenu(
     expanded: Boolean,
     player: ExoPlayer,
     orientation: Int,
+    skipSeconds: Int,
     onDismiss: () -> Unit,
     onOrientation: (Int) -> Unit,
+    onSkipDuration: () -> Unit,
 ) {
     val colors = ReelTheme.colors
     DropdownMenu(
@@ -545,6 +857,19 @@ private fun PlayerMenu(
             label = stringResource(R.string.media_menu_auto_rotate),
             selected = orientation == ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR,
             onClick = { onOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR) },
+        )
+        DropdownMenuItem(
+            text = {
+                Text(
+                    text = stringResource(
+                        R.string.media_menu_skip_duration,
+                        skipSeconds,
+                    ),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textPrimary,
+                )
+            },
+            onClick = onSkipDuration,
         )
     }
 }
@@ -620,6 +945,29 @@ private fun ImagePlayer(uri: String) {
 private const val MAX_IMAGE_DIMENSION = 2_048
 
 private enum class PlayerKind { Video, Image, Audio }
+
+private enum class DragSide { Brightness, Volume }
+
+private sealed interface GestureFeedback {
+    data class Brightness(val percent: Int) : GestureFeedback
+    data class Volume(val percent: Int) : GestureFeedback
+}
+
+private val SKIP_DURATION_OPTIONS = listOf(5, 10, 15, 20, 25, 30)
+
+private fun formatTimestamp(positionMs: Long): String {
+    val totalSeconds = (positionMs.coerceAtLeast(0L) / 1_000L).toInt()
+    val hours = totalSeconds / 3_600
+    val minutes = (totalSeconds % 3_600) / 60
+    val seconds = totalSeconds % 60
+    val paddedMinutes = minutes.toString().padStart(2, '0')
+    val paddedSeconds = seconds.toString().padStart(2, '0')
+    return if (hours > 0) {
+        "$hours:$paddedMinutes:$paddedSeconds"
+    } else {
+        "$paddedMinutes:$paddedSeconds"
+    }
+}
 
 private fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
