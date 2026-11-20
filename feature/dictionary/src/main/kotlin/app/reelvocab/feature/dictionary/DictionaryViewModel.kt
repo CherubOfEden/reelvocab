@@ -179,9 +179,7 @@ class DictionaryViewModel @Inject constructor(
                 ?: detail.fallbackMeaning
                 ?: detail.headword
             val example = entry?.senses
-                ?.firstNotNullOfOrNull { sense ->
-                    sense.example?.trim()?.takeIf { it.isNotEmpty() }
-                }
+                ?.firstNotNullOfOrNull { sense -> sense.allExamples.firstOrNull() }
             try {
                 val enriched = if (entry != null) {
                     null
@@ -242,7 +240,11 @@ private fun DictionaryEntry.toDetailModel(): DictionaryDetailModel = DictionaryD
     partOfSpeech = wordClass?.storageValue,
     difficulty = difficulty,
     senses = senses.map { sense ->
-        DictionarySenseModel(definition = sense.definition, example = sense.example)
+        DictionarySenseModel(
+            definition = sense.definition,
+            example = sense.example,
+            examples = sense.examples,
+        )
     },
     synonyms = thesaurus.synonyms,
     antonyms = thesaurus.antonyms,

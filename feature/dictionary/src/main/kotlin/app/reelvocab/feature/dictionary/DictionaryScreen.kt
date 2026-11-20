@@ -197,7 +197,7 @@ private fun DictionaryResult(
             )
         }
         val example = entry.senses.firstNotNullOfOrNull { sense ->
-            sense.example?.trim()?.takeIf { it.isNotEmpty() }
+            sense.allExamples.firstOrNull()
         }
         if (example != null) {
             Spacer(Modifier.height(ReelTheme.spacing.xs))
@@ -250,7 +250,7 @@ private fun WordOfTheDayCard(
             )
         }
         val example = entry.senses.firstNotNullOfOrNull { sense ->
-            sense.example?.trim()?.takeIf { it.isNotEmpty() }
+            sense.allExamples.firstOrNull()
         }
         if (example != null) {
             Spacer(Modifier.height(ReelTheme.spacing.xs))

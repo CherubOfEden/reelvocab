@@ -1,6 +1,7 @@
 package app.reelvocab.feature.library
 
 import android.net.Uri
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -62,6 +64,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object LibraryRoute
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibraryScreen(
     onOpenDeck: () -> Unit,
@@ -111,10 +114,12 @@ fun LibraryScreen(
             )
         }
 
-        item {
+        stickyHeader(key = "library-categories") {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(colors.background)
+                    .padding(vertical = ReelTheme.spacing.xs)
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
             ) {

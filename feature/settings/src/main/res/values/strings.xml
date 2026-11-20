@@ -38,20 +38,18 @@
     <string name="settings_full_screen_summary">When the reminder fires, ReelVocab can wake the screen and open the morning review over the lock screen. Android may ask you to allow full-screen alarms.</string>
     <string name="settings_section_cloud">AI dictionary</string>
     <string name="settings_ai_title">Define words your dictionary misses</string>
-    <string name="settings_ai_summary">The bundled offline dictionary is always used first. Missing words fall back to the free Dictionary API while online. You can optionally add an AI endpoint for slang, phrases and unusual context.</string>
-    <string name="settings_cloud_toggle">Define unknown words with AI</string>
+    <string name="settings_ai_summary">The bundled dictionary and the free Dictionary API are always tried first. If both miss, ReelVocab can ask its server for slang, phrases and idioms.</string>
+    <string name="settings_cloud_toggle">Ask ReelVocab AI for missing entries</string>
     <string name="settings_cloud_on">On</string>
     <string name="settings_cloud_off">Off — no AI for unknown words</string>
-    <string name="settings_cloud_endpoint">Chat completions URL</string>
-    <string name="settings_cloud_model">Model</string>
-    <string name="settings_cloud_key">API key (optional)</string>
-    <string name="settings_cloud_note">The offline dictionary is always tried first, then the free Dictionary API when you are online. Turning this on sends only the word and its film line to your own AI endpoint for tough phrases. The key stays on this device.</string>
+    <string name="settings_cloud_server_url">ReelVocab Server URL</string>
+    <string name="settings_cloud_note">The offline dictionary is always tried first, then the free Dictionary API. Only if both miss does ReelVocab send the word or phrase to your server. The Gemini key lives in a Cloudflare secret, never in this app.</string>
     <string name="settings_section_about">About</string>
     <string name="settings_version_label">Version</string>
     <string name="settings_licenses_label">Fonts and licences</string>
     <string name="settings_design_system_label">Design system (debug)</string>
     <string name="settings_privacy_title">Your data stays here</string>
-    <string name="settings_privacy_body">Cards and reviews stay on this device. There is no account and no analytics. The free dictionary API only receives the word you search, and the optional AI endpoint only receives the word and film line when you enable it.</string>
+    <string name="settings_privacy_body">Cards and reviews stay on this device. There is no account and no analytics. The free dictionary API receives the word you search. The ReelVocab server receives only the word or phrase when AI fallback is enabled.</string>
     <string name="settings_open_item">Open</string>
     <string name="settings_dictionary_probe_label">Dictionary probe</string>
 </resources>

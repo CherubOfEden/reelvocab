@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import app.reelvocab.core.designsystem.component.CardSurface
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import java.util.Locale
@@ -57,9 +56,7 @@ enum class ThemeMode(val labelRes: Int) {
 @Immutable
 data class CloudSettingsUi(
     val enabled: Boolean = false,
-    val endpoint: String = "",
-    val model: String = "",
-    val apiKey: String = "",
+    val serverUrl: String = "",
 )
 
 @Composable
@@ -149,28 +146,11 @@ fun SettingsScreen(
             item {
                 CardSurface {
                     OutlinedTextField(
-                        value = cloud.endpoint,
-                        onValueChange = { value -> onCloudChange(cloud.copy(endpoint = value)) },
+                        value = cloud.serverUrl,
+                        onValueChange = { value -> onCloudChange(cloud.copy(serverUrl = value)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        label = { Text(stringResource(R.string.settings_cloud_endpoint)) },
-                    )
-                    Spacer(Modifier.height(ReelTheme.spacing.s))
-                    OutlinedTextField(
-                        value = cloud.model,
-                        onValueChange = { value -> onCloudChange(cloud.copy(model = value)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.settings_cloud_model)) },
-                    )
-                    Spacer(Modifier.height(ReelTheme.spacing.s))
-                    OutlinedTextField(
-                        value = cloud.apiKey,
-                        onValueChange = { value -> onCloudChange(cloud.copy(apiKey = value)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.settings_cloud_key)) },
-                        visualTransformation = PasswordVisualTransformation(),
+                        label = { Text(stringResource(R.string.settings_cloud_server_url)) },
                     )
                     Spacer(Modifier.height(ReelTheme.spacing.s))
                     Text(

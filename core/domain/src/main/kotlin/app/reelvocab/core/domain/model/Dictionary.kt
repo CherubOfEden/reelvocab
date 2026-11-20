@@ -16,7 +16,13 @@ enum class WordClass(val storageValue: String) {
 data class DictionarySense(
     val definition: String,
     val example: String? = null,
-)
+    val examples: List<String> = emptyList(),
+) {
+    val allExamples: List<String>
+        get() = examples.ifEmpty {
+            listOfNotNull(example?.trim()?.takeIf { it.isNotEmpty() })
+        }
+}
 
 data class Thesaurus(
     val synonyms: List<String> = emptyList(),

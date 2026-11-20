@@ -10,9 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 data class CloudSettingsState(
     val enabled: Boolean,
-    val endpoint: String,
-    val model: String,
-    val apiKey: String,
+    val serverUrl: String,
 )
 
 @HiltViewModel
@@ -23,18 +21,14 @@ class CloudSettingsViewModel @Inject constructor(
     private val _state = MutableStateFlow(
         CloudSettingsState(
             enabled = store.enabled,
-            endpoint = store.endpoint,
-            model = store.model,
-            apiKey = store.apiKey,
+            serverUrl = store.serverUrl,
         ),
     )
     val state: StateFlow<CloudSettingsState> = _state.asStateFlow()
 
     fun save(state: CloudSettingsState) {
         store.enabled = state.enabled
-        store.endpoint = state.endpoint
-        store.model = state.model
-        store.apiKey = state.apiKey
+        store.serverUrl = state.serverUrl
         _state.value = state
     }
 }

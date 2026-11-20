@@ -391,17 +391,13 @@ fun MainScaffold(
                     appVersion = BuildConfig.VERSION_NAME,
                     cloud = CloudSettingsUi(
                         enabled = cloudState.enabled,
-                        endpoint = cloudState.endpoint,
-                        model = cloudState.model,
-                        apiKey = cloudState.apiKey,
+                        serverUrl = cloudState.serverUrl,
                     ),
                     onCloudChange = { ui ->
                         cloudViewModel.save(
                             CloudSettingsState(
                                 enabled = ui.enabled,
-                                endpoint = ui.endpoint,
-                                model = ui.model,
-                                apiKey = ui.apiKey,
+                                serverUrl = ui.serverUrl,
                             ),
                         )
                     },

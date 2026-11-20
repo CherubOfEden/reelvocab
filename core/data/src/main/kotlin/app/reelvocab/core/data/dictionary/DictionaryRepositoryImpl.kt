@@ -36,9 +36,13 @@ class DictionaryRepositoryImpl @Inject constructor(
                 DictionarySense(
                     definition = ai.meaning,
                     example = ai.example,
+                    examples = ai.examples,
                 ),
             ),
-            thesaurus = Thesaurus(synonyms = ai.synonyms),
+            thesaurus = Thesaurus(
+                synonyms = ai.synonyms,
+                antonyms = ai.antonyms,
+            ),
         )
     }
 

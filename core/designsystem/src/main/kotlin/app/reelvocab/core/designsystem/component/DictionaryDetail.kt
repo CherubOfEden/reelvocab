@@ -21,6 +21,7 @@ import app.reelvocab.core.designsystem.theme.ReelTheme
 data class DictionarySenseModel(
     val definition: String,
     val example: String? = null,
+    val examples: List<String> = emptyList(),
 )
 
 @Immutable
@@ -135,9 +136,12 @@ fun DictionaryDetailSheet(
                                 style = ReelTheme.type.bodyL,
                                 color = colors.textPrimary,
                             )
-                            if (sense.example != null) {
+                            val examples = sense.examples.ifEmpty {
+                                listOfNotNull(sense.example)
+                            }
+                            examples.forEach { example ->
                                 Text(
-                                    text = "\u201C${sense.example}\u201D",
+                                    text = "\u201C$example\u201D",
                                     style = ReelTheme.type.bodyM,
                                     color = colors.textSecondary,
                                 )
