@@ -118,7 +118,7 @@ fun LibraryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.background)
+                    .background(colors.base)
                     .padding(vertical = ReelTheme.spacing.xs)
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
