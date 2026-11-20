@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import app.reelvocab.core.common.ReelVocabServer
 import app.reelvocab.core.designsystem.component.CardSurface
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import java.util.Locale
@@ -55,8 +56,8 @@ enum class ThemeMode(val labelRes: Int) {
 
 @Immutable
 data class CloudSettingsUi(
-    val enabled: Boolean = false,
-    val serverUrl: String = "",
+    val enabled: Boolean = true,
+    val serverUrl: String = ReelVocabServer.DEFAULT_URL,
 )
 
 @Composable

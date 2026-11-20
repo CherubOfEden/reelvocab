@@ -1,6 +1,7 @@
 package app.reelvocab.core.data.enrichment
 
 import android.content.Context
+import app.reelvocab.core.common.ReelVocabServer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,11 +21,11 @@ class CloudConfigStore @Inject constructor(
     }
 
     var enabled: Boolean
-        get() = prefs.getBoolean(KEY_ENABLED, false)
+        get() = prefs.getBoolean(KEY_ENABLED, true)
         set(value) = prefs.edit().putBoolean(KEY_ENABLED, value).apply()
 
     var serverUrl: String
-        get() = prefs.getString(KEY_SERVER_URL, "").orEmpty()
+        get() = prefs.getString(KEY_SERVER_URL, ReelVocabServer.DEFAULT_URL).orEmpty()
         set(value) = prefs.edit().putString(KEY_SERVER_URL, value.trim()).apply()
 
     val isConfigured: Boolean
