@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="dictionary_title">Dictionary</string>
-    <string name="dictionary_subtitle">Search the bundled dictionary first. Words and phrases are then looked up online, with an AI fallback when configured.</string>
+    <string name="dictionary_subtitle">Look up single words in the bundled dictionary and free API, or a whole phrase with ReelVocab AI.</string>
     <string name="dictionary_search_hint">Word or phrase</string>
     <string name="dictionary_search_clear">Clear search</string>
     <string name="dictionary_prompt_title">Find any word or phrase</string>
@@ -9,6 +9,7 @@
     <string name="dictionary_empty">No entry found. Try the exact phrase, check the spelling, or try again when online.</string>
     <string name="dictionary_searching">Searching…</string>
     <string name="dictionary_error">The dictionary could not be read.</string>
+    <string name="dictionary_ai_error">Could not fetch definition. Check your internet connection.</string>
     <string name="dictionary_detail_title">Dictionary</string>
     <string name="dictionary_definitions">Definitions</string>
     <string name="dictionary_synonyms">Same as</string>

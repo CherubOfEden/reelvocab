@@ -1,5 +1,6 @@
 package app.reelvocab.core.data.dictionary
 
+import app.reelvocab.core.common.DEFAULT_SERVER_URL
 import app.reelvocab.core.common.Headwords
 import app.reelvocab.core.data.enrichment.CloudEnrichmentClient
 import app.reelvocab.core.domain.model.DictionaryEntry
@@ -19,13 +20,19 @@ class DictionaryRepositoryImpl @Inject constructor(
     override suspend fun lookup(rawLemma: String): DictionaryEntry? {
         val lemma = Headwords.normalize(rawLemma)
         if (lemma.isEmpty()) return null
+        if (lemma.contains(' ')) return lookupWithAi(lemma)
+
         val local = asset.read { db -> db.entryFor(lemma) }
         if (local != null) return local
 
         val onlineEntry = online.lookup(lemma)
         if (onlineEntry != null) return onlineEntry
 
-        val ai = cloud.definePhrase(lemma) ?: return null
+        return lookupWithAi(lemma)
+    }
+
+    private suspend fun lookupWithAi(lemma: String): DictionaryEntry? {
+        val ai = cloud.definePhrase(lemma, DEFAULT_SERVER_URL) ?: return null
         return DictionaryEntry(
             lemma = lemma,
             wordClass = null,

@@ -38,12 +38,10 @@
     <string name="settings_full_screen_summary">When the reminder fires, ReelVocab can wake the screen and open the morning review over the lock screen. Android may ask you to allow full-screen alarms.</string>
     <string name="settings_section_cloud">AI dictionary</string>
     <string name="settings_ai_title">Define words your dictionary misses</string>
-    <string name="settings_ai_summary">The bundled dictionary and the free Dictionary API are always tried first. If both miss, ReelVocab can ask its server for slang, phrases and idioms.</string>
+    <string name="settings_ai_summary">Single words are checked in the bundled dictionary and the free Dictionary API first. Whole phrases go straight to ReelVocab AI.</string>
     <string name="settings_cloud_toggle">Ask ReelVocab AI for missing entries</string>
     <string name="settings_cloud_on">On</string>
-    <string name="settings_cloud_off">Off — no AI for unknown words</string>
-    <string name="settings_cloud_server_url">ReelVocab Server URL</string>
-    <string name="settings_cloud_note">The offline dictionary is always tried first, then the free Dictionary API. Only if both miss does ReelVocab send the word or phrase to your server. The Gemini key lives in a Cloudflare secret, never in this app.</string>
+    <string name="settings_cloud_off">Off — no AI for phrases or missing words</string>
     <string name="settings_section_about">About</string>
     <string name="settings_version_label">Version</string>
     <string name="settings_licenses_label">Fonts and licences</string>

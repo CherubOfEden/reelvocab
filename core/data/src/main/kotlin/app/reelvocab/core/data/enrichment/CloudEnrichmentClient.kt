@@ -1,10 +1,13 @@
 package app.reelvocab.core.data.enrichment
 
 import app.reelvocab.core.common.AppDispatchers
+import app.reelvocab.core.domain.model.DictionaryAiException
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
@@ -22,16 +25,26 @@ class CloudEnrichmentClient @Inject constructor(
     private val config: CloudConfigStore,
     private val dispatchers: AppDispatchers,
 ) {
-    suspend fun definePhrase(phrase: String): AiDictionaryDefinition? =
-        withContext(dispatchers.io) {
-            val term = phrase.trim()
-            if (term.isEmpty() || !config.isConfigured) return@withContext null
-            runCatching { requestDefinition(term) }.getOrNull()
+    suspend fun definePhrase(
+        phrase: String,
+        serverUrl: String,
+    ): AiDictionaryDefinition? = withContext(dispatchers.io) {
+        val term = phrase.trim()
+        if (term.isEmpty() || !config.enabled) return@withContext null
+        try {
+            requestDefinition(term, serverUrl)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            throw DictionaryAiException(cause = error)
         }
+    }
 
-    private fun requestDefinition(query: String): AiDictionaryDefinition? {
-        val serverUrl = config.serverUrl.trim()
-        if (serverUrl.isEmpty()) return null
+    private fun requestDefinition(
+        query: String,
+        serverUrl: String,
+    ): AiDictionaryDefinition {
+        if (serverUrl.isBlank()) throw IOException("Missing AI server URL")
         val payload = JSONObject()
             .put("query", query)
             .put("type", TYPE_DEFINITION)
@@ -51,13 +64,14 @@ class CloudEnrichmentClient @Inject constructor(
             val body = (if (code in 200..299) connection.inputStream else connection.errorStream)
                 ?.bufferedReader()
                 ?.use { it.readText() }
-            if (code !in 200..299 || body.isNullOrBlank()) {
-                null
-            } else {
-                parseDefinition(body)
+            if (code !in 200..299) {
+                throw IOException("AI server returned HTTP $code")
             }
-        } catch (error: Exception) {
-            null
+            if (body.isNullOrBlank()) {
+                throw IOException("AI server returned an empty response")
+            }
+            parseDefinition(body)
+                ?: throw IOException("AI server response did not contain a definition")
         } finally {
             connection.disconnect()
         }

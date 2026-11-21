@@ -33,7 +33,6 @@ android {
 
 dependencies {
     api(project(":core:designsystem"))
-    implementation(project(":core:common"))
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)

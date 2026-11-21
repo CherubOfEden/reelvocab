@@ -86,6 +86,14 @@ fun DictionaryScreen(
                 LoadingState(message = stringResource(R.string.dictionary_searching))
             }
 
+            state.aiError -> item(key = "ai-error") {
+                Text(
+                    text = stringResource(R.string.dictionary_ai_error),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.rose,
+                )
+            }
+
             state.error -> item(key = "error") {
                 Text(
                     text = stringResource(R.string.dictionary_error),

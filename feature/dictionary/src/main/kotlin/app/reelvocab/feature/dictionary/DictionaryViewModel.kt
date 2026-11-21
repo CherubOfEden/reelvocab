@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.reelvocab.core.designsystem.component.DictionaryDetailModel
 import app.reelvocab.core.designsystem.component.DictionarySenseModel
 import app.reelvocab.core.domain.model.CardRepository
+import app.reelvocab.core.domain.model.DictionaryAiException
 import app.reelvocab.core.domain.model.DictionaryEntry
 import app.reelvocab.core.domain.model.DictionaryRepository
 import app.reelvocab.core.domain.model.Enrichment
@@ -27,6 +28,7 @@ data class DictionaryUiState(
     val searching: Boolean = false,
     val searched: Boolean = false,
     val error: Boolean = false,
+    val aiError: Boolean = false,
     val detail: DictionaryDetailModel? = null,
     val detailLoading: Boolean = false,
     val wordOfTheDay: DictionaryEntry? = null,
@@ -74,6 +76,7 @@ class DictionaryViewModel @Inject constructor(
                 searching = false,
                 searched = false,
                 error = false,
+                aiError = false,
                 detail = null,
                 detailLoading = false,
                 saving = false,
@@ -102,6 +105,7 @@ class DictionaryViewModel @Inject constructor(
                             searching = false,
                             searched = true,
                             error = false,
+                            aiError = false,
                         )
                     } else {
                         current
@@ -109,6 +113,20 @@ class DictionaryViewModel @Inject constructor(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
+            } catch (error: DictionaryAiException) {
+                _state.update { current ->
+                    if (current.query.trim() == term) {
+                        current.copy(
+                            results = emptyList(),
+                            searching = false,
+                            searched = true,
+                            error = false,
+                            aiError = true,
+                        )
+                    } else {
+                        current
+                    }
+                }
             } catch (error: Exception) {
                 _state.update { current ->
                     if (current.query.trim() == term) {
@@ -117,6 +135,7 @@ class DictionaryViewModel @Inject constructor(
                             searching = false,
                             searched = true,
                             error = true,
+                            aiError = false,
                         )
                     } else {
                         current
