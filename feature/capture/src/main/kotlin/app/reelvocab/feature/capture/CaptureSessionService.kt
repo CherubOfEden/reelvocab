@@ -626,8 +626,8 @@ class CaptureSessionService : Service() {
                                     }
                                     autoCapture.capture(
                                         transcript = transcript,
-                                        startMs = segment.startMs,
-                                        recordingTitle = title,
+                                        segmentStartMs = segment.startMs,
+                                        sourceTitle = title,
                                         recordingStartEpochMs = sessionStartedAt,
                                     )
                                 } catch (cancelled: CancellationException) {

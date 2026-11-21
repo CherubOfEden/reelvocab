@@ -167,7 +167,7 @@ class OnDeviceTranscriber(
 
     private fun confidence(results: Bundle, fallback: Float): Float {
         val scores = results.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
-        if (scores.isNullOrEmpty()) return fallback
+        if (scores == null || scores.isEmpty()) return fallback
         val positive = scores.filter { it > 0f }
         if (positive.isEmpty()) return fallback
         return positive.average().toFloat().coerceIn(0f, 1f)
