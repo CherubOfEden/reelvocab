@@ -229,6 +229,7 @@ internal fun DictionaryEntry?.toDictionaryDetail(
         synonyms = entry.thesaurus.synonyms,
         antonyms = entry.thesaurus.antonyms,
         fallbackMeaning = fallbackMeaning,
+        fallbackWarning = entry.fallbackWarning,
         isKnown = true,
     )
 }

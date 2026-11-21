@@ -3,6 +3,7 @@ package app.reelvocab.core.data.dictionary
 import app.reelvocab.core.common.DEFAULT_SERVER_URL
 import app.reelvocab.core.common.Headwords
 import app.reelvocab.core.data.enrichment.CloudEnrichmentClient
+import app.reelvocab.core.domain.model.DictionaryAiException
 import app.reelvocab.core.domain.model.DictionaryEntry
 import app.reelvocab.core.domain.model.DictionaryRepository
 import app.reelvocab.core.domain.model.DictionarySense
@@ -31,9 +32,9 @@ class DictionaryRepositoryImpl @Inject constructor(
         return lookupWithAi(lemma)
     }
 
-    private suspend fun lookupWithAi(lemma: String): DictionaryEntry? {
+    private suspend fun lookupWithAi(lemma: String): DictionaryEntry? = try {
         val ai = cloud.definePhrase(lemma, DEFAULT_SERVER_URL) ?: return null
-        return DictionaryEntry(
+        DictionaryEntry(
             lemma = lemma,
             wordClass = null,
             ipa = null,
@@ -50,6 +51,32 @@ class DictionaryRepositoryImpl @Inject constructor(
                 synonyms = ai.synonyms,
                 antonyms = ai.antonyms,
             ),
+        )
+    } catch (error: DictionaryAiException) {
+        localFallback(lemma) ?: throw error
+    }
+
+    private suspend fun localFallback(lemma: String): DictionaryEntry? {
+        val hints = lemma.split(' ')
+            .filter { it.isNotBlank() }
+            .distinct()
+            .mapNotNull { word ->
+                val entry = asset.read { db -> db.entryFor(word) } ?: return@mapNotNull null
+                val definition = entry.senses.firstOrNull()?.definition?.trim()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: return@mapNotNull null
+                "$word: $definition"
+            }
+        if (hints.isEmpty()) return null
+        return DictionaryEntry(
+            lemma = lemma,
+            wordClass = null,
+            ipa = null,
+            frequencyRank = null,
+            difficulty = null,
+            senses = listOf(DictionarySense(definition = hints.joinToString("\n"))),
+            thesaurus = Thesaurus(),
+            fallbackWarning = FALLBACK_WARNING,
         )
     }
 
@@ -103,4 +130,8 @@ class DictionaryRepositoryImpl @Inject constructor(
             db.rawQuery("SELECT 1 FROM words LIMIT 1", null).use { it.moveToFirst() }
         }
     }.getOrDefault(false)
+
+    private companion object {
+        const val FALLBACK_WARNING = "AI unavailable. Showing basic word hints."
+    }
 }

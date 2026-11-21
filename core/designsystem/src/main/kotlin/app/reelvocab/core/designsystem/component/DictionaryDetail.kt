@@ -34,6 +34,7 @@ data class DictionaryDetailModel(
     val synonyms: List<String> = emptyList(),
     val antonyms: List<String> = emptyList(),
     val fallbackMeaning: String? = null,
+    val fallbackWarning: String? = null,
     val isKnown: Boolean = true,
 )
 
@@ -94,6 +95,15 @@ fun DictionaryDetailSheet(
                         text = entry.ipa,
                         style = ReelTheme.type.ipa,
                         color = colors.textSecondary,
+                    )
+                }
+                val warning = entry.fallbackWarning?.takeIf { it.isNotBlank() }
+                if (warning != null) {
+                    Spacer(Modifier.height(ReelTheme.spacing.m))
+                    Text(
+                        text = warning,
+                        style = ReelTheme.type.bodyM,
+                        color = colors.gold,
                     )
                 }
                 Row(

@@ -268,6 +268,7 @@ internal fun DictionaryEntry?.toDetailModel(
         synonyms = entry.thesaurus.synonyms,
         antonyms = entry.thesaurus.antonyms,
         fallbackMeaning = fallbackMeaning,
+        fallbackWarning = entry.fallbackWarning,
         isKnown = true,
     )
 }

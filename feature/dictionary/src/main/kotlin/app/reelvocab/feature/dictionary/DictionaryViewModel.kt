@@ -268,5 +268,6 @@ private fun DictionaryEntry.toDetailModel(): DictionaryDetailModel = DictionaryD
     synonyms = thesaurus.synonyms,
     antonyms = thesaurus.antonyms,
     fallbackMeaning = null,
+    fallbackWarning = fallbackWarning,
     isKnown = true,
 )

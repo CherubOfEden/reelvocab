@@ -39,4 +39,5 @@ data class DictionaryEntry(
     val difficulty: Int?,
     val senses: List<DictionarySense>,
     val thesaurus: Thesaurus,
+    val fallbackWarning: String? = null,
 )
