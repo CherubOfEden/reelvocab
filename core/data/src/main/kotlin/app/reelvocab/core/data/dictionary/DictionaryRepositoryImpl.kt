@@ -32,6 +32,12 @@ class DictionaryRepositoryImpl @Inject constructor(
         return lookupWithAi(lemma)
     }
 
+    override suspend fun lookupLocal(rawLemma: String): DictionaryEntry? {
+        val lemma = Headwords.normalize(rawLemma)
+        if (lemma.isEmpty()) return null
+        return asset.read { db -> db.entryFor(lemma) }
+    }
+
     private suspend fun lookupWithAi(lemma: String): DictionaryEntry? = try {
         val ai = cloud.definePhrase(lemma, DEFAULT_SERVER_URL) ?: return null
         DictionaryEntry(

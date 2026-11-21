@@ -17,7 +17,6 @@ import android.graphics.drawable.GradientDrawable
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.ImageReader
-import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
@@ -49,11 +48,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,22 +67,35 @@ import kotlinx.coroutines.flow.asStateFlow
 class CaptureSessionService : Service() {
 
     @Inject lateinit var vault: MediaVaultRepository
+    @Inject lateinit var autoCapture: AutoCaptureManager
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val extractionScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val transcribeMutex = Mutex()
     private lateinit var windowManager: WindowManager
     private var pill: View? = null
     private var projection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
     private var capturing = false
-    private var recorder: MediaRecorder? = null
+    private var recordingEngine: MediaRecordingEngine? = null
     private var recordingFile: File? = null
-    private var recordingDisplay: VirtualDisplay? = null
     private var recordingProjection: MediaProjection? = null
-    private var recordingMode: String? = null
+    private var recordingKind: RecordingKind? = null
+    private var recordingTitle: String = ""
+    private var recordingStartedAtEpochMs = 0L
+    private var recordingPanel: RecordingPanel? = null
+    private var transcriber: OnDeviceTranscriber? = null
+    private var stoppingRecording = false
     private var modeMenu: View? = null
 
     private val handler = Handler(Looper.getMainLooper())
+    private val timerRunnable = object : Runnable {
+        override fun run() {
+            recordingPanel?.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
+            handler.postDelayed(this, TIMER_INTERVAL_MS)
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -92,7 +108,7 @@ class CaptureSessionService : Service() {
         when (intent?.action) {
             ACTION_START_PILL -> {
                 startPillForeground()
-                ensurePill()
+                if (!ensurePill()) stopEverything()
             }
 
             ACTION_START_SESSION -> {
@@ -108,7 +124,10 @@ class CaptureSessionService : Service() {
                     stopEverything()
                 } else {
                     startSession(resultCode, data)
-                    ensurePill()
+                    if (!ensurePill()) {
+                        stopEverything()
+                        return START_NOT_STICKY
+                    }
                     if (captureNow) handler.postDelayed({ captureFrame() }, CAPTURE_DELAY_MS)
                 }
             }
@@ -144,7 +163,9 @@ class CaptureSessionService : Service() {
         releaseRecording()
         removePill()
         removeModeMenu()
+        removeRecordingPanel()
         scope.cancel()
+        extractionScope.cancel()
         setRunning(false)
         super.onDestroy()
     }
@@ -195,12 +216,9 @@ class CaptureSessionService : Service() {
             .build()
     }
 
-    private fun ensurePill() {
-        if (pill != null) return
-        if (!Settings.canDrawOverlays(this)) {
-            stopEverything()
-            return
-        }
+    private fun ensurePill(): Boolean {
+        if (pill != null) return true
+        if (!Settings.canDrawOverlays(this)) return false
 
         val density = resources.displayMetrics.density
         val size = (PILL_SIZE_DP * density).roundToInt()
@@ -242,8 +260,8 @@ class CaptureSessionService : Service() {
         }
 
         attachGestures(frame, params, margin)
-        windowManager.addView(frame, params)
-        pill = frame
+        runCatching { windowManager.addView(frame, params) }.onSuccess { pill = frame }
+        return pill != null
     }
 
     private fun attachGestures(
@@ -261,7 +279,7 @@ class CaptureSessionService : Service() {
                 }
 
                 override fun onLongPress(e: MotionEvent) {
-                    stopEverything()
+                    if (recordingEngine != null) stopRecording() else stopEverything()
                 }
             },
         )
@@ -317,6 +335,12 @@ class CaptureSessionService : Service() {
 
     private fun onPillTapped() {
         removeModeMenu()
+        if (recordingEngine != null) {
+            if (recordingPanel == null) {
+                recordingKind?.let { showRecordingPanel(it) }
+            }
+            return
+        }
         when (CapturePreferences.pipMode(this)) {
             PipCaptureMode.WordsOnly -> {
                 if (projection == null) launchConsent() else captureFrame()
@@ -512,158 +536,286 @@ class CaptureSessionService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun startRecording(resultCode: Int, data: Intent?, mode: String) {
-        if (recorder != null) return
-        recordingMode = mode
-        startRecordingForeground(mode)
-        val metrics = resources.displayMetrics
+        if (recordingEngine != null || stoppingRecording) return
+        val kind = if (mode == CaptureActivity.MODE_VIDEO) {
+            RecordingKind.Video
+        } else {
+            RecordingKind.Audio
+        }
+        val hasMicPermission = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.RECORD_AUDIO,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (kind == RecordingKind.Audio && !hasMicPermission && data == null) {
+            stopEverything()
+            return
+        }
+
+        startRecordingForeground(kind, usesProjection = data != null, hasMic = hasMicPermission)
+
         val startedAt = System.currentTimeMillis()
         val vaultDir = File(filesDir, "vault").apply { mkdirs() }
-        val extension = if (mode == CaptureActivity.MODE_VIDEO) "mp4" else "m4a"
+        val extension = if (kind == RecordingKind.Video) "mp4" else "m4a"
         val file = File(vaultDir, "recording_$startedAt.$extension")
-        recordingFile = file
-        val mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MediaRecorder(this)
-        } else {
-            @Suppress("DEPRECATION")
-            MediaRecorder()
-        }
-        recorder = mediaRecorder
-        try {
-            val wantsAudio = ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO,
-            ) == PackageManager.PERMISSION_GRANTED
-            if (mode == CaptureActivity.MODE_VIDEO) {
-                if (wantsAudio) {
-                    mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC)
-                }
-                mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE)
-                mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                mediaRecorder.setOutputFile(file.absolutePath)
-                mediaRecorder.setVideoSize(
-                    metrics.widthPixels.coerceAtLeast(2),
-                    metrics.heightPixels.coerceAtLeast(2),
-                )
-                mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-                mediaRecorder.setVideoFrameRate(30)
-                mediaRecorder.setVideoEncodingBitRate(6_000_000)
-                if (wantsAudio) {
-                    mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                    mediaRecorder.setAudioEncodingBitRate(128_000)
-                    mediaRecorder.setAudioSamplingRate(44_100)
-                }
-                mediaRecorder.prepare()
-                val projectionData = data ?: error("Screen permission missing")
-                val manager = getSystemService(MediaProjectionManager::class.java)
-                val created = manager.getMediaProjection(resultCode, projectionData)
-                    ?: error("Screen recording could not start")
-                created.registerCallback(
-                    object : MediaProjection.Callback() {
-                        override fun onStop() {
-                            stopRecording()
-                        }
-                    },
-                    handler,
-                )
-                recordingProjection = created
-                recordingDisplay = created.createVirtualDisplay(
-                    "reelvocab-recording",
-                    metrics.widthPixels,
-                    metrics.heightPixels,
-                    metrics.densityDpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                    mediaRecorder.surface,
-                    null,
-                    null,
-                )
-                mediaRecorder.start()
-            } else {
-                if (!wantsAudio) error("Microphone permission missing")
-                mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC)
-                mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                mediaRecorder.setOutputFile(file.absolutePath)
-                mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                mediaRecorder.setAudioEncodingBitRate(128_000)
-                mediaRecorder.setAudioSamplingRate(44_100)
-                mediaRecorder.setAudioChannels(1)
-                mediaRecorder.prepare()
-                mediaRecorder.start()
+
+        var projection: MediaProjection? = null
+        if (data != null) {
+            val manager = getSystemService(MediaProjectionManager::class.java)
+            projection = runCatching { manager.getMediaProjection(resultCode, data) }.getOrNull()
+            if (kind == RecordingKind.Video && projection == null) {
+                runCatching { file.delete() }
+                stopEverything()
+                return
             }
-        } catch (error: Exception) {
-            releaseRecording()
-            runCatching { file.delete() }
-            stopEverything()
+            projection?.registerCallback(
+                object : MediaProjection.Callback() {
+                    override fun onStop() {
+                        handler.post { stopRecording() }
+                    }
+                },
+                handler,
+            )
         }
+
+        recordingKind = kind
+        recordingFile = file
+        recordingProjection = projection
+        recordingStartedAtEpochMs = startedAt
+        recordingTitle = getString(
+            if (kind == RecordingKind.Video) {
+                R.string.recording_title_video
+            } else {
+                R.string.recording_title_audio
+            },
+        )
+        stoppingRecording = false
+        autoCapture.reset()
+        transcriber = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            OnDeviceTranscriber(this)
+        } else {
+            null
+        }
+
+        val engine = try {
+            MediaRecordingEngine(
+                context = this,
+                kind = kind,
+                projection = projection,
+                outputFile = file,
+                listener = object : RecordingListener {
+                    override fun onLevel(level: Float) {
+                        handler.post { recordingPanel?.pushLevel(level) }
+                    }
+
+                    override fun onSpeechSegment(segment: SpeechSegment) {
+                        if (recordingEngine == null) return
+                        val recognizer = transcriber ?: return
+                        val sessionStartedAt = recordingStartedAtEpochMs
+                        val title = recordingTitle
+                        runCatching {
+                            extractionScope.launch {
+                                try {
+                                    val transcript = transcribeMutex.withLock {
+                                        runCatching { recognizer.transcribe(segment) }.getOrNull()
+                                    } ?: return@launch
+                                    if (
+                                        recordingEngine == null ||
+                                        recordingStartedAtEpochMs != sessionStartedAt
+                                    ) {
+                                        return@launch
+                                    }
+                                    autoCapture.capture(
+                                        transcript = transcript,
+                                        startMs = segment.startMs,
+                                        recordingTitle = title,
+                                        recordingStartEpochMs = sessionStartedAt,
+                                    )
+                                } catch (cancelled: CancellationException) {
+                                    throw cancelled
+                                } catch (error: Throwable) {
+                                    // Auto-capture is best effort and must never stop recording.
+                                }
+                            }
+                        }
+                    }
+
+                    override fun onError(error: Throwable) {
+                        handler.post { if (!stoppingRecording) stopRecording() }
+                    }
+                },
+            )
+        } catch (error: Throwable) {
+            runCatching { projection?.stop() }
+            runCatching { file.delete() }
+            clearRecordingState()
+            stopEverything()
+            return
+        }
+
+        recordingEngine = engine
+        try {
+            engine.start()
+        } catch (error: Throwable) {
+            runCatching { projection?.stop() }
+            runCatching { file.delete() }
+            clearRecordingState()
+            stopEverything()
+            return
+        }
+
+        ensurePill()
+        showRecordingPanel(kind)
+        startTimer()
     }
 
     private fun stopRecording() {
-        val mediaRecorder = recorder ?: return
-        recorder = null
-        val file = recordingFile
-        val startedAt = System.currentTimeMillis()
-        val mode = recordingMode
-        recordingMode = null
-        var valid = true
-        runCatching { mediaRecorder.stop() }.onFailure {
-            valid = false
-            file?.delete()
+        if (stoppingRecording) return
+        val engine = recordingEngine
+        if (engine == null) {
+            stopEverything()
+            return
         }
-        runCatching { mediaRecorder.reset() }
-        runCatching { mediaRecorder.release() }
-        releaseRecording()
-        if (valid && file != null && file.length() > 0L) {
-            scope.launch {
+        stoppingRecording = true
+        removeRecordingPanel()
+        handler.removeCallbacks(timerRunnable)
+
+        val file = recordingFile
+        val startedAt = recordingStartedAtEpochMs
+        val kind = recordingKind
+        val projection = recordingProjection
+        val title = recordingTitle
+
+        recordingEngine = null
+        recordingFile = null
+        recordingProjection = null
+        recordingKind = null
+        transcriber = null
+
+        scope.launch {
+            val valid = runCatching { engine.stop() }.getOrDefault(false)
+            runCatching { projection?.stop() }
+            if (valid && file != null && file.length() > 0L && kind != null) {
                 vault.add(
                     VaultItem(
                         id = "recording_$startedAt",
                         uri = "file://${file.absolutePath}",
-                        title = "Recording " + SimpleDateFormat(
+                        title = "$title · " + SimpleDateFormat(
                             "MMM d, HH:mm",
                             Locale.getDefault(),
                         ).format(Date(startedAt)),
-                        kind = if (mode == CaptureActivity.MODE_VIDEO) {
-                            VaultKind.Video
-                        } else {
-                            VaultKind.Audio
-                        },
+                        kind = if (kind == RecordingKind.Video) VaultKind.Video else VaultKind.Audio,
                         createdAtEpochMs = startedAt,
                     ),
                 )
+            } else {
+                runCatching { file?.delete() }
+            }
+            withContext(Dispatchers.Main) {
+                stoppingRecording = false
+                stopEverything()
             }
         }
-        stopEverything()
     }
 
     private fun releaseRecording() {
-        runCatching { recorder?.reset() }
-        runCatching { recorder?.release() }
-        recorder = null
-        recordingDisplay?.release()
-        recordingDisplay = null
+        handler.removeCallbacks(timerRunnable)
+        removeRecordingPanel()
+        val engine = recordingEngine
+        recordingEngine = null
+        if (engine != null) {
+            val file = recordingFile
+            val startedAt = recordingStartedAtEpochMs
+            val kind = recordingKind
+            val title = recordingTitle
+            scope.launch {
+                val valid = runCatching { engine.stop() }.getOrDefault(false)
+                if (valid && file != null && file.length() > 0L && kind != null) {
+                    vault.add(
+                        VaultItem(
+                            id = "recording_$startedAt",
+                            uri = "file://${file.absolutePath}",
+                            title = "$title · " + SimpleDateFormat(
+                                "MMM d, HH:mm",
+                                Locale.getDefault(),
+                            ).format(Date(startedAt)),
+                            kind = if (kind == RecordingKind.Video) VaultKind.Video else VaultKind.Audio,
+                            createdAtEpochMs = startedAt,
+                        ),
+                    )
+                }
+            }
+        }
         runCatching { recordingProjection?.stop() }
-        recordingProjection = null
-        recordingFile = null
+        clearRecordingState()
+        transcriber = null
     }
 
-    private fun startRecordingForeground(mode: String) {
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            if (mode == CaptureActivity.MODE_VIDEO) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-            } else {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            }
-        } else {
-            0
+    private fun clearRecordingState() {
+        recordingFile = null
+        recordingProjection = null
+        recordingKind = null
+        recordingStartedAtEpochMs = 0L
+        recordingTitle = ""
+        stoppingRecording = false
+    }
+
+    private fun showRecordingPanel(kind: RecordingKind) {
+        if (recordingPanel != null) return
+        if (!Settings.canDrawOverlays(this)) return
+        val panel = RecordingPanel(
+            context = this,
+            title = getString(
+                if (kind == RecordingKind.Video) {
+                    R.string.recording_title_video
+                } else {
+                    R.string.recording_title_audio
+                },
+            ),
+            pauseLabel = getString(R.string.recording_pause),
+            resumeLabel = getString(R.string.recording_resume),
+            stopLabel = getString(R.string.recording_stop),
+            onPause = { recordingEngine?.pause() },
+            onResume = { recordingEngine?.resume() },
+            onStop = { stopRecording() },
+        )
+        runCatching {
+            windowManager.addView(panel.view, panel.windowParams())
+        }.onSuccess {
+            recordingPanel = panel
+            panel.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
+        }
+    }
+
+    private fun removeRecordingPanel() {
+        val panel = recordingPanel ?: return
+        recordingPanel = null
+        runCatching { windowManager.removeView(panel.view) }
+    }
+
+    private fun startTimer() {
+        handler.removeCallbacks(timerRunnable)
+        handler.post(timerRunnable)
+    }
+
+    private fun startRecordingForeground(
+        kind: RecordingKind,
+        usesProjection: Boolean,
+        hasMic: Boolean,
+    ) {
+        var type = 0
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            if (usesProjection) type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+            if (hasMic) type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
         }
         ServiceCompat.startForeground(
             this,
             NOTIFICATION_ID,
-            buildRecordingNotification(),
+            buildRecordingNotification(kind),
             type,
         )
     }
 
-    private fun buildRecordingNotification(): Notification {
+    private fun buildRecordingNotification(kind: RecordingKind): Notification {
         val stopIntent = PendingIntent.getService(
             this,
             2,
@@ -671,7 +823,16 @@ class CaptureSessionService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.capture_recording))
+            .setContentTitle(
+                getString(
+                    if (kind == RecordingKind.Video) {
+                        R.string.recording_notification_video
+                    } else {
+                        R.string.recording_notification_audio
+                    },
+                ),
+            )
+            .setContentText(getString(R.string.recording_notification_text))
             .setSmallIcon(R.drawable.ic_capture_pill)
             .setOngoing(true)
             .setSilent(true)
@@ -729,6 +890,7 @@ class CaptureSessionService : Service() {
         private const val PILL_MARGIN_DP = 12
         private const val CAPTURE_DELAY_MS = 350L
         private const val RETRY_DELAY_MS = 150L
+        private const val TIMER_INTERVAL_MS = 250L
 
         private val _running = MutableStateFlow(false)
         val runningFlow: StateFlow<Boolean> = _running.asStateFlow()

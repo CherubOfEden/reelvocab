@@ -17,6 +17,9 @@ interface CardDao {
     @Query("SELECT * FROM cards WHERE id = :id")
     suspend fun byId(id: Long): CardEntity?
 
+    @Query("SELECT COUNT(*) FROM cards WHERE LOWER(headword) = LOWER(:headword)")
+    suspend fun countByHeadword(headword: String): Int
+
     @Insert
     suspend fun insert(card: CardEntity): Long
 

@@ -49,6 +49,9 @@ class CardRepositoryImpl @Inject constructor(
         return id
     }
 
+    override suspend fun hasHeadword(headword: String): Boolean =
+        cardDao.countByHeadword(headword.trim()) > 0
+
     override suspend fun deleteCard(id: Long) = cardDao.delete(id)
 
     override suspend fun updateTags(cardId: Long, tags: List<String>) {

@@ -40,4 +40,13 @@
     <string name="capture_mode_video">Video</string>
     <string name="capture_mode_audio">Audio</string>
     <string name="capture_permission_audio">Microphone access is needed to record audio and video.</string>
+    <string name="recording_mic_fallback">Internal audio is unavailable. Recording from the microphone.</string>
+    <string name="recording_title_video">RV Video</string>
+    <string name="recording_title_audio">RV Audio</string>
+    <string name="recording_notification_video">Recording RV Video</string>
+    <string name="recording_notification_audio">Recording RV Audio</string>
+    <string name="recording_notification_text">Tap stop here or use the floating panel.</string>
+    <string name="recording_pause">Pause</string>
+    <string name="recording_resume">Resume</string>
+    <string name="recording_stop">Stop</string>
 </resources>

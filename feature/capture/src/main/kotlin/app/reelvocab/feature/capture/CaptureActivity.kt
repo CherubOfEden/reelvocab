@@ -26,8 +26,8 @@ class CaptureActivity : ComponentActivity() {
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         val data = result.data
+        val mode = recordingMode
         if (result.resultCode == RESULT_OK && data != null) {
-            val mode = recordingMode
             if (mode != null) {
                 CaptureSessionService.startRecording(
                     context = this,
@@ -43,6 +43,14 @@ class CaptureActivity : ComponentActivity() {
                     captureImmediately = true,
                 )
             }
+        } else if (mode == MODE_AUDIO) {
+            Toast.makeText(this, R.string.recording_mic_fallback, Toast.LENGTH_SHORT).show()
+            CaptureSessionService.startRecording(
+                context = this,
+                resultCode = 0,
+                data = null,
+                mode = mode,
+            )
         }
         finish()
     }
@@ -56,17 +64,7 @@ class CaptureActivity : ComponentActivity() {
             finish()
             return@registerForActivityResult
         }
-        if (mode == MODE_VIDEO) {
-            requestConsent()
-        } else {
-            CaptureSessionService.startRecording(
-                context = this,
-                resultCode = 0,
-                data = null,
-                mode = mode,
-            )
-            finish()
-        }
+        requestConsent()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,16 +91,8 @@ class CaptureActivity : ComponentActivity() {
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             audioPermission.launch(Manifest.permission.RECORD_AUDIO)
-        } else if (mode == MODE_VIDEO) {
-            requestConsent()
         } else {
-            CaptureSessionService.startRecording(
-                context = this,
-                resultCode = 0,
-                data = null,
-                mode = mode,
-            )
-            finish()
+            requestConsent()
         }
     }
 
