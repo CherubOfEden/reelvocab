@@ -1,6 +1,7 @@
 package app.reelvocab.feature.capture
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -21,21 +22,17 @@ import java.io.File
 class CaptureActivity : ComponentActivity() {
 
     private var recordingMode: String? = null
+    private var selectedAudioSource = AudioSourceMode.Internal
+    private var launchSource = CaptureLaunchSource.App
+    private var sourceDialog: AlertDialog? = null
 
     private val consentLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         val data = result.data
         val mode = recordingMode
-        if (result.resultCode == RESULT_OK && data != null) {
-            if (mode != null) {
-                CaptureSessionService.startRecording(
-                    context = this,
-                    resultCode = result.resultCode,
-                    data = data,
-                    mode = mode,
-                )
-            } else {
+        if (mode == null) {
+            if (result.resultCode == RESULT_OK && data != null) {
                 CaptureSessionService.startSession(
                     context = this,
                     resultCode = result.resultCode,
@@ -43,28 +40,35 @@ class CaptureActivity : ComponentActivity() {
                     captureImmediately = true,
                 )
             }
-        } else if (mode == MODE_AUDIO) {
-            Toast.makeText(this, R.string.recording_mic_fallback, Toast.LENGTH_SHORT).show()
-            CaptureSessionService.startRecording(
-                context = this,
-                resultCode = 0,
-                data = null,
-                mode = mode,
-            )
+            finish()
+            return@registerForActivityResult
         }
-        finish()
+
+        if (result.resultCode == RESULT_OK && data != null) {
+            startRecordingService(result.resultCode, data, selectedAudioSource)
+        } else if (mode == MODE_AUDIO && selectedAudioSource != AudioSourceMode.Microphone) {
+            Toast.makeText(this, R.string.recording_internal_fallback, Toast.LENGTH_LONG).show()
+            startRecordingService(0, null, AudioSourceMode.Microphone)
+        } else {
+            Toast.makeText(this, R.string.recording_screen_permission_required, Toast.LENGTH_LONG)
+                .show()
+            finish()
+        }
     }
 
     private val audioPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         val mode = recordingMode ?: return@registerForActivityResult
-        if (!granted && mode == MODE_AUDIO) {
-            Toast.makeText(this, R.string.capture_permission_audio, Toast.LENGTH_LONG).show()
-            finish()
-            return@registerForActivityResult
+        if (!granted) {
+            if (mode == MODE_AUDIO) {
+                Toast.makeText(this, R.string.capture_permission_audio, Toast.LENGTH_LONG).show()
+                finish()
+                return@registerForActivityResult
+            }
+            Toast.makeText(this, R.string.recording_video_without_audio, Toast.LENGTH_LONG).show()
         }
-        requestConsent()
+        requestProjectionOrStart()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,14 +80,63 @@ class CaptureActivity : ComponentActivity() {
         }
         val mode = intent.getStringExtra(EXTRA_RECORD_MODE)
         if (mode != null) {
-            beginRecording(mode)
+            recordingMode = mode
+            launchSource = launchSourceFrom(intent)
+            showAudioSourceDialog()
             return
         }
         requestConsent()
     }
 
-    private fun beginRecording(mode: String) {
-        recordingMode = mode
+    override fun onDestroy() {
+        sourceDialog?.dismiss()
+        sourceDialog = null
+        super.onDestroy()
+    }
+
+    private fun showAudioSourceDialog() {
+        val current = CapturePreferences.audioSource(this)
+        var choice = current
+        val labels = arrayOf(
+            getString(R.string.recording_audio_source_internal),
+            getString(R.string.recording_audio_source_microphone),
+            getString(R.string.recording_audio_source_both),
+        )
+        val selectedIndex = when (current) {
+            AudioSourceMode.Internal -> 0
+            AudioSourceMode.Microphone -> 1
+            AudioSourceMode.Both -> 2
+        }
+        sourceDialog = AlertDialog.Builder(this)
+            .setTitle(R.string.recording_audio_source_title)
+            .setSingleChoiceItems(labels, selectedIndex) { _, which ->
+                choice = when (which) {
+                    1 -> AudioSourceMode.Microphone
+                    2 -> AudioSourceMode.Both
+                    else -> AudioSourceMode.Internal
+                }
+            }
+            .setPositiveButton(R.string.recording_audio_source_confirm) { dialog, _ ->
+                selectedAudioSource = choice
+                CapturePreferences.setAudioSource(this, choice)
+                sourceDialog = null
+                dialog.dismiss()
+                continueRecordingSetup()
+            }
+            .setNegativeButton(R.string.capture_cancel) { dialog, _ ->
+                sourceDialog = null
+                dialog.dismiss()
+                finish()
+            }
+            .setOnCancelListener {
+                sourceDialog = null
+                finish()
+            }
+            .create()
+        sourceDialog?.show()
+    }
+
+    private fun continueRecordingSetup() {
         if (
             ContextCompat.checkSelfPermission(
                 this,
@@ -92,13 +145,40 @@ class CaptureActivity : ComponentActivity() {
         ) {
             audioPermission.launch(Manifest.permission.RECORD_AUDIO)
         } else {
+            requestProjectionOrStart()
+        }
+    }
+
+    private fun requestProjectionOrStart() {
+        val mode = recordingMode ?: return
+        val needsProjection = mode == MODE_VIDEO || selectedAudioSource != AudioSourceMode.Microphone
+        if (needsProjection) {
             requestConsent()
+        } else {
+            startRecordingService(0, null, selectedAudioSource)
         }
     }
 
     private fun requestConsent() {
         val manager = getSystemService(MediaProjectionManager::class.java)
         consentLauncher.launch(manager.createScreenCaptureIntent())
+    }
+
+    private fun startRecordingService(
+        resultCode: Int,
+        data: Intent?,
+        source: AudioSourceMode,
+    ) {
+        val mode = recordingMode ?: return
+        RecordingService.start(
+            context = this,
+            resultCode = resultCode,
+            data = data,
+            mode = mode,
+            audioSource = source,
+            launchSource = launchSource,
+        )
+        finish()
     }
 
     private fun showCapture(imagePath: String) {
@@ -124,6 +204,8 @@ class CaptureActivity : ComponentActivity() {
     companion object {
         private const val EXTRA_IMAGE_PATH = "image_path"
         private const val EXTRA_RECORD_MODE = "record_mode"
+        const val EXTRA_START_FROM_QUICK_SETTINGS = "start_from_quick_settings"
+        const val EXTRA_START_FROM_PIP = "start_from_pip"
         const val MODE_VIDEO = "video"
         const val MODE_AUDIO = "audio"
 
@@ -134,8 +216,27 @@ class CaptureActivity : ComponentActivity() {
             Intent(context, CaptureActivity::class.java)
                 .putExtra(EXTRA_IMAGE_PATH, imagePath)
 
-        fun recordIntent(context: Context, mode: String): Intent =
-            Intent(context, CaptureActivity::class.java)
-                .putExtra(EXTRA_RECORD_MODE, mode)
+        fun recordIntent(
+            context: Context,
+            mode: String,
+            launchSource: CaptureLaunchSource = CaptureLaunchSource.App,
+        ): Intent = Intent(context, CaptureActivity::class.java).apply {
+            putExtra(EXTRA_RECORD_MODE, mode)
+            when (launchSource) {
+                CaptureLaunchSource.QuickSettings ->
+                    putExtra(EXTRA_START_FROM_QUICK_SETTINGS, true)
+
+                CaptureLaunchSource.Pip -> putExtra(EXTRA_START_FROM_PIP, true)
+                CaptureLaunchSource.App -> Unit
+            }
+        }
+
+        private fun launchSourceFrom(intent: Intent): CaptureLaunchSource = when {
+            intent.getBooleanExtra(EXTRA_START_FROM_QUICK_SETTINGS, false) ->
+                CaptureLaunchSource.QuickSettings
+
+            intent.getBooleanExtra(EXTRA_START_FROM_PIP, false) -> CaptureLaunchSource.Pip
+            else -> CaptureLaunchSource.App
+        }
     }
 }

@@ -13,18 +13,22 @@
         <service
             android:name=".CaptureSessionService"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection|specialUse|microphone">
+            android:foregroundServiceType="mediaProjection|specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="floating_word_capture" />
         </service>
+
+        <service
+            android:name=".RecordingService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection|microphone" />
 
         <activity
             android:name=".CaptureActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:excludeFromRecents="true"
             android:exported="false"
-            android:noHistory="true"
             android:taskAffinity="app.reelvocab.capture"
             android:theme="@style/Theme.ReelVocab.Capture"
             android:windowSoftInputMode="adjustResize" />

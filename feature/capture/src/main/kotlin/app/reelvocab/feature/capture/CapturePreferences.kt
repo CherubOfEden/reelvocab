@@ -19,6 +19,7 @@ object CapturePreferences {
 
     private const val PREFS = "capture_prefs"
     private const val KEY_PIP_MODE = "pip_mode"
+    private const val KEY_AUDIO_SOURCE = "audio_source"
 
     fun pipMode(context: Context): PipCaptureMode =
         PipCaptureMode.fromStorage(
@@ -30,6 +31,19 @@ object CapturePreferences {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_PIP_MODE, mode.storage)
+            .apply()
+    }
+
+    fun audioSource(context: Context): AudioSourceMode =
+        AudioSourceMode.fromStorage(
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString(KEY_AUDIO_SOURCE, null),
+        )
+
+    fun setAudioSource(context: Context, source: AudioSourceMode) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_AUDIO_SOURCE, source.storage)
             .apply()
     }
 }

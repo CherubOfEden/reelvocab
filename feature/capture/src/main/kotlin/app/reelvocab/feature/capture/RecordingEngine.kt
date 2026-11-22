@@ -31,12 +31,14 @@ interface RecordingListener {
     fun onLevel(level: Float)
     fun onSpeechSegment(segment: SpeechSegment)
     fun onError(error: Throwable)
+    fun onAudioSourceChanged(requested: AudioSourceMode, active: AudioSourceMode)
 }
 
 class MediaRecordingEngine(
     private val context: Context,
     private val kind: RecordingKind,
     private val projection: MediaProjection?,
+    private val requestedAudioSource: AudioSourceMode,
     private val outputFile: File,
     private val listener: RecordingListener,
 ) {
@@ -58,12 +60,12 @@ class MediaRecordingEngine(
     private var videoThread: Thread? = null
     private var firstVideoPtsUs = -1L
 
-    private var audioRecord: AudioRecord? = null
+    @Volatile private var audioInputs: List<AudioInput> = emptyList()
     private var audioCodec: MediaCodec? = null
     private var audioThread: Thread? = null
     private var audioPtsUs = 0L
 
-    @Volatile var usesPlaybackCapture: Boolean = false
+    @Volatile var activeAudioSource: AudioSourceMode = requestedAudioSource
         private set
 
     fun start() {
@@ -90,6 +92,9 @@ class MediaRecordingEngine(
             }
             if (audioReady) {
                 startAudioCapture()
+                if (activeAudioSource != requestedAudioSource) {
+                    listener.onAudioSourceChanged(requestedAudioSource, activeAudioSource)
+                }
             }
         } catch (error: Throwable) {
             cleanup()
@@ -132,11 +137,11 @@ class MediaRecordingEngine(
         paused = false
         runCatching { virtualDisplay?.setSurface(null) }
         runCatching { videoCodec?.signalEndOfInputStream() }
-        runCatching { audioRecord?.stop() }
+        audioInputs.forEach { input -> runCatching { input.record.stop() } }
 
         audioThread?.let { thread -> runCatching { thread.join(2_500) } }
         if (audioThread?.isAlive == true) {
-            runCatching { audioRecord?.release() }
+            releaseAudio()
             runCatching { audioThread?.join(500) }
         }
 
@@ -152,12 +157,7 @@ class MediaRecordingEngine(
     }
 
     private fun cleanup() {
-        runCatching { audioRecord?.stop() }
-        runCatching { audioRecord?.release() }
-        audioRecord = null
-        runCatching { audioCodec?.stop() }
-        runCatching { audioCodec?.release() }
-        audioCodec = null
+        releaseAudio()
         releaseVideo()
         sink.finish()
     }
@@ -250,14 +250,54 @@ class MediaRecordingEngine(
             return false
         }
 
-        val internal = if (projection != null) tryOpenAudioRecord(playback = true) else null
-        val record = internal ?: tryOpenAudioRecord(playback = false) ?: return false
-        usesPlaybackCapture = internal != null
+        val internal = if (requestedAudioSource != AudioSourceMode.Microphone) {
+            if (projection != null) tryOpenAudioRecord(playback = true) else null
+        } else {
+            null
+        }
+        val mic = if (requestedAudioSource != AudioSourceMode.Internal) {
+            tryOpenAudioRecord(playback = false)
+        } else {
+            null
+        }
+
+        val inputs = mutableListOf<AudioInput>()
+        internal?.let { inputs += AudioInput(it, playback = true) }
+        mic?.let { inputs += AudioInput(it, playback = false) }
+
+        when (requestedAudioSource) {
+            AudioSourceMode.Internal -> {
+                if (internal != null) {
+                    activeAudioSource = AudioSourceMode.Internal
+                } else {
+                    val fallback = tryOpenAudioRecord(playback = false)
+                    if (fallback == null) return false
+                    inputs += AudioInput(fallback, playback = false)
+                    activeAudioSource = AudioSourceMode.Microphone
+                }
+            }
+
+            AudioSourceMode.Microphone -> {
+                if (mic == null) return false
+                activeAudioSource = AudioSourceMode.Microphone
+            }
+
+            AudioSourceMode.Both -> {
+                if (inputs.isEmpty()) return false
+                activeAudioSource = when {
+                    internal != null && mic != null -> AudioSourceMode.Both
+                    internal != null -> AudioSourceMode.Internal
+                    else -> AudioSourceMode.Microphone
+                }
+            }
+        }
+
+        if (inputs.isEmpty()) return false
 
         val codec = try {
             MediaCodec.createEncoderByType(AUDIO_MIME)
         } catch (error: Exception) {
-            runCatching { record.release() }
+            inputs.forEach { runCatching { it.record.release() } }
             return false
         }
         val format = MediaFormat.createAudioFormat(AUDIO_MIME, SAMPLE_RATE, CHANNEL_COUNT).apply {
@@ -268,18 +308,22 @@ class MediaRecordingEngine(
         try {
             codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
             codec.start()
-            record.startRecording()
-            if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
-                throw IllegalStateException("AudioRecord did not start")
+            inputs.forEach { input ->
+                input.record.startRecording()
+                if (input.record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
+                    throw IllegalStateException("AudioRecord did not start")
+                }
             }
         } catch (error: Exception) {
             runCatching { codec.stop() }
             runCatching { codec.release() }
-            runCatching { record.stop() }
-            runCatching { record.release() }
+            inputs.forEach { input ->
+                runCatching { input.record.stop() }
+                runCatching { input.record.release() }
+            }
             return false
         }
-        audioRecord = record
+        audioInputs = inputs
         audioCodec = codec
         return true
     }
@@ -326,33 +370,98 @@ class MediaRecordingEngine(
     }
 
     private fun startAudioCapture() {
-        val record = audioRecord ?: return
         val codec = audioCodec ?: return
-        audioThread = Thread({ drainAudio(record, codec) }, "rv-audio-encoder").apply { start() }
+        if (audioInputs.isEmpty()) return
+        audioThread = Thread({ drainAudio(codec) }, "rv-audio-encoder").apply { start() }
     }
 
-    private fun drainAudio(record: AudioRecord, codec: MediaCodec) {
-        val pcm = ByteArray(AUDIO_READ_BYTES)
+    @SuppressLint("MissingPermission")
+    private fun drainAudio(codec: MediaCodec) {
+        val inputs = audioInputs.toMutableList()
+        val buffers = inputs.map { ByteArray(AUDIO_READ_BYTES) }.toMutableList()
+        val lengths = MutableList(inputs.size) { 0 }
+        val mixed = ByteArray(AUDIO_READ_BYTES)
         val segmenter = VadSegmenter(
             sampleRate = SAMPLE_RATE,
             channelCount = CHANNEL_COUNT,
             onSegment = listener::onSpeechSegment,
         )
+        var silenceMs = 0L
+        var fallbackAttempted = requestedAudioSource != AudioSourceMode.Internal
         try {
             while (!stopping) {
-                val read = record.read(pcm, 0, pcm.size, AudioRecord.READ_BLOCKING)
-                if (read <= 0) {
+                var maxRead = 0
+                for (index in inputs.indices) {
+                    val read = runCatching {
+                        inputs[index].record.read(
+                            buffers[index],
+                            0,
+                            AUDIO_READ_BYTES,
+                            AudioRecord.READ_BLOCKING,
+                        )
+                    }.getOrDefault(0)
+                    lengths[index] = read.coerceAtLeast(0)
+                    if (lengths[index] > maxRead) maxRead = lengths[index]
+                }
+                if (maxRead <= 0) {
                     if (stopping) break
+                    Thread.sleep(10L)
                     continue
                 }
-                val level = rmsLevel(pcm, read)
-                listener.onLevel(if (paused) 0f else level)
-                if (!paused) {
-                    val startMs = audioPtsUs / 1000L
-                    feedAudio(codec, pcm, read)
-                    segmenter.feed(pcm, read, startMs, level)
+                if (paused) {
+                    silenceMs = 0L
+                    continue
                 }
+
+                val pcm = if (inputs.size == 1) {
+                    buffers[0]
+                } else {
+                    mixAudio(inputs, buffers, lengths, mixed)
+                    mixed
+                }
+                val level = rmsLevel(pcm, maxRead)
+                listener.onLevel(level)
+                val startMs = audioPtsUs / 1000L
+                feedAudio(codec, pcm, maxRead)
+                segmenter.feed(pcm, maxRead, startMs, level)
                 drainAudioOutput(codec)
+
+                if (!fallbackAttempted && activeAudioSource == AudioSourceMode.Internal) {
+                    val chunkMs = (maxRead / BYTES_PER_MS).coerceAtLeast(1).toLong()
+                    if (level < INTERNAL_SILENCE_LEVEL) silenceMs += chunkMs else silenceMs = 0L
+                    if (silenceMs >= INTERNAL_SILENCE_FALLBACK_MS) {
+                        fallbackAttempted = true
+                        silenceMs = 0L
+                        val mic = tryOpenAudioRecord(playback = false)
+                        var startedMic = false
+                        if (mic != null) {
+                            startedMic = runCatching {
+                                mic.startRecording()
+                                mic.recordingState == AudioRecord.RECORDSTATE_RECORDING
+                            }.getOrDefault(false)
+                        }
+                        if (startedMic && mic != null) {
+                            inputs.forEach { input ->
+                                runCatching { input.record.stop() }
+                                runCatching { input.record.release() }
+                            }
+                            inputs.clear()
+                            buffers.clear()
+                            lengths.clear()
+                            inputs += AudioInput(mic, playback = false)
+                            buffers += ByteArray(AUDIO_READ_BYTES)
+                            lengths += 0
+                            activeAudioSource = AudioSourceMode.Microphone
+                            audioInputs = inputs.toList()
+                            listener.onAudioSourceChanged(
+                                AudioSourceMode.Internal,
+                                AudioSourceMode.Microphone,
+                            )
+                        } else {
+                            runCatching { mic?.release() }
+                        }
+                    }
+                }
             }
             segmenter.flush()
             queueAudioEnd(codec)
@@ -363,6 +472,31 @@ class MediaRecordingEngine(
             sink.disableAudio()
             if (!stopping && kind == RecordingKind.Audio) listener.onError(error)
         }
+    }
+
+    private fun mixAudio(
+        inputs: List<AudioInput>,
+        buffers: List<ByteArray>,
+        lengths: List<Int>,
+        output: ByteArray,
+    ): Int {
+        val length = lengths.maxOrNull() ?: 0
+        for (index in 0 until length step 2) {
+            var sum = 0
+            var count = 0
+            for (inputIndex in inputs.indices) {
+                if (index + 1 < lengths[inputIndex]) {
+                    val low = buffers[inputIndex][index].toInt() and 0xff
+                    val high = buffers[inputIndex][index + 1].toInt() shl 8
+                    sum += (high or low).toShort().toInt()
+                    count++
+                }
+            }
+            val sample = if (count == 0) 0 else (sum / count).coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+            output[index] = (sample and 0xff).toByte()
+            output[index + 1] = ((sample shr 8) and 0xff).toByte()
+        }
+        return length
     }
 
     private fun feedAudio(codec: MediaCodec, pcm: ByteArray, read: Int) {
@@ -428,9 +562,11 @@ class MediaRecordingEngine(
     }
 
     private fun releaseAudio() {
-        runCatching { audioRecord?.stop() }
-        runCatching { audioRecord?.release() }
-        audioRecord = null
+        audioInputs.forEach { input ->
+            runCatching { input.record.stop() }
+            runCatching { input.record.release() }
+        }
+        audioInputs = emptyList()
         runCatching { audioCodec?.stop() }
         runCatching { audioCodec?.release() }
         audioCodec = null
@@ -451,6 +587,11 @@ class MediaRecordingEngine(
         if (count == 0) return 0f
         return (sqrt(sum / count) * 4.0).toFloat().coerceIn(0f, 1f)
     }
+
+    private data class AudioInput(
+        val record: AudioRecord,
+        val playback: Boolean,
+    )
 
     private class VadSegmenter(
         private val sampleRate: Int,
@@ -605,6 +746,8 @@ class MediaRecordingEngine(
                 }
             }.onFailure {
                 released = true
+                pending.clear()
+                runCatching { muxer.release() }
             }
         }
 
@@ -632,5 +775,8 @@ class MediaRecordingEngine(
         const val SAMPLE_RATE = 44_100
         const val CHANNEL_COUNT = 1
         const val AUDIO_READ_BYTES = 4096
+        const val BYTES_PER_MS = SAMPLE_RATE * CHANNEL_COUNT * 2 / 1000
+        const val INTERNAL_SILENCE_LEVEL = 0.004f
+        const val INTERNAL_SILENCE_FALLBACK_MS = 3_000L
     }
 }
