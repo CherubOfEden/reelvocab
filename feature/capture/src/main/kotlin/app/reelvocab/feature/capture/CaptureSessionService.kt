@@ -609,6 +609,7 @@ class CaptureSessionService : Service() {
 
                     override fun onSpeechSegment(segment: SpeechSegment) {
                         if (recordingEngine == null) return
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
                         val recognizer = transcriber ?: return
                         val sessionStartedAt = recordingStartedAtEpochMs
                         val title = recordingTitle
