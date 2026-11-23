@@ -85,7 +85,9 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.feature.capture.InAppCapture
+import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -553,6 +555,8 @@ fun PlayerScreen(
                 PlayerTimeline(
                     positionMs = if (scrubbing) scrubPositionMs else positionMs,
                     durationMs = durationMs,
+                    waveform = kind == PlayerKind.Audio,
+                    waveSeed = currentUri.hashCode(),
                     onScrub = { target ->
                         scrubbing = true
                         scrubPositionMs = target
@@ -687,6 +691,8 @@ private fun PlayerControls(
 private fun PlayerTimeline(
     positionMs: Long,
     durationMs: Long,
+    waveform: Boolean,
+    waveSeed: Int,
     onScrub: (Long) -> Unit,
     onScrubFinished: () -> Unit,
     modifier: Modifier = Modifier,
@@ -697,6 +703,9 @@ private fun PlayerTimeline(
     } else {
         0f
     }
+    val levels = remember(waveSeed, waveform) {
+        if (waveform) audioWaveform(waveSeed) else FloatArray(0)
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -706,7 +715,7 @@ private fun PlayerTimeline(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(28.dp)
+                .height(if (waveform) 52.dp else 28.dp)
                 .pointerInput(duration) {
                     if (duration <= 0L) return@pointerInput
                     detectHorizontalDragGestures(
@@ -733,28 +742,57 @@ private fun PlayerTimeline(
                 },
             contentAlignment = Alignment.Center,
         ) {
-            Canvas(modifier = Modifier.fillMaxWidth().height(2.dp)) {
-                val centerY = size.height / 2f
-                val activeWidth = size.width * fraction
-                drawLine(
-                    color = Color.White.copy(alpha = 0.35f),
-                    start = Offset(0f, centerY),
-                    end = Offset(size.width, centerY),
-                    strokeWidth = size.height,
-                    cap = StrokeCap.Round,
-                )
-                drawLine(
-                    color = Color.White,
-                    start = Offset(0f, centerY),
-                    end = Offset(activeWidth, centerY),
-                    strokeWidth = size.height,
-                    cap = StrokeCap.Round,
-                )
-                drawCircle(
-                    color = Color.White,
-                    radius = 4.dp.toPx(),
-                    center = Offset(activeWidth.coerceIn(0f, size.width), centerY),
-                )
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (waveform) 48.dp else 2.dp),
+            ) {
+                if (waveform && levels.isNotEmpty()) {
+                    val gap = size.width / levels.size
+                    val barWidth = gap * 0.56f
+                    val radius = barWidth / 2f
+                    levels.forEachIndexed { index, level ->
+                        val barHeight = (size.height * 0.12f + size.height * 0.88f * level)
+                            .coerceIn(size.height * 0.08f, size.height)
+                        val left = index * gap + (gap - barWidth) / 2f
+                        val played = (index + 0.5f) / levels.size <= fraction
+                        drawRoundRect(
+                            color = if (played) Color.White else Color.White.copy(alpha = 0.3f),
+                            topLeft = Offset(left, (size.height - barHeight) / 2f),
+                            size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius, radius),
+                        )
+                    }
+                    drawLine(
+                        color = Color.White,
+                        start = Offset(size.width * fraction, 0f),
+                        end = Offset(size.width * fraction, size.height),
+                        strokeWidth = 2.dp.toPx(),
+                        cap = StrokeCap.Round,
+                    )
+                } else {
+                    val centerY = size.height / 2f
+                    val activeWidth = size.width * fraction
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.35f),
+                        start = Offset(0f, centerY),
+                        end = Offset(size.width, centerY),
+                        strokeWidth = size.height,
+                        cap = StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = Color.White,
+                        start = Offset(0f, centerY),
+                        end = Offset(activeWidth, centerY),
+                        strokeWidth = size.height,
+                        cap = StrokeCap.Round,
+                    )
+                    drawCircle(
+                        color = Color.White,
+                        radius = 4.dp.toPx(),
+                        center = Offset(activeWidth.coerceIn(0f, size.width), centerY),
+                    )
+                }
             }
         }
         Row(
@@ -1005,6 +1043,15 @@ private sealed interface GestureFeedback {
 }
 
 private val SKIP_DURATION_OPTIONS = listOf(5, 10, 15, 20, 25, 30)
+
+private fun audioWaveform(seed: Int): FloatArray {
+    val count = 56
+    return FloatArray(count) { index ->
+        val noise = ((seed shr (index % 24)) and 0xff) / 255f
+        val wave = abs(sin((index * 0.62f) + (seed % 19)))
+        (0.16f + wave.toFloat() * 0.58f + noise * 0.26f).coerceIn(0.08f, 1f)
+    }
+}
 
 private fun formatTimestamp(positionMs: Long): String {
     val totalSeconds = (positionMs.coerceAtLeast(0L) / 1_000L).toInt()

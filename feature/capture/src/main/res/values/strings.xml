@@ -65,4 +65,6 @@
     <string name="recording_pause">Pause</string>
     <string name="recording_resume">Resume</string>
     <string name="recording_stop">Stop</string>
+    <string name="recording_hide">Hide controls</string>
+    <string name="recording_bubble_description">Recording controls</string>
 </resources>

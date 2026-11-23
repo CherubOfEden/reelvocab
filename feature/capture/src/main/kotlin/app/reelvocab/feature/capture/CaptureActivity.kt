@@ -82,7 +82,14 @@ class CaptureActivity : ComponentActivity() {
         if (mode != null) {
             recordingMode = mode
             launchSource = launchSourceFrom(intent)
-            showAudioSourceDialog()
+            intent.getStringExtra(EXTRA_AUDIO_SOURCE)?.let { stored ->
+                selectedAudioSource = AudioSourceMode.fromStorage(stored)
+            }
+            if (intent.getBooleanExtra(EXTRA_SKIP_SOURCE_DIALOG, false)) {
+                continueRecordingSetup()
+            } else {
+                showAudioSourceDialog()
+            }
             return
         }
         requestConsent()
@@ -206,6 +213,8 @@ class CaptureActivity : ComponentActivity() {
         private const val EXTRA_RECORD_MODE = "record_mode"
         const val EXTRA_START_FROM_QUICK_SETTINGS = "start_from_quick_settings"
         const val EXTRA_START_FROM_PIP = "start_from_pip"
+        private const val EXTRA_AUDIO_SOURCE = "audio_source"
+        private const val EXTRA_SKIP_SOURCE_DIALOG = "skip_source_dialog"
         const val MODE_VIDEO = "video"
         const val MODE_AUDIO = "audio"
 
@@ -220,6 +229,8 @@ class CaptureActivity : ComponentActivity() {
             context: Context,
             mode: String,
             launchSource: CaptureLaunchSource = CaptureLaunchSource.App,
+            audioSource: AudioSourceMode? = null,
+            skipSourceDialog: Boolean = false,
         ): Intent = Intent(context, CaptureActivity::class.java).apply {
             putExtra(EXTRA_RECORD_MODE, mode)
             when (launchSource) {
@@ -228,6 +239,10 @@ class CaptureActivity : ComponentActivity() {
 
                 CaptureLaunchSource.Pip -> putExtra(EXTRA_START_FROM_PIP, true)
                 CaptureLaunchSource.App -> Unit
+            }
+            if (audioSource != null) {
+                putExtra(EXTRA_AUDIO_SOURCE, audioSource.storage)
+                putExtra(EXTRA_SKIP_SOURCE_DIALOG, skipSourceDialog)
             }
         }
 

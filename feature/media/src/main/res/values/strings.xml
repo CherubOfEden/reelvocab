@@ -54,4 +54,19 @@
     <string name="media_document_no_viewer">No app can open this document.</string>
     <string name="media_image_loading">Loading image…</string>
     <string name="media_image_failed">This image could not be opened.</string>
+    <string name="media_editor_title">Edit media</string>
+    <string name="media_editor_loading">Preparing editor…</string>
+    <string name="media_editor_trim">Trim</string>
+    <string name="media_editor_start">Start</string>
+    <string name="media_editor_end">End</string>
+    <string name="media_editor_crop">Crop</string>
+    <string name="media_editor_crop_original">Original</string>
+    <string name="media_editor_crop_landscape">16:9</string>
+    <string name="media_editor_crop_square">1:1</string>
+    <string name="media_editor_crop_portrait">9:16</string>
+    <string name="media_editor_save">Save as new copy</string>
+    <string name="media_editor_keep_original">Your original stays in the vault.</string>
+    <string name="media_editor_exporting">Exporting %1$d%%…</string>
+    <string name="media_editor_saved">Saved to your vault</string>
+    <string name="media_editor_failed">This edit could not be completed.</string>
 </resources>

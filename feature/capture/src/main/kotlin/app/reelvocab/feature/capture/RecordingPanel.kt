@@ -24,14 +24,24 @@ class RecordingPanel(
     private val pauseLabel: String,
     private val resumeLabel: String,
     stopLabel: String,
+    hideLabel: String,
     private val onPause: () -> Unit,
     private val onResume: () -> Unit,
     private val onStop: () -> Unit,
+    private val onHide: () -> Unit,
 ) {
     private val density = context.resources.displayMetrics.density
     private val timer = TextView(context)
     private val pauseButton = actionButton(context, pauseLabel)
+    private val hideButton = actionButton(context, hideLabel) { onHide() }
     private val waveform = WaveformView(context)
+    private val countdown = TextView(context).apply {
+        textSize = 38f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        setTextColor(ReelDarkColors.gold.toArgb())
+        gravity = Gravity.CENTER
+        visibility = View.GONE
+    }
     private var paused = false
     private var lastElapsed = -1L
 
@@ -70,6 +80,13 @@ class RecordingPanel(
         )
 
         addView(
+            countdown,
+            LinearLayout.LayoutParams(dp(210), dp(44)).apply {
+                topMargin = dp(4)
+            },
+        )
+
+        addView(
             waveform,
             LinearLayout.LayoutParams(dp(210), dp(34)).apply {
                 topMargin = dp(8)
@@ -81,6 +98,7 @@ class RecordingPanel(
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 addView(pauseButton, buttonParams())
+                addView(hideButton, buttonParams())
                 addView(actionButton(context, stopLabel) { onStop() }, buttonParams())
             },
             LinearLayout.LayoutParams(
@@ -118,6 +136,21 @@ class RecordingPanel(
     fun setPaused(value: Boolean) {
         paused = value
         pauseButton.text = if (paused) resumeLabel else pauseLabel
+    }
+
+    fun setCountdown(remaining: Int) {
+        countdown.text = remaining.toString()
+        countdown.visibility = View.VISIBLE
+        waveform.visibility = View.GONE
+        pauseButton.isEnabled = false
+        hideButton.isEnabled = false
+    }
+
+    fun setCountdownComplete() {
+        countdown.visibility = View.GONE
+        waveform.visibility = View.VISIBLE
+        pauseButton.isEnabled = true
+        hideButton.isEnabled = true
     }
 
     fun pushLevel(level: Float) {
@@ -158,7 +191,8 @@ class RecordingPanel(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_SECURE,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL

@@ -598,59 +598,108 @@ class MediaRecordingEngine(
         private val channelCount: Int,
         private val onSegment: (SpeechSegment) -> Unit,
     ) {
+        private val bytesPerMs = (sampleRate * channelCount * 2 / 1000).coerceAtLeast(1)
         private val buffer = ByteArrayOutputStream()
+        private val preRoll = ArrayDeque<ByteArray>()
+        private var preRollBytes = 0
         private var active = false
         private var startMs = 0L
         private var silenceMs = 0L
+        private var noiseFloor = 0.004f
 
         fun feed(pcm: ByteArray, length: Int, elapsedMs: Long, level: Float) {
-            val bytesPerMs = (sampleRate * channelCount * 2 / 1000).coerceAtLeast(1)
             val chunkMs = (length / bytesPerMs).coerceAtLeast(1).toLong()
             if (!active) {
-                if (level >= START_LEVEL) {
+                if (level < START_LEVEL) {
+                    noiseFloor = (noiseFloor * 0.96f + level * 0.04f)
+                        .coerceIn(0.002f, 0.025f)
+                }
+                rememberPreRoll(pcm, length)
+                if (level >= startThreshold()) {
                     active = true
-                    startMs = (elapsedMs - chunkMs).coerceAtLeast(0L)
+                    startMs = (elapsedMs - preRollBytes / bytesPerMs).coerceAtLeast(0L)
                     silenceMs = 0L
                     buffer.reset()
-                    buffer.write(pcm, 0, length)
+                    preRoll.forEach { buffer.write(it, 0, it.size) }
+                    preRoll.clear()
+                    preRollBytes = 0
                 }
                 return
             }
             buffer.write(pcm, 0, length)
-            if (level < SILENCE_LEVEL) silenceMs += chunkMs else silenceMs = 0L
+            if (level < silenceThreshold()) silenceMs += chunkMs else silenceMs = 0L
             val durationMs = elapsedMs - startMs
             if (silenceMs >= END_SILENCE_MS || durationMs >= MAX_SEGMENT_MS) {
                 emit(elapsedMs)
                 active = false
                 silenceMs = 0L
-                buffer.reset()
             }
         }
 
         fun flush() {
-            if (active) emit(startMs + buffer.size() / (sampleRate * channelCount * 2 / 1000))
+            if (active) emit(startMs + buffer.size() / bytesPerMs)
             active = false
             buffer.reset()
+            preRoll.clear()
+            preRollBytes = 0
+        }
+
+        private fun rememberPreRoll(pcm: ByteArray, length: Int) {
+            if (length <= 0) return
+            val limit = PREROLL_MS * bytesPerMs
+            val copy = pcm.copyOf(length)
+            preRoll.addLast(copy)
+            preRollBytes += copy.size
+            while (preRollBytes > limit && preRoll.isNotEmpty()) {
+                preRollBytes -= preRoll.removeFirst().size
+            }
         }
 
         private fun emit(endMs: Long) {
-            if (buffer.size() < sampleRate * channelCount * 2 / 2) return
+            if (buffer.size() < MIN_SEGMENT_MS * bytesPerMs) {
+                buffer.reset()
+                return
+            }
+            val pcm = buffer.toByteArray()
             onSegment(
                 SpeechSegment(
-                    pcm = buffer.toByteArray(),
+                    pcm = pcm,
                     startMs = startMs,
                     endMs = endMs.coerceAtLeast(startMs),
                     sampleRate = sampleRate,
                     channelCount = channelCount,
                 ),
             )
+            buffer.reset()
+            val overlapBytes = (OVERLAP_MS * bytesPerMs).coerceAtMost(pcm.size)
+            if (overlapBytes > 0) {
+                preRoll.clear()
+                preRollBytes = 0
+                rememberOverlap(pcm, overlapBytes)
+            }
         }
 
+        private fun rememberOverlap(pcm: ByteArray, length: Int) {
+            if (length <= 0) return
+            val offset = pcm.size - length
+            preRoll.addLast(pcm.copyOfRange(offset, pcm.size))
+            preRollBytes += length
+        }
+
+        private fun startThreshold(): Float =
+            (START_LEVEL.coerceAtLeast(noiseFloor * 2.4f)).coerceAtMost(0.06f)
+
+        private fun silenceThreshold(): Float =
+            (SILENCE_LEVEL.coerceAtLeast(noiseFloor * 1.25f)).coerceAtMost(0.03f)
+
         private companion object {
-            const val START_LEVEL = 0.018f
-            const val SILENCE_LEVEL = 0.008f
-            const val END_SILENCE_MS = 650L
-            const val MAX_SEGMENT_MS = 12_000L
+            const val START_LEVEL = 0.016f
+            const val SILENCE_LEVEL = 0.007f
+            const val END_SILENCE_MS = 420L
+            const val MAX_SEGMENT_MS = 9_000L
+            const val MIN_SEGMENT_MS = 350L
+            const val PREROLL_MS = 450L
+            const val OVERLAP_MS = 180L
         }
     }
 

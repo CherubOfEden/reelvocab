@@ -69,6 +69,8 @@ import app.reelvocab.feature.dictionary.DictionaryRoute
 import app.reelvocab.feature.dictionary.DictionaryScreen
 import app.reelvocab.feature.library.LibraryRoute
 import app.reelvocab.feature.library.LibraryScreen
+import app.reelvocab.feature.media.EditorRoute
+import app.reelvocab.feature.media.MediaEditorScreen
 import app.reelvocab.feature.media.MediaRoute
 import app.reelvocab.feature.media.MediaScreen
 import app.reelvocab.feature.media.PlayerRoute
@@ -161,7 +163,9 @@ fun MainScaffold(
         tab.routeClass.qualifiedName?.let { name -> currentRoute?.contains(name) } == true
     } ?: ReelTab.Home
 
-    val showBottomBar = currentRoute?.contains(PlayerRoute::class.qualifiedName ?: "") != true
+    val showBottomBar =
+        currentRoute?.contains(PlayerRoute::class.qualifiedName ?: "") != true &&
+            currentRoute?.contains(EditorRoute::class.qualifiedName ?: "") != true
     val pipActive by CaptureSessionService.runningFlow.collectAsStateWithLifecycle()
 
     val startPip: () -> Unit = {
@@ -261,6 +265,20 @@ fun MainScaffold(
                             PlayerRoute(uri = uri, title = title, kind = kind),
                         )
                     },
+                    onEdit = { uri, title, kind ->
+                        navController.navigate(
+                            EditorRoute(uri = uri, title = title, kind = kind),
+                        )
+                    },
+                )
+            }
+
+            composable<EditorRoute> { entry ->
+                val route = entry.toRoute<EditorRoute>()
+                MediaEditorScreen(
+                    route = route,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
                 )
             }
 

@@ -113,7 +113,16 @@ class CaptureSessionService : Service() {
                 captureFrame()
             }
 
-            ACTION_RECORDING_STOPPED -> removeModeMenu()
+            ACTION_RECORDING_STARTED -> {
+                releaseProjection()
+                removeModeMenu(animate = false)
+                removePill()
+            }
+
+            ACTION_RECORDING_STOPPED -> {
+                removeModeMenu()
+                if (isRunning && pill == null) ensurePill()
+            }
 
             ACTION_STOP -> stopEverything()
         }
@@ -125,7 +134,7 @@ class CaptureSessionService : Service() {
     override fun onDestroy() {
         releaseProjection()
         removePill()
-        removeModeMenu()
+        removeModeMenu(animate = false)
         scope.cancel()
         setRunning(false)
         super.onDestroy()
@@ -212,7 +221,8 @@ class CaptureSessionService : Service() {
             size,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_SECURE,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -319,7 +329,7 @@ class CaptureSessionService : Service() {
     }
 
     private fun showModeMenu() {
-        removeModeMenu()
+        removeModeMenu(animate = false)
         if (!Settings.canDrawOverlays(this)) return
         val density = resources.displayMetrics.density
         val menu = LinearLayout(this).apply {
@@ -336,6 +346,7 @@ class CaptureSessionService : Service() {
                 (8 * density).toInt(),
             )
             elevation = 10f * density
+            isClickable = true
         }
         fun item(label: String, action: () -> Unit) {
             menu.addView(
@@ -350,7 +361,7 @@ class CaptureSessionService : Service() {
                         (14 * density).toInt(),
                     )
                     setOnClickListener {
-                        removeModeMenu()
+                        removeModeMenu(animate = false)
                         action()
                     }
                 },
@@ -361,22 +372,56 @@ class CaptureSessionService : Service() {
         }
         item(getString(R.string.capture_mode_video)) { openRecorder(CaptureActivity.MODE_VIDEO) }
         item(getString(R.string.capture_mode_audio)) { openRecorder(CaptureActivity.MODE_AUDIO) }
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT,
-        ).apply {
-            gravity = Gravity.CENTER
+
+        val scrim = FrameLayout(this).apply {
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            isClickable = true
+            setOnClickListener { removeModeMenu() }
+            addView(
+                menu,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER,
+                ),
+            )
         }
-        runCatching { windowManager.addView(menu, params) }.onSuccess { modeMenu = menu }
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_SECURE,
+            PixelFormat.TRANSLUCENT,
+        )
+        runCatching { windowManager.addView(scrim, params) }.onSuccess {
+            modeMenu = scrim
+            menu.alpha = 0f
+            menu.translationY = 24f * density
+            menu.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(160L)
+                .start()
+        }
     }
 
-    private fun removeModeMenu() {
+    private fun removeModeMenu(animate: Boolean = true) {
         val menu = modeMenu ?: return
         modeMenu = null
-        runCatching { windowManager.removeView(menu) }
+        val density = resources.displayMetrics.density
+        val card = (menu as? FrameLayout)?.getChildAt(0)
+        if (animate && card != null) {
+            card.animate()
+                .alpha(0f)
+                .translationY(24f * density)
+                .setDuration(140L)
+                .withEndAction { runCatching { windowManager.removeView(menu) } }
+                .start()
+        } else {
+            runCatching { windowManager.removeView(menu) }
+        }
     }
 
     private fun launchConsent() {
@@ -432,13 +477,27 @@ class CaptureSessionService : Service() {
             return
         }
         capturing = true
-        val image = reader.acquireLatestImage()
-        if (image == null) {
-            capturing = false
-            handler.postDelayed({ captureFrame() }, RETRY_DELAY_MS)
-            return
+        val hideOverlays = pill != null || modeMenu != null
+        if (hideOverlays) {
+            pill?.visibility = View.GONE
+            modeMenu?.visibility = View.GONE
         }
+        handler.postDelayed(
+            { captureFrameNow(reader) },
+            if (hideOverlays) OVERLAY_HIDE_DELAY_MS else 0L,
+        )
+    }
+
+    private fun captureFrameNow(reader: ImageReader) {
+        var image: android.media.Image? = null
         try {
+            image = reader.acquireLatestImage()
+            if (image == null) {
+                restoreOverlays()
+                capturing = false
+                handler.postDelayed({ captureFrame() }, RETRY_DELAY_MS)
+                return
+            }
             val plane = image.planes[0]
             val pixelStride = plane.pixelStride
             val rowStride = plane.rowStride
@@ -487,9 +546,15 @@ class CaptureSessionService : Service() {
         } catch (error: Exception) {
             handler.postDelayed({ captureFrame() }, RETRY_DELAY_MS)
         } finally {
-            image.close()
+            image?.close()
+            restoreOverlays()
             capturing = false
         }
+    }
+
+    private fun restoreOverlays() {
+        pill?.visibility = View.VISIBLE
+        modeMenu?.visibility = View.VISIBLE
     }
 
     private fun releaseProjection() {
@@ -516,7 +581,7 @@ class CaptureSessionService : Service() {
     private fun stopEverything() {
         releaseProjection()
         removePill()
-        removeModeMenu()
+        removeModeMenu(animate = false)
         setRunning(false)
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -529,6 +594,7 @@ class CaptureSessionService : Service() {
         private const val ACTION_START_SESSION = "app.reelvocab.capture.START_SESSION"
         private const val ACTION_CAPTURE = "app.reelvocab.capture.CAPTURE"
         private const val ACTION_STOP = "app.reelvocab.capture.STOP"
+        private const val ACTION_RECORDING_STARTED = "app.reelvocab.capture.RECORDING_STARTED"
         private const val ACTION_RECORDING_STOPPED = "app.reelvocab.capture.RECORDING_STOPPED"
         private const val EXTRA_RESULT_CODE = "result_code"
         private const val EXTRA_DATA = "projection_data"
@@ -539,6 +605,7 @@ class CaptureSessionService : Service() {
         private const val PILL_MARGIN_DP = 12
         private const val CAPTURE_DELAY_MS = 350L
         private const val RETRY_DELAY_MS = 150L
+        private const val OVERLAY_HIDE_DELAY_MS = 120L
 
         private val _running = MutableStateFlow(false)
         val runningFlow: StateFlow<Boolean> = _running.asStateFlow()
@@ -583,6 +650,13 @@ class CaptureSessionService : Service() {
             context.startService(
                 Intent(context, CaptureSessionService::class.java)
                     .setAction(ACTION_STOP),
+            )
+        }
+
+        fun recordingStarted(context: Context) {
+            context.startService(
+                Intent(context, CaptureSessionService::class.java)
+                    .setAction(ACTION_RECORDING_STARTED),
             )
         }
 

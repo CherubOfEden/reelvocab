@@ -61,14 +61,36 @@ class RecordingService : Service() {
     private var recordingTitle: String = ""
     private var recordingStartedAtEpochMs = 0L
     private var recordingPanel: RecordingPanel? = null
+    private var recordingBubble: RecordingBubble? = null
     private var transcriber: OnDeviceTranscriber? = null
     private var launchSource = CaptureLaunchSource.App
     private var stoppingRecording = false
+    private var recordingActive = false
+    private var countdownRemaining = 0
+    private var countdownEngine: MediaRecordingEngine? = null
 
     private val timerRunnable = object : Runnable {
         override fun run() {
-            recordingPanel?.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
+            val elapsed = if (recordingActive) recordingEngine?.elapsedMs() ?: 0L else 0L
+            recordingPanel?.setElapsed(elapsed)
+            recordingBubble?.setElapsed(elapsed)
             handler.postDelayed(this, TIMER_INTERVAL_MS)
+        }
+    }
+
+    private val countdownRunnable = object : Runnable {
+        override fun run() {
+            val engine = countdownEngine ?: return
+            if (stoppingRecording) return
+            if (countdownRemaining <= 1) {
+                countdownRemaining = 0
+                countdownEngine = null
+                startEngine(engine)
+                return
+            }
+            countdownRemaining -= 1
+            recordingPanel?.setCountdown(countdownRemaining)
+            handler.postDelayed(this, COUNTDOWN_INTERVAL_MS)
         }
     }
 
@@ -92,6 +114,13 @@ class RecordingService : Service() {
                 val sourceLaunch = CaptureLaunchSource.fromStorage(
                     intent.getStringExtra(EXTRA_LAUNCH_SOURCE),
                 )
+                val needsProjection =
+                    mode == CaptureActivity.MODE_VIDEO || source != AudioSourceMode.Microphone
+                if (needsProjection && data == null) {
+                    requestProjectionConsent(mode, source, sourceLaunch)
+                    finishService()
+                    return START_NOT_STICKY
+                }
                 startRecording(
                     resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, 0),
                     data = data,
@@ -109,8 +138,10 @@ class RecordingService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        cancelCountdown()
         handler.removeCallbacks(timerRunnable)
         removeRecordingPanel()
+        removeRecordingBubble()
         val engine = recordingEngine
         recordingEngine = null
         if (engine != null) {
@@ -119,9 +150,27 @@ class RecordingService : Service() {
         runCatching { recordingProjection?.stop() }
         recordingProjection = null
         clearRecordingState()
+        resetBubble()
         scope.cancel()
         extractionScope.cancel()
         super.onDestroy()
+    }
+
+    private fun requestProjectionConsent(
+        mode: String,
+        source: AudioSourceMode,
+        launchSource: CaptureLaunchSource,
+    ) {
+        val intent = CaptureActivity.recordIntent(
+            context = this,
+            mode = mode,
+            launchSource = launchSource,
+            audioSource = source,
+            skipSourceDialog = true,
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { startActivity(intent) }.onFailure {
+            showToast(R.string.recording_screen_permission_required)
+        }
     }
 
     private fun startRecording(
@@ -153,6 +202,10 @@ class RecordingService : Service() {
             showToast(R.string.recording_screen_permission_required)
             finishService()
             return
+        }
+
+        if (CaptureSessionService.isRunning) {
+            CaptureSessionService.recordingStarted(this)
         }
 
         launchSource = startFrom
@@ -206,6 +259,7 @@ class RecordingService : Service() {
             },
         )
         stoppingRecording = false
+        recordingActive = false
         autoCapture.reset()
         transcriber = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             OnDeviceTranscriber(this)
@@ -222,11 +276,13 @@ class RecordingService : Service() {
                 outputFile = file,
                 listener = object : RecordingListener {
                     override fun onLevel(level: Float) {
-                        handler.post { recordingPanel?.pushLevel(level) }
+                        handler.post {
+                            if (recordingActive) recordingPanel?.pushLevel(level)
+                        }
                     }
 
                     override fun onSpeechSegment(segment: SpeechSegment) {
-                        if (recordingEngine == null) return
+                        if (!recordingActive || recordingEngine == null) return
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
                         val recognizer = transcriber ?: return
                         val sessionStartedAt = recordingStartedAtEpochMs
@@ -280,19 +336,47 @@ class RecordingService : Service() {
         }
 
         recordingEngine = engine
+        if (showRecordingPanel(kind)) {
+            beginCountdown(engine)
+        } else {
+            startEngine(engine)
+        }
+    }
+
+    private fun beginCountdown(engine: MediaRecordingEngine) {
+        countdownEngine = engine
+        countdownRemaining = COUNTDOWN_SECONDS
+        recordingPanel?.setCountdown(countdownRemaining)
+        handler.postDelayed(countdownRunnable, COUNTDOWN_INTERVAL_MS)
+    }
+
+    private fun cancelCountdown() {
+        handler.removeCallbacks(countdownRunnable)
+        countdownRemaining = 0
+        countdownEngine = null
+    }
+
+    private fun startEngine(engine: MediaRecordingEngine) {
+        if (stoppingRecording) return
+        recordingStartedAtEpochMs = System.currentTimeMillis()
         try {
             engine.start()
         } catch (error: Throwable) {
-            runCatching { projection?.stop() }
-            runCatching { file.delete() }
+            cancelCountdown()
+            removeRecordingPanel()
+            removeRecordingBubble()
+            runCatching { recordingProjection?.stop() }
+            runCatching { recordingFile?.delete() }
             clearRecordingState()
             showToast(R.string.recording_start_failed)
             finishService()
             return
         }
-
-        showRecordingPanel(kind)
+        recordingActive = true
+        recordingPanel?.setCountdownComplete()
+        recordingPanel?.setPaused(false)
         startTimer()
+        collapseToBubble()
     }
 
     private fun stopRecording() {
@@ -303,23 +387,32 @@ class RecordingService : Service() {
             return
         }
         stoppingRecording = true
-        removeRecordingPanel()
+        cancelCountdown()
         handler.removeCallbacks(timerRunnable)
+        removeRecordingPanel()
+        removeRecordingBubble()
 
         val file = recordingFile
         val startedAt = recordingStartedAtEpochMs
         val kind = recordingKind
         val projection = recordingProjection
         val title = recordingTitle
+        val wasActive = recordingActive
 
         recordingEngine = null
         recordingFile = null
         recordingProjection = null
         recordingKind = null
         transcriber = null
+        recordingActive = false
 
         scope.launch {
-            val valid = runCatching { engine.stop() }.getOrDefault(false)
+            val valid = if (wasActive) {
+                runCatching { engine.stop() }.getOrDefault(false)
+            } else {
+                runCatching { engine.stop() }
+                false
+            }
             runCatching { projection?.stop() }
             if (valid && file != null && file.length() > 0L && kind != null) {
                 runCatching {
@@ -345,28 +438,28 @@ class RecordingService : Service() {
             }
             withContext(Dispatchers.Main) {
                 stoppingRecording = false
-                resetBubble()
                 finishService()
             }
         }
     }
 
     private fun resetBubble() {
-        if (launchSource == CaptureLaunchSource.Pip && CaptureSessionService.isRunning) {
+        if (CaptureSessionService.isRunning) {
             CaptureSessionService.recordingStopped(this)
         }
     }
 
     private fun finishService() {
+        resetBubble()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
-    private fun showRecordingPanel(kind: RecordingKind) {
-        if (recordingPanel != null) return
+    private fun showRecordingPanel(kind: RecordingKind): Boolean {
+        if (recordingPanel != null) return true
         if (!Settings.canDrawOverlays(this)) {
             showToast(R.string.recording_overlay_required)
-            return
+            return false
         }
         val panel = RecordingPanel(
             context = this,
@@ -380,22 +473,58 @@ class RecordingService : Service() {
             pauseLabel = getString(R.string.recording_pause),
             resumeLabel = getString(R.string.recording_resume),
             stopLabel = getString(R.string.recording_stop),
+            hideLabel = getString(R.string.recording_hide),
             onPause = { recordingEngine?.pause() },
-            onResume = { recordingEngine?.resume() },
+            onResume = {
+                recordingEngine?.resume()
+                collapseToBubble()
+            },
             onStop = { stopRecording() },
+            onHide = { collapseToBubble() },
         )
+        var added = false
         runCatching {
             windowManager.addView(panel.view, panel.windowParams())
         }.onSuccess {
             recordingPanel = panel
+            added = true
             panel.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
         }
+        return added
     }
 
     private fun removeRecordingPanel() {
         val panel = recordingPanel ?: return
         recordingPanel = null
         runCatching { windowManager.removeView(panel.view) }
+    }
+
+    private fun collapseToBubble() {
+        removeRecordingPanel()
+        if (!recordingActive || !Settings.canDrawOverlays(this)) return
+        if (recordingBubble != null) return
+        val bubble = RecordingBubble(this) { expandControls() }
+        runCatching {
+            windowManager.addView(bubble.view, bubble.windowParams())
+        }.onSuccess {
+            recordingBubble = bubble
+            bubble.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
+        }
+    }
+
+    private fun expandControls() {
+        if (!recordingActive) return
+        removeRecordingBubble()
+        val kind = recordingKind ?: return
+        if (!showRecordingPanel(kind)) return
+        recordingPanel?.setPaused(recordingEngine?.isPaused() == true)
+        recordingPanel?.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
+    }
+
+    private fun removeRecordingBubble() {
+        val bubble = recordingBubble ?: return
+        recordingBubble = null
+        runCatching { windowManager.removeView(bubble.view) }
     }
 
     private fun startTimer() {
@@ -484,6 +613,7 @@ class RecordingService : Service() {
         recordingKind = null
         recordingStartedAtEpochMs = 0L
         recordingTitle = ""
+        recordingActive = false
         stoppingRecording = false
     }
 
@@ -498,6 +628,8 @@ class RecordingService : Service() {
         private const val EXTRA_RESULT_CODE = "result_code"
         private const val EXTRA_DATA = "projection_data"
         private const val TIMER_INTERVAL_MS = 250L
+        private const val COUNTDOWN_SECONDS = 5
+        private const val COUNTDOWN_INTERVAL_MS = 1_000L
 
         fun start(
             context: Context,

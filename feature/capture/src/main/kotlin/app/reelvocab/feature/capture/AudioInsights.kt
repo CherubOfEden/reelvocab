@@ -53,23 +53,44 @@ object VocabularyExtractor {
         if (words.isEmpty()) return emptyList()
 
         val chosen = linkedSetOf<String>()
-        val phrase = words.windowed(4, 1, partialWindows = true)
-            .filter { it.size >= 2 }
-            .map { window -> window.take(4) }
-            .firstOrNull { window ->
-                val content = window.count { it !in stopWords }
-                window.joinToString(" ").length >= 9 && content >= 2
-            }
-        phrase?.let { chosen += it.joinToString(" ") }
+        bestPhrase(words)?.let { chosen += it }
 
         words.asSequence()
-            .filter { it.length >= 7 && it !in stopWords && it !in commonLongWords }
-            .sortedByDescending { it.length }
+            .filter { word ->
+                word.length >= 6 &&
+                    word !in stopWords &&
+                    word !in commonLongWords &&
+                    word.any { it in 'a'..'z' }
+            }
+            .distinct()
+            .sortedWith(compareByDescending<String> { it.length }.thenBy { it })
             .take(2)
             .forEach { chosen += it }
 
         return chosen.take(3).toList()
     }
+
+    private fun bestPhrase(words: List<String>): String? {
+        var best: Pair<String, Int>? = null
+        for (start in words.indices) {
+            for (size in 2..4) {
+                val end = start + size
+                if (end > words.size) break
+                val window = words.subList(start, end)
+                val content = window.count { it !in stopWords }
+                val uncommon = window.count { it !in commonLongWords }
+                val phrase = window.joinToString(" ")
+                if (content < 2 || uncommon < 1 || phrase.length !in 8..42) continue
+                val score = content * 3 + size * 2 + phrase.length / 6
+                val current = best
+                if (current == null || score > current.second) {
+                    best = phrase to score
+                }
+            }
+        }
+        return best?.first
+    }
+
 }
 
 @Singleton

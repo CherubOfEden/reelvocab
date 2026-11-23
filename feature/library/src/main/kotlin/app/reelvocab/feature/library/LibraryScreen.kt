@@ -1,6 +1,10 @@
 package app.reelvocab.feature.library
 
+import android.content.Context
 import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -19,18 +23,30 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,11 +70,15 @@ import coil.compose.SubcomposeAsyncImage
 import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
+import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -69,12 +89,35 @@ data object LibraryRoute
 fun LibraryScreen(
     onOpenDeck: () -> Unit,
     onPlay: (uri: String, title: String, kind: String) -> Unit,
+    onEdit: (uri: String, title: String, kind: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = ReelTheme.colors
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var detailsFor by remember { mutableStateOf<VaultItem?>(null) }
+    var deleteFor by remember { mutableStateOf<VaultItem?>(null) }
+    var exportFor by remember { mutableStateOf<VaultItem?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("*/*"),
+    ) { target ->
+        val item = exportFor
+        exportFor = null
+        if (target != null && item != null) {
+            scope.launch {
+                val exported = withContext(Dispatchers.IO) {
+                    exportVaultItem(context, item, target)
+                }
+                Toast.makeText(
+                    context,
+                    if (exported) R.string.library_export_done else R.string.library_export_failed,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
     val imageLoader = remember(context) {
         ImageLoader.Builder(context)
             .components { add(VideoFrameDecoder.Factory()) }
@@ -172,10 +215,63 @@ fun LibraryScreen(
                     onPlay = {
                         onPlay(item.uri, item.title, item.kind.playerKind())
                     },
-                    onDelete = { viewModel.delete(item) },
+                    onDetails = { detailsFor = item },
+                    onEdit = {
+                        onEdit(item.uri, item.title, item.kind.playerKind())
+                    },
+                    onExport = {
+                        exportFor = item
+                        exportLauncher.launch(exportFileName(item))
+                    },
+                    onDelete = { deleteFor = item },
                 )
             }
         }
+    }
+
+    detailsFor?.let { item ->
+        VaultDetailsDialog(item = item, onDismiss = { detailsFor = null })
+    }
+    deleteFor?.let { item ->
+        AlertDialog(
+            onDismissRequest = { deleteFor = null },
+            title = {
+                Text(
+                    text = stringResource(R.string.library_delete_title),
+                    style = ReelTheme.type.titleM,
+                    color = colors.textPrimary,
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.library_delete_body, item.title),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.delete(item)
+                        deleteFor = null
+                    },
+                ) {
+                    Text(
+                        text = stringResource(R.string.library_delete_confirm),
+                        color = colors.rose,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteFor = null }) {
+                    Text(
+                        text = stringResource(R.string.library_cancel),
+                        color = colors.textSecondary,
+                    )
+                }
+            },
+            containerColor = colors.elevated,
+        )
     }
 }
 
@@ -184,6 +280,9 @@ private fun VaultRow(
     item: VaultItem,
     imageLoader: ImageLoader,
     onPlay: () -> Unit,
+    onDetails: () -> Unit,
+    onEdit: () -> Unit,
+    onExport: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val colors = ReelTheme.colors
@@ -213,12 +312,63 @@ private fun VaultRow(
                     color = colors.textTertiary,
                 )
             }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Filled.DeleteOutline,
-                    contentDescription = stringResource(R.string.library_delete),
-                    tint = colors.rose,
-                )
+            Box {
+                var menuOpen by remember { mutableStateOf(false) }
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = stringResource(R.string.library_more),
+                        tint = colors.textSecondary,
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuOpen,
+                    onDismissRequest = { menuOpen = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_details)) },
+                        leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onDetails()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_edit)) },
+                        leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onEdit()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_export)) },
+                        leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onExport()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.library_delete),
+                                color = colors.rose,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.DeleteOutline,
+                                contentDescription = null,
+                                tint = colors.rose,
+                            )
+                        },
+                        onClick = {
+                            menuOpen = false
+                            onDelete()
+                        },
+                    )
+                }
             }
         }
     }
@@ -320,3 +470,96 @@ private fun VaultItem.createdLabel(): String = runCatching {
                 .withLocale(Locale.getDefault()),
         )
 }.getOrDefault("")
+
+@Composable
+private fun VaultDetailsDialog(
+    item: VaultItem,
+    onDismiss: () -> Unit,
+) {
+    val colors = ReelTheme.colors
+    val file = remember(item.uri) { vaultFile(item) }
+    val sizeLabel = remember(file) {
+        file?.takeIf { it.exists() }?.length()?.let(::formatFileSize) ?: "—"
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.library_details_title),
+                style = ReelTheme.type.titleM,
+                color = colors.textPrimary,
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
+            ) {
+                DetailLine(stringResource(R.string.library_detail_title), item.title)
+                DetailLine(stringResource(R.string.library_detail_kind), item.kind.label())
+                DetailLine(stringResource(R.string.library_detail_size), sizeLabel)
+                DetailLine(stringResource(R.string.library_detail_created), item.createdLabel())
+                DetailLine(
+                    stringResource(R.string.library_detail_path),
+                    file?.absolutePath ?: item.uri,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.library_close), color = colors.gold)
+            }
+        },
+        containerColor = colors.elevated,
+    )
+}
+
+@Composable
+private fun DetailLine(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = label,
+            style = ReelTheme.type.label,
+            color = ReelTheme.colors.textTertiary,
+        )
+        Text(
+            text = value,
+            style = ReelTheme.type.bodyM,
+            color = ReelTheme.colors.textPrimary,
+        )
+    }
+}
+
+private fun vaultFile(item: VaultItem): File? = runCatching {
+    val uri = Uri.parse(item.uri)
+    if (uri.scheme != "file") return@runCatching null
+    uri.path?.let(::File)
+}.getOrNull()
+
+private fun exportFileName(item: VaultItem): String =
+    vaultFile(item)?.name ?: item.title
+
+private fun exportVaultItem(context: Context, item: VaultItem, target: Uri): Boolean =
+    runCatching {
+        val source = vaultFile(item)?.takeIf { it.exists() } ?: return@runCatching false
+        val output = context.contentResolver.openOutputStream(target)
+            ?: return@runCatching false
+        output.use { destination ->
+            source.inputStream().use { input -> input.copyTo(destination) }
+        }
+        true
+    }.getOrDefault(false)
+
+private fun formatFileSize(bytes: Long): String {
+    if (bytes < 1_024L) return "$bytes B"
+    val units = arrayOf("KB", "MB", "GB")
+    var value = bytes.toDouble() / 1_024.0
+    var unit = 0
+    while (value >= 1_024.0 && unit < units.lastIndex) {
+        value /= 1_024.0
+        unit++
+    }
+    return String.format(Locale.getDefault(), "%.1f %s", value, units[unit])
+}
