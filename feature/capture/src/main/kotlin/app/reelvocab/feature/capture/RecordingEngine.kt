@@ -671,7 +671,7 @@ class MediaRecordingEngine(
                 ),
             )
             buffer.reset()
-            val overlapBytes = (OVERLAP_MS * bytesPerMs).coerceAtMost(pcm.size)
+            val overlapBytes = (OVERLAP_MS * bytesPerMs).coerceAtMost(pcm.size.toLong()).toInt()
             if (overlapBytes > 0) {
                 preRoll.clear()
                 preRollBytes = 0
