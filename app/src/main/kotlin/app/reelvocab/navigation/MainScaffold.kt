@@ -9,6 +9,9 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -34,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -88,6 +92,7 @@ import app.reelvocab.feature.today.TodayScreen
 import app.reelvocab.feature.today.TodayViewModel
 import app.reelvocab.reminders.FullScreenAlarms
 import app.reelvocab.reminders.ReminderPrefs
+import app.reelvocab.reminders.ReminderTimeFormat
 import app.reelvocab.reminders.ReminderScheduler
 import app.reelvocab.ui.CloudSettingsState
 import app.reelvocab.ui.CloudSettingsViewModel
@@ -145,6 +150,9 @@ fun MainScaffold(
     val context = LocalContext.current
     var showAlarmPicker by remember { mutableStateOf(false) }
     var pipMode by remember { mutableStateOf(CapturePreferences.pipMode(context)) }
+    var cropOverlayEnabled by remember {
+        mutableStateOf(CapturePreferences.showCropOverlay(context))
+    }
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { }
@@ -310,6 +318,9 @@ fun MainScaffold(
                 var reminderMinute by remember {
                     mutableIntStateOf(ReminderPrefs.minute(context))
                 }
+                var reminderIs24Hour by remember {
+                    mutableStateOf(ReminderPrefs.is24Hour(context))
+                }
                 var fullScreenAlarm by remember {
                     mutableStateOf(ReminderPrefs.fullScreen(context))
                 }
@@ -348,6 +359,12 @@ fun MainScaffold(
                         CapturePreferences.setPipMode(context, captureMode)
                         pipMode = captureMode
                     },
+                    cropOverlayEnabled = cropOverlayEnabled,
+                    onToggleCropOverlay = {
+                        val enabled = !cropOverlayEnabled
+                        CapturePreferences.setShowCropOverlay(context, enabled)
+                        cropOverlayEnabled = enabled
+                    },
                     overlayAvailable = Settings.canDrawOverlays(context),
                     onOpenOverlaySettings = {
                         runCatching {
@@ -364,6 +381,7 @@ fun MainScaffold(
                     reminderEnabled = reminderEnabled,
                     reminderHour = reminderHour,
                     reminderMinute = reminderMinute,
+                    reminderIs24Hour = reminderIs24Hour,
                     onToggleReminder = {
                         val enabled = !reminderEnabled
                         ReminderPrefs.setEnabled(context, enabled)
@@ -385,10 +403,19 @@ fun MainScaffold(
                         }
                         reminderEnabled = enabled
                     },
-                    onReminderTimeChange = { hour, minute ->
+                    onReminderTimeChange = { hour, minute, is24Hour ->
                         ReminderPrefs.setTime(context, hour, minute)
+                        ReminderPrefs.setTimeFormat(
+                            context,
+                            if (is24Hour) {
+                                ReminderTimeFormat.TwentyFourHour
+                            } else {
+                                ReminderTimeFormat.TwelveHour
+                            },
+                        )
                         reminderHour = hour
                         reminderMinute = minute
+                        reminderIs24Hour = is24Hour
                         if (reminderEnabled) {
                             ReminderScheduler.schedule(context)
                         }
@@ -433,8 +460,17 @@ fun MainScaffold(
         QuickAlarmDialog(
             initialHour = ReminderPrefs.hour(context),
             initialMinute = ReminderPrefs.minute(context),
-            onConfirm = { hour, minute ->
+            initialIs24Hour = ReminderPrefs.is24Hour(context),
+            onConfirm = { hour, minute, is24Hour ->
                 ReminderPrefs.setTime(context, hour, minute)
+                ReminderPrefs.setTimeFormat(
+                    context,
+                    if (is24Hour) {
+                        ReminderTimeFormat.TwentyFourHour
+                    } else {
+                        ReminderTimeFormat.TwelveHour
+                    },
+                )
                 ReminderPrefs.setEnabled(context, true)
                 if (
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -458,15 +494,14 @@ fun MainScaffold(
 private fun QuickAlarmDialog(
     initialHour: Int,
     initialMinute: Int,
-    onConfirm: (Int, Int) -> Unit,
+    initialIs24Hour: Boolean,
+    onConfirm: (Int, Int, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = ReelTheme.colors
-    val picker = rememberTimePickerState(
-        initialHour = initialHour,
-        initialMinute = initialMinute,
-        is24Hour = true,
-    )
+    var is24Hour by remember { mutableStateOf(initialIs24Hour) }
+    var hour by remember { mutableIntStateOf(initialHour) }
+    var minute by remember { mutableIntStateOf(initialMinute) }
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = colors.elevated,
@@ -478,9 +513,40 @@ private fun QuickAlarmDialog(
                 style = ReelTheme.type.titleM,
             )
         },
-        text = { TimePicker(state = picker) },
+        text = {
+            Column {
+                Row(horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s)) {
+                    TextButton(onClick = { is24Hour = false }) {
+                        Text(
+                            text = stringResource(R.string.quick_alarm_format_12),
+                            style = ReelTheme.type.label,
+                            color = if (!is24Hour) colors.gold else colors.textSecondary,
+                        )
+                    }
+                    TextButton(onClick = { is24Hour = true }) {
+                        Text(
+                            text = stringResource(R.string.quick_alarm_format_24),
+                            style = ReelTheme.type.label,
+                            color = if (is24Hour) colors.gold else colors.textSecondary,
+                        )
+                    }
+                }
+                key(is24Hour) {
+                    val picker = rememberTimePickerState(
+                        initialHour = hour,
+                        initialMinute = minute,
+                        is24Hour = is24Hour,
+                    )
+                    LaunchedEffect(picker.hour, picker.minute) {
+                        hour = picker.hour
+                        minute = picker.minute
+                    }
+                    TimePicker(state = picker)
+                }
+            }
+        },
         confirmButton = {
-            TextButton(onClick = { onConfirm(picker.hour, picker.minute) }) {
+            TextButton(onClick = { onConfirm(hour, minute, is24Hour) }) {
                 Text(
                     text = stringResource(R.string.quick_alarm_save),
                     style = ReelTheme.type.label,

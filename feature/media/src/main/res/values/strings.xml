@@ -61,9 +61,12 @@
     <string name="media_editor_end">End</string>
     <string name="media_editor_crop">Crop</string>
     <string name="media_editor_crop_original">Original</string>
+    <string name="media_editor_crop_free">Free</string>
     <string name="media_editor_crop_landscape">16:9</string>
     <string name="media_editor_crop_square">1:1</string>
     <string name="media_editor_crop_portrait">9:16</string>
+    <string name="media_editor_play">Play</string>
+    <string name="media_editor_pause">Pause</string>
     <string name="media_editor_save">Save as new copy</string>
     <string name="media_editor_keep_original">Your original stays in the vault.</string>
     <string name="media_editor_exporting">Exporting %1$d%%…</string>

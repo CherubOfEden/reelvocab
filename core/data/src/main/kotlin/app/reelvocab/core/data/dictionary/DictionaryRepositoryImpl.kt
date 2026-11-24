@@ -122,8 +122,21 @@ class DictionaryRepositoryImpl @Inject constructor(
     override suspend fun wordOfTheDay(): DictionaryEntry? {
         val lemma = asset.read { db ->
             db.rawQuery(
-                "SELECT lemma FROM words ORDER BY RANDOM() LIMIT 1",
-                null,
+                """
+                SELECT w.lemma
+                FROM words w
+                WHERE LENGTH(w.lemma) >= 5
+                  AND w.freq_rank >= ?
+                  AND w.difficulty >= ?
+                  AND EXISTS (SELECT 1 FROM senses s WHERE s.word_id = w.id)
+                ORDER BY (
+                    SELECT COUNT(*)
+                    FROM relations r
+                    WHERE r.word_id = w.id AND r.type = 'syn'
+                ) DESC, RANDOM()
+                LIMIT 1
+                """.trimIndent(),
+                arrayOf(WORD_OF_DAY_MIN_RANK.toString(), WORD_OF_DAY_MIN_DIFFICULTY.toString()),
             ).use { cursor ->
                 if (cursor.moveToFirst()) cursor.getString(0) else null
             }
@@ -139,5 +152,7 @@ class DictionaryRepositoryImpl @Inject constructor(
 
     private companion object {
         const val FALLBACK_WARNING = "AI unavailable. Showing basic word hints."
+        const val WORD_OF_DAY_MIN_RANK = 8_000
+        const val WORD_OF_DAY_MIN_DIFFICULTY = 3
     }
 }

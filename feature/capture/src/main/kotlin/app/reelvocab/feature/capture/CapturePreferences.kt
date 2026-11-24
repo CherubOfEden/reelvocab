@@ -20,6 +20,7 @@ object CapturePreferences {
     private const val PREFS = "capture_prefs"
     private const val KEY_PIP_MODE = "pip_mode"
     private const val KEY_AUDIO_SOURCE = "audio_source"
+    private const val KEY_CROP_OVERLAY = "crop_overlay"
 
     fun pipMode(context: Context): PipCaptureMode =
         PipCaptureMode.fromStorage(
@@ -44,6 +45,17 @@ object CapturePreferences {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_AUDIO_SOURCE, source.storage)
+            .apply()
+    }
+
+    fun showCropOverlay(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_CROP_OVERLAY, true)
+
+    fun setShowCropOverlay(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_CROP_OVERLAY, enabled)
             .apply()
     }
 }

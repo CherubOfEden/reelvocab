@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,6 +58,7 @@ class CaptureViewModel @Inject constructor(
 
     private var previewJob: Job? = null
     private var selectionJob: Job? = null
+    private var previewToken = 0
 
     fun recognize(bitmap: Bitmap) {
         previewJob?.cancel()
@@ -89,6 +91,7 @@ class CaptureViewModel @Inject constructor(
 
     fun select(word: CaptureWord) {
         previewJob?.cancel()
+        previewToken += 1
         _state.update {
             it.copy(
                 selected = word,
@@ -117,7 +120,38 @@ class CaptureViewModel @Inject constructor(
 
     fun dismissSelection() {
         previewJob?.cancel()
+        previewToken += 1
         _state.update { it.copy(selected = null, preview = null, previewLoading = false) }
+    }
+
+    fun previewEdited(text: String, line: String) {
+        previewJob?.cancel()
+        val token = ++previewToken
+        val query = text.trim()
+        if (query.isEmpty()) {
+            _state.update { it.copy(preview = null, previewLoading = false) }
+            return
+        }
+        _state.update { it.copy(preview = null, previewLoading = true, saveError = false) }
+        previewJob = viewModelScope.launch {
+            delay(PREVIEW_DEBOUNCE_MS)
+            if (token != previewToken) return@launch
+            val preview = try {
+                enrichment.enrich(query, line)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                null
+            }
+            if (token != previewToken) return@launch
+            _state.update { current ->
+                if (current.selected != null) {
+                    current.copy(preview = preview, previewLoading = false)
+                } else {
+                    current
+                }
+            }
+        }
     }
 
     fun prepareSelection(words: List<CaptureWord>) {
@@ -141,8 +175,19 @@ class CaptureViewModel @Inject constructor(
                         enrichment = enrichSafely(word.text, line),
                     )
                 }
-                val phrase = words.joinToString(" ") { it.text }
-                val phraseEnrichment = enrichSafely(phrase, line)
+                val hasFullLine = words.any {
+                    it.text.trim().equals(it.line.trim(), ignoreCase = true)
+                }
+                val phrase = if (!hasFullLine && words.size > 1) {
+                    words.joinToString(" ") { it.text }
+                } else {
+                    ""
+                }
+                val phraseEnrichment = if (phrase.isNotEmpty()) {
+                    enrichSafely(phrase, line)
+                } else {
+                    null
+                }
                 _state.update {
                     it.copy(
                         multiSelection = MultiSelection(
@@ -205,30 +250,32 @@ class CaptureViewModel @Inject constructor(
                         ),
                     )
                 }
-                val phraseMeaning = selection.phraseEnrichment
-                    ?.definitions
-                    ?.firstOrNull()
-                    ?.definition
-                    ?.takeIf { it.isNotBlank() }
-                    ?: selection.line
-                cards.addCard(
-                    NewCard(
-                        headword = selection.phrase,
-                        meaning = phraseMeaning,
-                        example = selection.phraseEnrichment?.definitions
-                            ?.firstNotNullOfOrNull { sense ->
-                                sense.example?.trim()?.takeIf { value ->
-                                    value.isNotEmpty() &&
-                                        !value.equals(selection.line, ignoreCase = true)
-                                }
-                            },
-                        ipa = selection.phraseEnrichment?.ipa,
-                        wordClass = selection.phraseEnrichment?.wordClass,
-                        contextLine = selection.line,
-                        sourceTitle = sourceTitle,
-                        sourceTimestampMs = timestampMs,
-                    ),
-                )
+                if (selection.phrase.isNotBlank()) {
+                    val phraseMeaning = selection.phraseEnrichment
+                        ?.definitions
+                        ?.firstOrNull()
+                        ?.definition
+                        ?.takeIf { it.isNotBlank() }
+                        ?: selection.line
+                    cards.addCard(
+                        NewCard(
+                            headword = selection.phrase,
+                            meaning = phraseMeaning,
+                            example = selection.phraseEnrichment?.definitions
+                                ?.firstNotNullOfOrNull { sense ->
+                                    sense.example?.trim()?.takeIf { value ->
+                                        value.isNotEmpty() &&
+                                            !value.equals(selection.line, ignoreCase = true)
+                                    }
+                                },
+                            ipa = selection.phraseEnrichment?.ipa,
+                            wordClass = selection.phraseEnrichment?.wordClass,
+                            contextLine = selection.line,
+                            sourceTitle = sourceTitle,
+                            sourceTimestampMs = timestampMs,
+                        ),
+                    )
+                }
                 _state.update {
                     it.copy(
                         multiSaving = false,
@@ -247,6 +294,10 @@ class CaptureViewModel @Inject constructor(
         }
     }
 
+    private companion object {
+        const val PREVIEW_DEBOUNCE_MS = 500L
+    }
+
     private suspend fun enrichSafely(text: String, line: String): Enrichment? = try {
         enrichment.enrich(text, line)
     } catch (cancelled: CancellationException) {
@@ -258,6 +309,7 @@ class CaptureViewModel @Inject constructor(
     fun save(
         word: CaptureWord,
         editedText: String,
+        editedDefinition: String?,
         sourceTitle: String,
         timestampMs: Long,
         onSaved: () -> Unit,
@@ -278,11 +330,14 @@ class CaptureViewModel @Inject constructor(
                     null
                 }
             }
-            val meaning = enriched
-                ?.definitions
-                ?.firstOrNull()
-                ?.definition
-                ?.takeIf { it.isNotBlank() }
+            val meaning = editedDefinition
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: enriched
+                    ?.definitions
+                    ?.firstOrNull()
+                    ?.definition
+                    ?.takeIf { it.isNotBlank() }
                 ?: word.line
             try {
                 cards.addCard(

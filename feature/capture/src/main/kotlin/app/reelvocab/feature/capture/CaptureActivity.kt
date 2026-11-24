@@ -6,14 +6,20 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.graphics.RectF
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
@@ -25,6 +31,12 @@ class CaptureActivity : ComponentActivity() {
     private var selectedAudioSource = AudioSourceMode.Internal
     private var launchSource = CaptureLaunchSource.App
     private var sourceDialog: AlertDialog? = null
+    private var pendingCrop: RectF? = null
+    private var recordingCrop: RectF? = null
+    private var cropOverlayVisible by mutableStateOf(false)
+    private var cropDoneAction: ((RectF) -> Unit)? = null
+    private var cropCancelAction: (() -> Unit)? = null
+    private var recordingLaunched = false
 
     private val consentLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -38,6 +50,7 @@ class CaptureActivity : ComponentActivity() {
                     resultCode = result.resultCode,
                     data = data,
                     captureImmediately = true,
+                    crop = pendingCrop,
                 )
             }
             finish()
@@ -85,20 +98,115 @@ class CaptureActivity : ComponentActivity() {
             intent.getStringExtra(EXTRA_AUDIO_SOURCE)?.let { stored ->
                 selectedAudioSource = AudioSourceMode.fromStorage(stored)
             }
-            if (intent.getBooleanExtra(EXTRA_SKIP_SOURCE_DIALOG, false)) {
-                continueRecordingSetup()
+            if (mode == MODE_VIDEO && shouldShowCropOverlay()) {
+                showCropOverlay(
+                    onDone = { crop ->
+                        recordingCrop = crop
+                        startRecordingSetup()
+                    },
+                    onCancel = { finish() },
+                )
             } else {
-                showAudioSourceDialog()
+                startRecordingSetup()
             }
             return
         }
-        requestConsent()
+        if (intent.getBooleanExtra(EXTRA_SESSION_CROP, false)) {
+            if (shouldShowCropOverlay()) {
+                showCropOverlay(
+                    onDone = { crop ->
+                        CaptureSessionService.captureWithCrop(this, crop)
+                        finish()
+                    },
+                    onCancel = {
+                        finish()
+                    },
+                )
+            } else {
+                CaptureSessionService.captureWithCrop(this, null)
+                finish()
+            }
+            return
+        }
+        if (shouldShowCropOverlay()) {
+            showCropOverlay(
+                onDone = { crop ->
+                    pendingCrop = crop
+                    requestConsent()
+                },
+                onCancel = { finish() },
+            )
+        } else {
+            requestConsent()
+        }
     }
 
     override fun onDestroy() {
         sourceDialog?.dismiss()
         sourceDialog = null
+        if (
+            !recordingLaunched &&
+            recordingMode != null &&
+            CaptureSessionService.isRunning
+        ) {
+            CaptureSessionService.cropOverlayCancelled(this)
+        }
         super.onDestroy()
+    }
+
+    private fun shouldShowCropOverlay(): Boolean =
+        CapturePreferences.showCropOverlay(this)
+
+    private fun startRecordingSetup() {
+        if (intent.getBooleanExtra(EXTRA_SKIP_SOURCE_DIALOG, false)) {
+            continueRecordingSetup()
+        } else {
+            showAudioSourceDialog()
+        }
+    }
+
+    private fun showCropOverlay(
+        onDone: (RectF) -> Unit,
+        onCancel: () -> Unit,
+    ) {
+        cropDoneAction = onDone
+        cropCancelAction = onCancel
+        cropOverlayVisible = true
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN)
+        window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        window.isStatusBarContrastEnforced = false
+        window.isNavigationBarContrastEnforced = false
+        if (CaptureSessionService.isRunning) {
+            CaptureSessionService.cropOverlayStarted(this)
+        }
+        setContent {
+            ReelTheme {
+                if (cropOverlayVisible) {
+                    CropOverlay(
+                        onDone = { crop ->
+                            cropOverlayVisible = false
+                            val action = cropDoneAction
+                            cropDoneAction = null
+                            cropCancelAction = null
+                            action?.invoke(normalizedCrop(crop))
+                        },
+                        onCancel = {
+                            cropOverlayVisible = false
+                            if (CaptureSessionService.isRunning) {
+                                CaptureSessionService.cropOverlayCancelled(this)
+                            }
+                            val action = cropCancelAction
+                            cropDoneAction = null
+                            cropCancelAction = null
+                            action?.invoke()
+                        },
+                    )
+                }
+            }
+        }
     }
 
     private fun showAudioSourceDialog() {
@@ -177,6 +285,7 @@ class CaptureActivity : ComponentActivity() {
         source: AudioSourceMode,
     ) {
         val mode = recordingMode ?: return
+        recordingLaunched = true
         RecordingService.start(
             context = this,
             resultCode = resultCode,
@@ -184,6 +293,7 @@ class CaptureActivity : ComponentActivity() {
             mode = mode,
             audioSource = source,
             launchSource = launchSource,
+            crop = recordingCrop,
         )
         finish()
     }
@@ -215,11 +325,16 @@ class CaptureActivity : ComponentActivity() {
         const val EXTRA_START_FROM_PIP = "start_from_pip"
         private const val EXTRA_AUDIO_SOURCE = "audio_source"
         private const val EXTRA_SKIP_SOURCE_DIALOG = "skip_source_dialog"
+        const val EXTRA_SESSION_CROP = "session_crop"
         const val MODE_VIDEO = "video"
         const val MODE_AUDIO = "audio"
 
         fun consentIntent(context: Context): Intent =
             Intent(context, CaptureActivity::class.java)
+
+        fun cropSessionIntent(context: Context): Intent =
+            Intent(context, CaptureActivity::class.java)
+                .putExtra(EXTRA_SESSION_CROP, true)
 
         fun imageIntent(context: Context, imagePath: String): Intent =
             Intent(context, CaptureActivity::class.java)

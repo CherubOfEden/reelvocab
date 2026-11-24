@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.RectF
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.AudioAttributes
@@ -40,6 +41,7 @@ class MediaRecordingEngine(
     private val projection: MediaProjection?,
     private val requestedAudioSource: AudioSourceMode,
     private val outputFile: File,
+    private val crop: RectF? = null,
     private val listener: RecordingListener,
 ) {
     private val lock = Any()
@@ -56,9 +58,16 @@ class MediaRecordingEngine(
 
     private var videoCodec: MediaCodec? = null
     private var videoSurface: Surface? = null
+    private var displaySurface: Surface? = null
     private var virtualDisplay: VirtualDisplay? = null
+    private var videoCropRenderer: VideoCropRenderer? = null
     private var videoThread: Thread? = null
     private var firstVideoPtsUs = -1L
+    private var sourceWidth = 0
+    private var sourceHeight = 0
+    private var outputWidth = 0
+    private var outputHeight = 0
+    private var cropPixels: PixelCrop? = null
 
     @Volatile private var audioInputs: List<AudioInput> = emptyList()
     private var audioCodec: MediaCodec? = null
@@ -117,7 +126,7 @@ class MediaRecordingEngine(
             val now = System.nanoTime() / 1000L
             pausedAccumUs += (now - pauseStartUs).coerceAtLeast(0L)
             paused = false
-            runCatching { virtualDisplay?.setSurface(videoSurface) }
+            runCatching { virtualDisplay?.setSurface(displaySurface) }
         }
     }
 
@@ -136,6 +145,7 @@ class MediaRecordingEngine(
         stopping = true
         paused = false
         runCatching { virtualDisplay?.setSurface(null) }
+        releaseCropRenderer()
         runCatching { videoCodec?.signalEndOfInputStream() }
         audioInputs.forEach { input -> runCatching { input.record.stop() } }
 
@@ -165,8 +175,15 @@ class MediaRecordingEngine(
     @SuppressLint("MissingPermission")
     private fun prepareVideo() {
         val metrics = context.resources.displayMetrics
-        val width = ((metrics.widthPixels / 16) * 16).coerceAtLeast(16)
-        val height = ((metrics.heightPixels / 16) * 16).coerceAtLeast(16)
+        sourceWidth = metrics.widthPixels
+        sourceHeight = metrics.heightPixels
+        cropPixels = pixelCrop(crop, sourceWidth, sourceHeight, alignEven = true)
+        val width = cropPixels?.width
+            ?: ((metrics.widthPixels / 16) * 16).coerceAtLeast(16)
+        val height = cropPixels?.height
+            ?: ((metrics.heightPixels / 16) * 16).coerceAtLeast(16)
+        outputWidth = width
+        outputHeight = height
         val format = MediaFormat.createVideoFormat(VIDEO_MIME, width, height).apply {
             setInteger(
                 MediaFormat.KEY_COLOR_FORMAT,
@@ -190,17 +207,66 @@ class MediaRecordingEngine(
         val surface = videoSurface ?: throw IOException("Video surface unavailable")
         val mediaProjection = projection ?: throw IOException("Screen permission missing")
         val metrics = context.resources.displayMetrics
-        virtualDisplay = mediaProjection.createVirtualDisplay(
-            "reelvocab-recording",
-            ((metrics.widthPixels / 16) * 16).coerceAtLeast(16),
-            ((metrics.heightPixels / 16) * 16).coerceAtLeast(16),
-            metrics.densityDpi,
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            surface,
-            null,
-            null,
-        )
+        val pixels = cropPixels
+        if (pixels == null) {
+            displaySurface = surface
+            virtualDisplay = mediaProjection.createVirtualDisplay(
+                "reelvocab-recording",
+                outputWidth,
+                outputHeight,
+                metrics.densityDpi,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                surface,
+                null,
+                null,
+            )
+        } else {
+            val renderer = VideoCropRenderer(
+                sourceWidth = sourceWidth,
+                sourceHeight = sourceHeight,
+                outputWidth = outputWidth,
+                outputHeight = outputHeight,
+                crop = pixels.normalized(sourceWidth, sourceHeight),
+                encoderSurface = surface,
+            )
+            videoCropRenderer = renderer
+            renderer.start(
+                onReady = { cropSurface ->
+                    if (stopping) {
+                        runCatching { cropSurface.release() }
+                    } else {
+                        runCatching {
+                            displaySurface = cropSurface
+                            virtualDisplay = mediaProjection.createVirtualDisplay(
+                                "reelvocab-recording",
+                                sourceWidth,
+                                sourceHeight,
+                                metrics.densityDpi,
+                                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                                cropSurface,
+                                null,
+                                null,
+                            )
+                        }.onFailure { error ->
+                            if (!stopping) listener.onError(error)
+                        }
+                    }
+                },
+                onError = { error ->
+                    if (!stopping) listener.onError(error)
+                },
+            )
+        }
         videoThread = Thread({ drainVideo(codec) }, "rv-video-encoder").apply { start() }
+    }
+
+    private fun releaseCropRenderer() {
+        val renderer = videoCropRenderer ?: return
+        videoCropRenderer = null
+        displaySurface = null
+        runCatching { virtualDisplay?.release() }
+        virtualDisplay = null
+        runCatching { renderer.release() }
     }
 
     private fun drainVideo(codec: MediaCodec) {
@@ -554,11 +620,13 @@ class MediaRecordingEngine(
     private fun releaseVideo() {
         virtualDisplay?.release()
         virtualDisplay = null
+        releaseCropRenderer()
         runCatching { videoCodec?.stop() }
         runCatching { videoCodec?.release() }
         videoCodec = null
         runCatching { videoSurface?.release() }
         videoSurface = null
+        displaySurface = null
     }
 
     private fun releaseAudio() {

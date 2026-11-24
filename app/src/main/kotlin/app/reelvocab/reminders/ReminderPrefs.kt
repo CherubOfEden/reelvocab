@@ -3,6 +3,8 @@ package app.reelvocab.reminders
 import android.content.Context
 import java.util.Locale
 
+enum class ReminderTimeFormat { TwelveHour, TwentyFourHour }
+
 object ReminderPrefs {
 
     private const val PREFS = "reminders"
@@ -10,8 +12,9 @@ object ReminderPrefs {
     private const val KEY_MORNING_HOUR = "morning_hour"
     private const val KEY_MORNING_MINUTE = "morning_minute"
     private const val KEY_FULL_SCREEN = "morning_full_screen"
+    private const val KEY_TIME_FORMAT = "reminder_time_format"
 
-    const val DEFAULT_HOUR = 8
+    const val DEFAULT_HOUR = 9
     const val DEFAULT_MINUTE = 0
 
     fun isEnabled(context: Context): Boolean =
@@ -35,6 +38,21 @@ object ReminderPrefs {
             .apply()
     }
 
+    fun timeFormat(context: Context): ReminderTimeFormat =
+        runCatching {
+            ReminderTimeFormat.valueOf(
+                prefs(context).getString(KEY_TIME_FORMAT, null)
+                    ?: ReminderTimeFormat.TwelveHour.name,
+            )
+        }.getOrDefault(ReminderTimeFormat.TwelveHour)
+
+    fun is24Hour(context: Context): Boolean =
+        timeFormat(context) == ReminderTimeFormat.TwentyFourHour
+
+    fun setTimeFormat(context: Context, format: ReminderTimeFormat) {
+        prefs(context).edit().putString(KEY_TIME_FORMAT, format.name).apply()
+    }
+
     fun fullScreen(context: Context): Boolean =
         prefs(context).getBoolean(KEY_FULL_SCREEN, true)
 
@@ -43,7 +61,21 @@ object ReminderPrefs {
     }
 
     fun timeLabel(context: Context): String =
-        String.format(Locale.US, "%02d:%02d", hour(context), minute(context))
+        formatTime(hour(context), minute(context), is24Hour(context))
+
+    fun formatTime(hour: Int, minute: Int, is24Hour: Boolean): String {
+        val safeHour = hour.coerceIn(0, 23)
+        val safeMinute = minute.coerceIn(0, 59)
+        if (is24Hour) {
+            return String.format(Locale.US, "%02d:%02d", safeHour, safeMinute)
+        }
+        val suffix = if (safeHour < 12) "AM" else "PM"
+        val displayHour = when (val twelve = safeHour % 12) {
+            0 -> 12
+            else -> twelve
+        }
+        return String.format(Locale.US, "%d:%02d %s", displayHour, safeMinute, suffix)
+    }
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

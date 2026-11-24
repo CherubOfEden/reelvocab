@@ -18,6 +18,7 @@ import app.reelvocab.MainActivity
 import app.reelvocab.R
 import app.reelvocab.core.domain.model.CardRepository
 import app.reelvocab.core.domain.model.DictionaryRepository
+import app.reelvocab.core.domain.model.ReviewRepository
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -31,6 +32,7 @@ class ReminderReceiver : BroadcastReceiver() {
 
     @Inject lateinit var cards: CardRepository
     @Inject lateinit var dictionary: DictionaryRepository
+    @Inject lateinit var reviews: ReviewRepository
 
     @SuppressLint("MissingPermission")
     override fun onReceive(context: Context, intent: Intent) {
@@ -59,6 +61,7 @@ class ReminderReceiver : BroadcastReceiver() {
             try {
                 val review = loadReview(context)
                 showNotification(context, review)
+                showDueNotificationIfNeeded(context)
             } finally {
                 pending.finish()
             }
@@ -133,6 +136,61 @@ class ReminderReceiver : BroadcastReceiver() {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private suspend fun showDueNotificationIfNeeded(context: Context) {
+        val due = runCatching {
+            reviews.observeDueCount(System.currentTimeMillis()).first()
+        }.getOrDefault(0)
+        if (due <= 0) {
+            NotificationManagerCompat.from(context).cancel(DUE_NOTIFICATION_ID)
+            return
+        }
+        createDueChannel(context)
+        val reviewIntent = Intent(context, MainActivity::class.java)
+            .putExtra(MainActivity.EXTRA_OPEN_REVIEW, true)
+            .addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
+            )
+        val reviewPendingIntent = PendingIntent.getActivity(
+            context,
+            DUE_REQUEST_CODE,
+            reviewIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val builder = NotificationCompat.Builder(context, DUE_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(context.getString(R.string.reminder_due_title))
+            .setContentText(context.resources.getQuantityString(R.plurals.reminder_due_body, due, due))
+            .setStyle(
+                NotificationCompat.BigTextStyle().bigText(
+                    context.resources.getQuantityString(R.plurals.reminder_due_body, due, due),
+                ),
+            )
+            .setContentIntent(reviewPendingIntent)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setAutoCancel(true)
+            .addAction(0, context.getString(R.string.reminder_overlay_review), reviewPendingIntent)
+        runCatching {
+            NotificationManagerCompat.from(context).notify(DUE_NOTIFICATION_ID, builder.build())
+        }
+    }
+
+    private fun createDueChannel(context: Context) {
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        val channel = NotificationChannel(
+            DUE_CHANNEL_ID,
+            context.getString(R.string.reminder_due_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        )
+        channel.description = context.getString(R.string.reminder_due_channel_description)
+        channel.setShowBadge(false)
+        manager.createNotificationChannel(channel)
+    }
+
     private fun createChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         manager.deleteNotificationChannel(LEGACY_CHANNEL_ID)
@@ -156,8 +214,11 @@ class ReminderReceiver : BroadcastReceiver() {
         private const val ACTION_SNOOZE = "app.reelvocab.reminder.SNOOZE"
         private const val CHANNEL_ID = "morning_alarm"
         private const val LEGACY_CHANNEL_ID = "morning_review"
+        private const val DUE_CHANNEL_ID = "due_vocabulary"
         private const val NOTIFICATION_ID = 8201
+        private const val DUE_NOTIFICATION_ID = 8204
         private const val REVIEW_REQUEST_CODE = 8202
+        private const val DUE_REQUEST_CODE = 8205
         private const val SNOOZE_REQUEST_CODE = 8203
     }
 }

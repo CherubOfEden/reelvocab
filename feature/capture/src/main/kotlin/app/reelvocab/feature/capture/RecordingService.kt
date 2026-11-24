@@ -114,6 +114,7 @@ class RecordingService : Service() {
                 val sourceLaunch = CaptureLaunchSource.fromStorage(
                     intent.getStringExtra(EXTRA_LAUNCH_SOURCE),
                 )
+                val crop = intent.readCropRect()
                 val needsProjection =
                     mode == CaptureActivity.MODE_VIDEO || source != AudioSourceMode.Microphone
                 if (needsProjection && data == null) {
@@ -127,6 +128,7 @@ class RecordingService : Service() {
                     mode = mode,
                     requestedSource = source,
                     startFrom = sourceLaunch,
+                    crop = crop,
                 )
             }
 
@@ -179,6 +181,7 @@ class RecordingService : Service() {
         mode: String,
         requestedSource: AudioSourceMode,
         startFrom: CaptureLaunchSource,
+        crop: android.graphics.RectF?,
     ) {
         if (recordingEngine != null || stoppingRecording) return
         val kind = if (mode == CaptureActivity.MODE_VIDEO) {
@@ -274,6 +277,7 @@ class RecordingService : Service() {
                 projection = projection,
                 requestedAudioSource = source,
                 outputFile = file,
+                crop = crop,
                 listener = object : RecordingListener {
                     override fun onLevel(level: Float) {
                         handler.post {
@@ -358,6 +362,7 @@ class RecordingService : Service() {
 
     private fun startEngine(engine: MediaRecordingEngine) {
         if (stoppingRecording) return
+        removeRecordingPanel()
         recordingStartedAtEpochMs = System.currentTimeMillis()
         try {
             engine.start()
@@ -638,6 +643,7 @@ class RecordingService : Service() {
             mode: String,
             audioSource: AudioSourceMode,
             launchSource: CaptureLaunchSource,
+            crop: android.graphics.RectF? = null,
         ) {
             val intent = Intent(context, RecordingService::class.java)
                 .setAction(ACTION_START_RECORDING)
@@ -645,6 +651,7 @@ class RecordingService : Service() {
                 .putExtra(EXTRA_RECORD_MODE, mode)
                 .putExtra(EXTRA_AUDIO_SOURCE, audioSource.storage)
                 .putExtra(EXTRA_LAUNCH_SOURCE, launchSource.storage)
+                .putCropRect(crop)
             if (data != null) intent.putExtra(EXTRA_DATA, data)
             ContextCompat.startForegroundService(context, intent)
         }

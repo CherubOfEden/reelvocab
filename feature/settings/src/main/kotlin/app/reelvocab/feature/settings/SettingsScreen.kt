@@ -24,7 +24,10 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -66,15 +69,18 @@ fun SettingsScreen(
     onEnableFloatingCapture: (() -> Unit)? = null,
     pipMode: PipMode = PipMode.WordsOnly,
     onPipModeChange: ((PipMode) -> Unit)? = null,
+    cropOverlayEnabled: Boolean = true,
+    onToggleCropOverlay: (() -> Unit)? = null,
     overlayAvailable: Boolean = true,
     onOpenOverlaySettings: (() -> Unit)? = null,
     themeMode: ThemeMode = ThemeMode.System,
     onThemeModeChange: ((ThemeMode) -> Unit)? = null,
     reminderEnabled: Boolean = false,
-    reminderHour: Int = 8,
+    reminderHour: Int = 9,
     reminderMinute: Int = 0,
+    reminderIs24Hour: Boolean = false,
     onToggleReminder: (() -> Unit)? = null,
-    onReminderTimeChange: ((Int, Int) -> Unit)? = null,
+    onReminderTimeChange: ((Int, Int, Boolean) -> Unit)? = null,
     fullScreenAlarm: Boolean = true,
     fullScreenAlarmAvailable: Boolean = true,
     onToggleFullScreenAlarm: (() -> Unit)? = null,
@@ -200,6 +206,19 @@ fun SettingsScreen(
                 },
             )
         }
+        item {
+            SettingsRow(
+                label = stringResource(R.string.settings_crop_overlay_label),
+                value = stringResource(
+                    if (cropOverlayEnabled) {
+                        R.string.settings_crop_overlay_on
+                    } else {
+                        R.string.settings_crop_overlay_off
+                    },
+                ),
+                onClick = onToggleCropOverlay,
+            )
+        }
 
         item {
             SettingsSectionHeader(text = stringResource(R.string.settings_section_reminders))
@@ -220,7 +239,7 @@ fun SettingsScreen(
         item {
             SettingsRow(
                 label = stringResource(R.string.settings_reminder_time_label),
-                value = reminderTimeLabel(reminderHour, reminderMinute),
+                value = reminderTimeLabel(reminderHour, reminderMinute, reminderIs24Hour),
                 onClick = if (onReminderTimeChange != null) {
                     { showTimePicker = true }
                 } else {
@@ -320,8 +339,9 @@ fun SettingsScreen(
         ReminderTimePickerDialog(
             initialHour = reminderHour,
             initialMinute = reminderMinute,
-            onConfirm = { hour, minute ->
-                onReminderTimeChange(hour, minute)
+            initialIs24Hour = reminderIs24Hour,
+            onConfirm = { hour, minute, is24Hour ->
+                onReminderTimeChange(hour, minute, is24Hour)
                 showTimePicker = false
             },
             onDismiss = { showTimePicker = false },
@@ -480,15 +500,14 @@ private fun ThemePickerDialog(
 private fun ReminderTimePickerDialog(
     initialHour: Int,
     initialMinute: Int,
-    onConfirm: (Int, Int) -> Unit,
+    initialIs24Hour: Boolean,
+    onConfirm: (Int, Int, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = ReelTheme.colors
-    val picker = rememberTimePickerState(
-        initialHour = initialHour,
-        initialMinute = initialMinute,
-        is24Hour = true,
-    )
+    var is24Hour by remember { mutableStateOf(initialIs24Hour) }
+    var hour by remember { mutableIntStateOf(initialHour) }
+    var minute by remember { mutableIntStateOf(initialMinute) }
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = colors.elevated,
@@ -501,10 +520,42 @@ private fun ReminderTimePickerDialog(
             )
         },
         text = {
-            TimePicker(state = picker)
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
+                ) {
+                    TextButton(onClick = { is24Hour = false }) {
+                        Text(
+                            text = stringResource(R.string.settings_time_format_12),
+                            style = ReelTheme.type.label,
+                            color = if (!is24Hour) colors.gold else colors.textSecondary,
+                        )
+                    }
+                    TextButton(onClick = { is24Hour = true }) {
+                        Text(
+                            text = stringResource(R.string.settings_time_format_24),
+                            style = ReelTheme.type.label,
+                            color = if (is24Hour) colors.gold else colors.textSecondary,
+                        )
+                    }
+                }
+                key(is24Hour) {
+                    val picker = rememberTimePickerState(
+                        initialHour = hour,
+                        initialMinute = minute,
+                        is24Hour = is24Hour,
+                    )
+                    LaunchedEffect(picker.hour, picker.minute) {
+                        hour = picker.hour
+                        minute = picker.minute
+                    }
+                    TimePicker(state = picker)
+                }
+            }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(picker.hour, picker.minute) }) {
+            TextButton(onClick = { onConfirm(hour, minute, is24Hour) }) {
                 Text(
                     text = stringResource(R.string.settings_time_save),
                     style = ReelTheme.type.label,
@@ -524,8 +575,17 @@ private fun ReminderTimePickerDialog(
     )
 }
 
-private fun reminderTimeLabel(hour: Int, minute: Int): String =
-    String.format(Locale.US, "%02d:%02d", hour, minute)
+private fun reminderTimeLabel(hour: Int, minute: Int, is24Hour: Boolean): String {
+    val safeHour = hour.coerceIn(0, 23)
+    val safeMinute = minute.coerceIn(0, 59)
+    if (is24Hour) return String.format(Locale.US, "%02d:%02d", safeHour, safeMinute)
+    val suffix = if (safeHour < 12) "AM" else "PM"
+    val displayHour = when (val twelve = safeHour % 12) {
+        0 -> 12
+        else -> twelve
+    }
+    return String.format(Locale.US, "%d:%02d %s", displayHour, safeMinute, suffix)
+}
 
 @Composable
 private fun SettingsSectionHeader(text: String) {

@@ -33,12 +33,35 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 enum class EditorCrop(val aspect: Float?) {
     Original(null),
+    Free(null),
     Landscape(16f / 9f),
     Square(1f),
     Portrait(9f / 16f),
+}
+
+data class CropRect(
+    val left: Float = 0f,
+    val top: Float = 0f,
+    val right: Float = 1f,
+    val bottom: Float = 1f,
+) {
+    val isFull: Boolean
+        get() = left <= 0f && top <= 0f && right >= 1f && bottom >= 1f
+
+    fun normalized(): CropRect = CropRect(
+        left = left.coerceIn(0f, 1f),
+        top = top.coerceIn(0f, 1f),
+        right = right.coerceIn(0f, 1f),
+        bottom = bottom.coerceIn(0f, 1f),
+    )
+
+    companion object {
+        val Full = CropRect()
+    }
 }
 
 data class MediaEditorUiState(
@@ -52,6 +75,7 @@ data class MediaEditorUiState(
     val sourceWidth: Int = 0,
     val sourceHeight: Int = 0,
     val crop: EditorCrop = EditorCrop.Original,
+    val cropRect: CropRect = CropRect.Full,
     val exporting: Boolean = false,
     val progress: Int = 0,
     val savedUri: String? = null,
@@ -118,7 +142,24 @@ class MediaEditorViewModel @Inject constructor(
     }
 
     fun setCrop(crop: EditorCrop) {
-        _state.update { it.copy(crop = crop) }
+        _state.update { current ->
+            val rect = when (crop) {
+                EditorCrop.Original -> CropRect.Full
+                EditorCrop.Free -> current.cropRect
+                else -> centeredCropRect(
+                    width = current.sourceWidth,
+                    height = current.sourceHeight,
+                    aspect = crop.aspect,
+                )
+            }
+            current.copy(crop = crop, cropRect = rect)
+        }
+    }
+
+    fun setCropRect(rect: CropRect) {
+        _state.update {
+            it.copy(crop = EditorCrop.Free, cropRect = rect.normalized())
+        }
     }
 
     fun export() {
@@ -220,7 +261,7 @@ class MediaEditorViewModel @Inject constructor(
                 runCatching {
                     val source = decodeImage(current.uri)
                         ?: return@runCatching null
-                    val cropped = cropBitmap(source, current.crop.aspect)
+                    val cropped = cropBitmap(source, current.cropRect)
                     val vaultDir = File(context.filesDir, "vault").apply { mkdirs() }
                     val startedAt = System.currentTimeMillis()
                     val output = File(vaultDir, "edit_$startedAt.jpg")
@@ -255,10 +296,18 @@ class MediaEditorViewModel @Inject constructor(
 
     private fun cropEffect(current: MediaEditorUiState): Crop? {
         if (current.kind != VaultKind.Video) return null
-        val aspect = current.crop.aspect ?: return null
-        val width = current.sourceWidth
-        val height = current.sourceHeight
-        if (width <= 0 || height <= 0) return null
+        val rect = current.cropRect
+        if (rect.isFull) return null
+        return Crop(
+            2f * rect.left - 1f,
+            2f * rect.right - 1f,
+            1f - 2f * rect.bottom,
+            1f - 2f * rect.top,
+        )
+    }
+
+    private fun centeredCropRect(width: Int, height: Int, aspect: Float?): CropRect {
+        if (aspect == null || width <= 0 || height <= 0) return CropRect.Full
         val sourceAspect = width.toFloat() / height.toFloat()
         val keepWidth: Float
         val keepHeight: Float
@@ -269,7 +318,9 @@ class MediaEditorViewModel @Inject constructor(
             keepWidth = 1f
             keepHeight = sourceAspect / aspect
         }
-        return Crop(-keepWidth, keepWidth, -keepHeight, keepHeight)
+        val left = (1f - keepWidth) / 2f
+        val top = (1f - keepHeight) / 2f
+        return CropRect(left, top, left + keepWidth, top + keepHeight).normalized()
     }
 
     private fun probeMedia(uri: String, kind: VaultKind): MediaProbe {
@@ -333,21 +384,17 @@ class MediaEditorViewModel @Inject constructor(
         }
     }
 
-    private fun cropBitmap(source: Bitmap, aspect: Float?): Bitmap {
-        if (aspect == null) return source
+    private fun cropBitmap(source: Bitmap, rect: CropRect): Bitmap {
+        if (rect.isFull) return source
         val width = source.width
         val height = source.height
         if (width <= 0 || height <= 0) return source
-        val sourceAspect = width.toFloat() / height.toFloat()
-        return if (sourceAspect > aspect) {
-            val newWidth = (height * aspect).toInt().coerceAtLeast(1)
-            val left = (width - newWidth) / 2
-            Bitmap.createBitmap(source, left, 0, newWidth, height)
-        } else {
-            val newHeight = (width / aspect).toInt().coerceAtLeast(1)
-            val top = (height - newHeight) / 2
-            Bitmap.createBitmap(source, 0, top, width, newHeight)
-        }
+        val safe = rect.normalized()
+        val left = (safe.left * width).roundToInt().coerceIn(0, width - 1)
+        val top = (safe.top * height).roundToInt().coerceIn(0, height - 1)
+        val right = (safe.right * width).roundToInt().coerceIn(left + 1, width)
+        val bottom = (safe.bottom * height).roundToInt().coerceIn(top + 1, height)
+        return Bitmap.createBitmap(source, left, top, right - left, bottom - top)
     }
 
     override fun onCleared() {

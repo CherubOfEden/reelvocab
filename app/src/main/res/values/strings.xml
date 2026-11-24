@@ -181,20 +181,29 @@
     <string name="probe_empty">No dictionary entry for that word.</string>
     <string name="probe_error">The dictionary could not be read.</string>
     <string name="probe_loading">Searching…</string>
-    <string name="reminder_title">Morning review is ready</string>
+    <string name="reminder_title">Reminder is ready</string>
     <string name="reminder_body">Open ReelVocab and run through the words you saved.</string>
-    <string name="reminder_channel_name">Morning review</string>
+    <string name="reminder_channel_name">Reminder</string>
     <string name="reminder_channel_description">A quiet daily reminder to review saved words.</string>
-    <string name="reminder_word_title">Morning word: %1$s</string>
-    <string name="quick_alarm_title">Morning reminder time</string>
+    <string name="reminder_word_title">Reminder word: %1$s</string>
+    <string name="quick_alarm_title">Reminder time</string>
     <string name="quick_alarm_save">Set time</string>
     <string name="quick_alarm_cancel">Cancel</string>
-    <string name="reminder_overlay_kicker">Morning review</string>
+    <string name="reminder_overlay_kicker">Reminder</string>
     <string name="reminder_overlay_waiting">Getting a word ready…</string>
     <string name="reminder_overlay_synonyms">Same as: %1$s</string>
     <string name="reminder_overlay_antonyms">Opposite: %1$s</string>
     <string name="reminder_overlay_review">Review now</string>
     <string name="reminder_overlay_snooze">Snooze 10 min</string>
     <string name="reminder_no_words">Add a word</string>
-    <string name="reminder_no_words_body">Capture a word from a film to start your morning review.</string>
+    <string name="reminder_no_words_body">Capture a word from a film to start your reminder.</string>
+    <string name="reminder_due_title">Vocabulary due for review</string>
+    <plurals name="reminder_due_body">
+        <item quantity="one">%1$d word is due now. Open ReelVocab to review it.</item>
+        <item quantity="other">%1$d words are due now. Open ReelVocab to review them.</item>
+    </plurals>
+    <string name="reminder_due_channel_name">Due vocabulary</string>
+    <string name="reminder_due_channel_description">A separate reminder when spaced-repetition cards become due.</string>
+    <string name="quick_alarm_format_12">12-hour</string>
+    <string name="quick_alarm_format_24">24-hour</string>
 </resources>

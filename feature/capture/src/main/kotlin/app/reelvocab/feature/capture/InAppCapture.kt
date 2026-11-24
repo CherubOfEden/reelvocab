@@ -15,13 +15,17 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -30,6 +34,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -76,6 +81,7 @@ fun InAppCapture(
     var phraseRange by remember(state.lines) { mutableStateOf<PhraseRange?>(null) }
     var multiSelect by remember(state.lines) { mutableStateOf(false) }
     var selectedWords by remember(state.lines) { mutableStateOf<Set<CaptureWord>>(emptySet()) }
+    var selectedLines by remember(state.lines) { mutableStateOf<Set<Int>>(emptySet()) }
 
     LaunchedEffect(bitmap) {
         viewModel.recognize(bitmap)
@@ -105,7 +111,7 @@ fun InAppCapture(
                         ),
                     )
                     .background(colors.surface)
-                    .navigationBarsPadding()
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
                     .padding(horizontal = ReelTheme.spacing.screenH)
                     .padding(top = ReelTheme.spacing.m, bottom = ReelTheme.spacing.l),
             ) {
@@ -212,14 +218,32 @@ fun InAppCapture(
                         itemsIndexed(state.lines) { lineIndex, line ->
                             CaptureLineRow(
                                 line = line,
+                                lineSelected = lineIndex in selectedLines,
+                                onLineSelectedChange = { checked ->
+                                    val updated = if (checked) {
+                                        selectedLines + lineIndex
+                                    } else {
+                                        selectedLines - lineIndex
+                                    }
+                                    selectedLines = updated
+                                    if (checked) {
+                                        multiSelect = true
+                                    } else if (updated.isEmpty() && selectedWords.isEmpty()) {
+                                        multiSelect = false
+                                    }
+                                },
                                 selectedRange = phraseRange?.takeIf { it.lineIndex == lineIndex },
                                 selectedWords = selectedWords,
                                 onWordTap = { wordIndex, word ->
                                     if (multiSelect) {
-                                        selectedWords = if (word in selectedWords) {
+                                        val updated = if (word in selectedWords) {
                                             selectedWords - word
                                         } else {
                                             selectedWords + word
+                                        }
+                                        selectedWords = updated
+                                        if (selectedLines.isEmpty() && updated.isEmpty()) {
+                                            multiSelect = false
                                         }
                                     } else {
                                         val active = phraseRange
@@ -272,6 +296,7 @@ fun InAppCapture(
                                 onClick = {
                                     multiSelect = false
                                     selectedWords = emptySet()
+                                    selectedLines = emptySet()
                                 },
                             ) {
                                 Text(
@@ -285,13 +310,24 @@ fun InAppCapture(
                                 ReelButton(
                                     text = stringResource(R.string.capture_select_ok),
                                     onClick = {
+                                        val fullLines = state.lines
+                                            .filterIndexed { index, _ -> index in selectedLines }
+                                            .map { CaptureWord(text = it.text, line = it.text) }
+                                        val selectedLineTexts = fullLines
+                                            .map { it.line.trim().lowercase() }
+                                            .toSet()
+                                        val individualWords = state.lines
+                                            .flatMap { it.words }
+                                            .filter { it in selectedWords }
+                                            .filter {
+                                                it.line.trim().lowercase() !in selectedLineTexts
+                                            }
                                         viewModel.prepareSelection(
-                                            state.lines
-                                                .flatMap { it.words }
-                                                .filter { it in selectedWords },
+                                            (fullLines + individualWords)
+                                                .distinctBy { it.text.trim().lowercase() },
                                         )
                                     },
-                                    enabled = selectedWords.isNotEmpty(),
+                                    enabled = selectedWords.isNotEmpty() || selectedLines.isNotEmpty(),
                                 )
                             }
                         }
@@ -312,8 +348,9 @@ fun InAppCapture(
             saving = state.saving,
             saveError = state.saveError,
             onDismiss = viewModel::dismissSelection,
-            onSave = { edited ->
-                viewModel.save(selected, edited, sourceTitle, timestampMs) {
+            onTextChange = { viewModel.previewEdited(it, selected.line) },
+            onSave = { edited, definition ->
+                viewModel.save(selected, edited, definition, sourceTitle, timestampMs) {
                     Toast.makeText(context, R.string.capture_saved, Toast.LENGTH_SHORT).show()
                 }
             },
@@ -330,12 +367,14 @@ fun InAppCapture(
                 viewModel.dismissMultiSelection()
                 multiSelect = false
                 selectedWords = emptySet()
+                selectedLines = emptySet()
             },
             onSave = {
                 viewModel.saveSelection(multiSelection, sourceTitle, timestampMs) {
                     Toast.makeText(context, R.string.capture_saved, Toast.LENGTH_SHORT).show()
                     multiSelect = false
                     selectedWords = emptySet()
+                    selectedLines = emptySet()
                     onSaved()
                 }
             },
@@ -353,6 +392,8 @@ private data class PhraseRange(
 @Composable
 private fun CaptureLineRow(
     line: CaptureLine,
+    lineSelected: Boolean,
+    onLineSelectedChange: (Boolean) -> Unit,
     selectedRange: PhraseRange?,
     selectedWords: Set<CaptureWord>,
     onWordTap: (Int, CaptureWord) -> Unit,
@@ -360,11 +401,18 @@ private fun CaptureLineRow(
 ) {
     val colors = ReelTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs)) {
-        Text(
-            text = line.text,
-            style = ReelTheme.type.bodyM,
-            color = colors.textSecondary,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = lineSelected,
+                onCheckedChange = onLineSelectedChange,
+            )
+            Text(
+                text = line.text,
+                style = ReelTheme.type.bodyM,
+                color = if (lineSelected) colors.textPrimary else colors.textSecondary,
+                modifier = Modifier.weight(1f),
+            )
+        }
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs),
             verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs),
@@ -441,92 +489,151 @@ private fun SaveWordSheet(
     saving: Boolean,
     saveError: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String) -> Unit,
+    onTextChange: (String) -> Unit,
+    onSave: (String, String?) -> Unit,
 ) {
     val colors = ReelTheme.colors
     var edited by remember(word) { mutableStateOf(word.text) }
+    var editedDefinition by remember(word) { mutableStateOf("") }
+    var definitionDirty by remember(word) { mutableStateOf(false) }
+
+    LaunchedEffect(preview) {
+        if (!definitionDirty) {
+            editedDefinition = preview
+                ?.definitions
+                ?.firstOrNull()
+                ?.definition
+                .orEmpty()
+        }
+    }
 
     ReelSheet(onDismiss = onDismiss, title = stringResource(R.string.capture_save_title)) {
-        OutlinedTextField(
-            value = edited,
-            onValueChange = { edited = it },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text(stringResource(R.string.capture_word_label)) },
-        )
-        Spacer(Modifier.height(ReelTheme.spacing.m))
-        Text(
-            text = word.line,
-            style = ReelTheme.type.bodyM,
-            color = colors.textSecondary,
-        )
-        Spacer(Modifier.height(ReelTheme.spacing.xs))
-        Text(
-            text = stringResource(
-                R.string.capture_source_format,
-                sourceTitle,
-                formatTimestamp(timestampMs),
-            ),
-            style = ReelTheme.type.label,
-            color = colors.textTertiary,
-        )
-
-        Spacer(Modifier.height(ReelTheme.spacing.l))
-        when {
-            edited.trim() != word.text -> Text(
-                text = stringResource(R.string.capture_preview_edited),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 520.dp)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            OutlinedTextField(
+                value = edited,
+                onValueChange = { value ->
+                    edited = value
+                    editedDefinition = ""
+                    definitionDirty = false
+                    onTextChange(value)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 1,
+                maxLines = 6,
+                label = { Text(stringResource(R.string.capture_word_label)) },
+            )
+            Spacer(Modifier.height(ReelTheme.spacing.s))
+            Text(
+                text = word.line,
+                style = ReelTheme.type.bodyM,
+                color = colors.textSecondary,
+            )
+            Spacer(Modifier.height(ReelTheme.spacing.xs))
+            Text(
+                text = stringResource(
+                    R.string.capture_source_format,
+                    sourceTitle,
+                    formatTimestamp(timestampMs),
+                ),
                 style = ReelTheme.type.label,
                 color = colors.textTertiary,
             )
 
-            previewLoading -> Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = colors.gold,
-                )
+            Spacer(Modifier.height(ReelTheme.spacing.l))
+            OutlinedTextField(
+                value = editedDefinition,
+                onValueChange = { value ->
+                    definitionDirty = true
+                    editedDefinition = value
+                },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 8,
+                label = { Text(stringResource(R.string.capture_preview_label)) },
+                supportingText = {
+                    when {
+                        previewLoading -> Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = colors.gold,
+                            )
+                            Text(
+                                text = stringResource(R.string.capture_preview_loading),
+                                style = ReelTheme.type.label,
+                                color = colors.textSecondary,
+                            )
+                        }
+
+                        preview == null && !definitionDirty && editedDefinition.isBlank() -> Text(
+                            text = stringResource(R.string.capture_preview_unavailable),
+                            style = ReelTheme.type.label,
+                            color = colors.textTertiary,
+                        )
+
+                        else -> Unit
+                    }
+                },
+            )
+
+            preview?.ipa?.let { ipa ->
+                Spacer(Modifier.height(ReelTheme.spacing.xs))
                 Text(
-                    text = stringResource(R.string.capture_preview_loading),
-                    style = ReelTheme.type.bodyM,
+                    text = ipa,
+                    style = ReelTheme.type.ipa,
                     color = colors.textSecondary,
                 )
             }
+            val synonyms = preview?.thesaurus?.synonyms.orEmpty()
+            if (synonyms.isNotEmpty()) {
+                Spacer(Modifier.height(ReelTheme.spacing.xs))
+                Text(
+                    text = stringResource(
+                        R.string.capture_preview_synonyms,
+                        synonyms.take(4).joinToString(", "),
+                    ),
+                    style = ReelTheme.type.label,
+                    color = colors.teal,
+                )
+            }
 
-            preview != null -> DictionaryPreview(preview = preview)
+            if (saveError) {
+                Spacer(Modifier.height(ReelTheme.spacing.s))
+                Text(
+                    text = stringResource(R.string.capture_save_error),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.rose,
+                )
+            }
 
-            else -> Text(
-                text = stringResource(R.string.capture_preview_unavailable),
-                style = ReelTheme.type.label,
-                color = colors.textTertiary,
+            Spacer(Modifier.height(ReelTheme.spacing.xl))
+            ReelButton(
+                text = stringResource(R.string.capture_save),
+                onClick = {
+                    onSave(
+                        edited,
+                        editedDefinition.trim().takeIf { it.isNotEmpty() },
+                    )
+                },
+                loading = saving,
+                enabled = edited.isNotBlank(),
             )
-        }
-
-        if (saveError) {
             Spacer(Modifier.height(ReelTheme.spacing.s))
-            Text(
-                text = stringResource(R.string.capture_save_error),
-                style = ReelTheme.type.bodyM,
-                color = colors.rose,
+            ReelButton(
+                text = stringResource(R.string.capture_cancel),
+                onClick = onDismiss,
+                style = ReelButtonStyle.Ghost,
+                enabled = !saving,
             )
         }
-
-        Spacer(Modifier.height(ReelTheme.spacing.xl))
-        ReelButton(
-            text = stringResource(R.string.capture_save),
-            onClick = { onSave(edited) },
-            loading = saving,
-            enabled = edited.isNotBlank(),
-        )
-        Spacer(Modifier.height(ReelTheme.spacing.s))
-        ReelButton(
-            text = stringResource(R.string.capture_cancel),
-            onClick = onDismiss,
-            style = ReelButtonStyle.Ghost,
-            enabled = !saving,
-        )
     }
 }
 
@@ -560,28 +667,30 @@ private fun SaveSelectionSheet(
                 )
                 Spacer(Modifier.height(ReelTheme.spacing.m))
             }
-            Spacer(Modifier.height(ReelTheme.spacing.xs))
-            Text(
-                text = stringResource(R.string.capture_phrase_title),
-                style = ReelTheme.type.label,
-                color = colors.textTertiary,
-            )
-            Spacer(Modifier.height(ReelTheme.spacing.xxs))
-            Text(
-                text = selection.phrase,
-                style = ReelTheme.type.titleM,
-                color = colors.gold,
-            )
-            val phraseMeaning = selection.phraseEnrichment
-                ?.definitions
-                ?.firstOrNull()
-                ?.definition
-                ?: stringResource(R.string.capture_preview_unavailable)
-            Text(
-                text = phraseMeaning,
-                style = ReelTheme.type.bodyM,
-                color = colors.textSecondary,
-            )
+            if (selection.phrase.isNotBlank()) {
+                Spacer(Modifier.height(ReelTheme.spacing.xs))
+                Text(
+                    text = stringResource(R.string.capture_phrase_title),
+                    style = ReelTheme.type.label,
+                    color = colors.textTertiary,
+                )
+                Spacer(Modifier.height(ReelTheme.spacing.xxs))
+                Text(
+                    text = selection.phrase,
+                    style = ReelTheme.type.titleM,
+                    color = colors.gold,
+                )
+                val phraseMeaning = selection.phraseEnrichment
+                    ?.definitions
+                    ?.firstOrNull()
+                    ?.definition
+                    ?: stringResource(R.string.capture_preview_unavailable)
+                Text(
+                    text = phraseMeaning,
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textSecondary,
+                )
+            }
         }
         if (saveError) {
             Spacer(Modifier.height(ReelTheme.spacing.s))
@@ -607,43 +716,6 @@ private fun SaveSelectionSheet(
     }
 }
 
-@Composable
-private fun DictionaryPreview(preview: Enrichment) {
-    val colors = ReelTheme.colors
-    val meaning = preview.definitions.firstOrNull()?.definition
-        ?: stringResource(R.string.capture_preview_unavailable)
-    Text(
-        text = stringResource(R.string.capture_preview_label),
-        style = ReelTheme.type.label,
-        color = colors.textTertiary,
-    )
-    Spacer(Modifier.height(ReelTheme.spacing.xs))
-    val ipa = preview.ipa
-    if (ipa != null) {
-        Text(
-            text = ipa,
-            style = ReelTheme.type.ipa,
-            color = colors.textSecondary,
-        )
-        Spacer(Modifier.height(ReelTheme.spacing.xxs))
-    }
-    Text(
-        text = meaning,
-        style = ReelTheme.type.bodyM,
-        color = colors.textPrimary,
-    )
-    if (preview.thesaurus.synonyms.isNotEmpty()) {
-        Spacer(Modifier.height(ReelTheme.spacing.xs))
-        Text(
-            text = stringResource(
-                R.string.capture_preview_synonyms,
-                preview.thesaurus.synonyms.take(4).joinToString(", "),
-            ),
-            style = ReelTheme.type.label,
-            color = colors.teal,
-        )
-    }
-}
 
 internal fun formatTimestamp(timestampMs: Long): String {
     val totalSeconds = (timestampMs / 1000).coerceAtLeast(0)
