@@ -327,6 +327,7 @@ private fun VideoPreview(
     aspect: Float,
     shape: RoundedCornerShape,
     cropRect: CropRect,
+    cropEnabled: Boolean,
     onCropRectChange: (CropRect) -> Unit,
 ) {
     val colors = ReelTheme.colors
