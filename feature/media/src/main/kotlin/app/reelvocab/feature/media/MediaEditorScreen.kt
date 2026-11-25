@@ -10,7 +10,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -179,6 +181,7 @@ fun MediaEditorScreen(
                         title = state.title.ifBlank { route.title },
                         kind = state.kind,
                         cropRect = state.cropRect,
+                        cropEnabled = state.crop != EditorCrop.Original,
                         sourceWidth = state.sourceWidth,
                         sourceHeight = state.sourceHeight,
                         onCropRectChange = viewModel::setCropRect,
@@ -261,6 +264,7 @@ private fun EditorPreview(
     title: String,
     kind: VaultKind,
     cropRect: CropRect,
+    cropEnabled: Boolean,
     sourceWidth: Int,
     sourceHeight: Int,
     onCropRectChange: (CropRect) -> Unit,
@@ -274,6 +278,7 @@ private fun EditorPreview(
             aspect = aspect,
             shape = shape,
             cropRect = cropRect,
+            cropEnabled = cropEnabled,
             onCropRectChange = onCropRectChange,
         )
 
@@ -304,10 +309,12 @@ private fun EditorPreview(
                     tint = colors.textTertiary,
                     modifier = Modifier.size(40.dp),
                 )
-                CropOverlay(
-                    rect = cropRect,
-                    onRectChange = onCropRectChange,
-                )
+                if (cropEnabled) {
+                    CropOverlay(
+                        rect = cropRect,
+                        onRectChange = onCropRectChange,
+                    )
+                }
             }
         }
     }
@@ -366,10 +373,12 @@ private fun VideoPreview(
                 update = { view -> view.player = player },
                 modifier = Modifier.fillMaxSize(),
             )
-            CropOverlay(
-                rect = cropRect,
-                onRectChange = onCropRectChange,
-            )
+            if (cropEnabled) {
+                CropOverlay(
+                    rect = cropRect,
+                    onRectChange = onCropRectChange,
+                )
+            }
         }
         PlaybackControls(
             positionMs = positionMs,
@@ -501,7 +510,7 @@ private fun CropOverlay(
 ) {
     val colors = ReelTheme.colors
     val density = LocalDensity.current
-    val handleRadius = with(density) { 20.dp.toPx() }
+    val handleRadius = with(density) { 32.dp.toPx() }
     val handleVisualRadius = with(density) { 7.dp.toPx() }
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val currentRect by rememberUpdatedState(rect)
@@ -513,23 +522,33 @@ private fun CropOverlay(
             .onSizeChanged { viewSize = it }
             .pointerInput(viewSize, handleRadius) {
                 if (viewSize.width <= 0 || viewSize.height <= 0) return@pointerInput
-                var corner: CropCorner? = null
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        corner = nearestCorner(currentRect, offset, viewSize, handleRadius)
-                    },
-                    onDragEnd = { corner = null },
-                    onDragCancel = { corner = null },
-                ) { _, dragAmount ->
-                    val active = corner
-                    if (active != null) {
-                        currentOnRectChange(
-                            currentRect.dragCorner(
-                                corner = active,
-                                dx = dragAmount.x / viewSize.width,
-                                dy = dragAmount.y / viewSize.height,
-                            ),
-                        )
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    var frame = currentRect
+                    val corner = nearestCorner(
+                        frame,
+                        down.position,
+                        viewSize,
+                        handleRadius,
+                    ) ?: return@awaitEachGesture
+                    down.consume()
+                    val pointerId = down.id
+                    while (true) {
+                        val change = awaitPointerEvent()
+                            .changes
+                            .firstOrNull { it.id == pointerId }
+                            ?: break
+                        if (!change.pressed) break
+                        val delta = change.positionChange()
+                        if (delta != Offset.Zero) {
+                            frame = frame.dragCorner(
+                                corner = corner,
+                                dx = delta.x / viewSize.width,
+                                dy = delta.y / viewSize.height,
+                            )
+                            currentOnRectChange(frame)
+                            change.consume()
+                        }
                     }
                 }
             },

@@ -37,10 +37,12 @@ class CaptureActivity : ComponentActivity() {
     private var cropDoneAction: ((RectF) -> Unit)? = null
     private var cropCancelAction: (() -> Unit)? = null
     private var recordingLaunched = false
+    private var awaitingExternalResult = false
 
     private val consentLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
+        awaitingExternalResult = false
         val data = result.data
         val mode = recordingMode
         if (mode == null) {
@@ -72,6 +74,7 @@ class CaptureActivity : ComponentActivity() {
     private val audioPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
+        awaitingExternalResult = false
         val mode = recordingMode ?: return@registerForActivityResult
         if (!granted) {
             if (mode == MODE_AUDIO) {
@@ -141,6 +144,12 @@ class CaptureActivity : ComponentActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        if (isChangingConfigurations || isFinishing || awaitingExternalResult) return
+        abandonTransientCapture()
+    }
+
     override fun onDestroy() {
         sourceDialog?.dismiss()
         sourceDialog = null
@@ -152,6 +161,21 @@ class CaptureActivity : ComponentActivity() {
             CaptureSessionService.cropOverlayCancelled(this)
         }
         super.onDestroy()
+    }
+
+    private fun abandonTransientCapture() {
+        cropOverlayVisible = false
+        pendingCrop = null
+        recordingCrop = null
+        cropDoneAction = null
+        cropCancelAction = null
+        sourceDialog?.dismiss()
+        sourceDialog = null
+        if (CaptureSessionService.isRunning) {
+            CaptureSessionService.cropOverlayCancelled(this)
+            CaptureSessionService.releaseCapture(this)
+        }
+        if (!isFinishing) finishAndRemoveTask()
     }
 
     private fun shouldShowCropOverlay(): Boolean =
@@ -258,6 +282,7 @@ class CaptureActivity : ComponentActivity() {
                 Manifest.permission.RECORD_AUDIO,
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            awaitingExternalResult = true
             audioPermission.launch(Manifest.permission.RECORD_AUDIO)
         } else {
             requestProjectionOrStart()
@@ -276,6 +301,7 @@ class CaptureActivity : ComponentActivity() {
 
     private fun requestConsent() {
         val manager = getSystemService(MediaProjectionManager::class.java)
+        awaitingExternalResult = true
         consentLauncher.launch(manager.createScreenCaptureIntent())
     }
 
@@ -312,7 +338,7 @@ class CaptureActivity : ComponentActivity() {
                     sourceTitle = getString(R.string.capture_screen_source),
                     timestampMs = 0L,
                     onDismiss = { finishAndRemoveTask() },
-                    onSaved = { },
+                    onSaved = { finishAndRemoveTask() },
                 )
             }
         }

@@ -142,8 +142,7 @@ class RecordingService : Service() {
     override fun onDestroy() {
         cancelCountdown()
         handler.removeCallbacks(timerRunnable)
-        removeRecordingPanel()
-        removeRecordingBubble()
+        teardownOverlays()
         val engine = recordingEngine
         recordingEngine = null
         if (engine != null) {
@@ -368,8 +367,7 @@ class RecordingService : Service() {
             engine.start()
         } catch (error: Throwable) {
             cancelCountdown()
-            removeRecordingPanel()
-            removeRecordingBubble()
+            teardownOverlays()
             runCatching { recordingProjection?.stop() }
             runCatching { recordingFile?.delete() }
             clearRecordingState()
@@ -394,8 +392,7 @@ class RecordingService : Service() {
         stoppingRecording = true
         cancelCountdown()
         handler.removeCallbacks(timerRunnable)
-        removeRecordingPanel()
-        removeRecordingBubble()
+        teardownOverlays()
 
         val file = recordingFile
         val startedAt = recordingStartedAtEpochMs
@@ -455,6 +452,9 @@ class RecordingService : Service() {
     }
 
     private fun finishService() {
+        cancelCountdown()
+        handler.removeCallbacks(timerRunnable)
+        teardownOverlays()
         resetBubble()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -462,6 +462,7 @@ class RecordingService : Service() {
 
     private fun showRecordingPanel(kind: RecordingKind): Boolean {
         if (recordingPanel != null) return true
+        if (stoppingRecording) return false
         if (!Settings.canDrawOverlays(this)) {
             showToast(R.string.recording_overlay_required)
             return false
@@ -491,6 +492,10 @@ class RecordingService : Service() {
         runCatching {
             windowManager.addView(panel.view, panel.windowParams())
         }.onSuccess {
+            if (stoppingRecording) {
+                runCatching { windowManager.removeViewImmediate(panel.view) }
+                return false
+            }
             recordingPanel = panel
             added = true
             panel.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
@@ -498,20 +503,30 @@ class RecordingService : Service() {
         return added
     }
 
+    private fun teardownOverlays() {
+        removeRecordingPanel()
+        removeRecordingBubble()
+    }
+
     private fun removeRecordingPanel() {
         val panel = recordingPanel ?: return
         recordingPanel = null
-        runCatching { windowManager.removeView(panel.view) }
+        runCatching { windowManager.removeViewImmediate(panel.view) }
     }
 
     private fun collapseToBubble() {
         removeRecordingPanel()
+        if (stoppingRecording) return
         if (!recordingActive || !Settings.canDrawOverlays(this)) return
         if (recordingBubble != null) return
         val bubble = RecordingBubble(this) { expandControls() }
         runCatching {
             windowManager.addView(bubble.view, bubble.windowParams())
         }.onSuccess {
+            if (stoppingRecording) {
+                runCatching { windowManager.removeViewImmediate(bubble.view) }
+                return
+            }
             recordingBubble = bubble
             bubble.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
         }
@@ -529,7 +544,7 @@ class RecordingService : Service() {
     private fun removeRecordingBubble() {
         val bubble = recordingBubble ?: return
         recordingBubble = null
-        runCatching { windowManager.removeView(bubble.view) }
+        runCatching { windowManager.removeViewImmediate(bubble.view) }
     }
 
     private fun startTimer() {

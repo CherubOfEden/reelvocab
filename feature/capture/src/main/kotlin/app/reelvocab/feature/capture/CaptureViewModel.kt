@@ -124,6 +124,15 @@ class CaptureViewModel @Inject constructor(
         _state.update { it.copy(selected = null, preview = null, previewLoading = false) }
     }
 
+    fun clear() {
+        previewJob?.cancel()
+        selectionJob?.cancel()
+        previewJob = null
+        selectionJob = null
+        previewToken += 1
+        _state.value = CaptureUiState()
+    }
+
     fun previewEdited(text: String, line: String) {
         previewJob?.cancel()
         val token = ++previewToken
@@ -218,19 +227,24 @@ class CaptureViewModel @Inject constructor(
         selection: MultiSelection,
         sourceTitle: String,
         timestampMs: Long,
+        editedDefinitions: List<String?>,
         onSaved: () -> Unit,
     ) {
         if (_state.value.multiSaving) return
         viewModelScope.launch {
             _state.update { it.copy(multiSaving = true, multiError = false) }
             try {
-                selection.words.forEach { selected ->
+                selection.words.forEachIndexed { index, selected ->
                     val word = selected.word
-                    val meaning = selected.enrichment
-                        ?.definitions
-                        ?.firstOrNull()
-                        ?.definition
-                        ?.takeIf { it.isNotBlank() }
+                    val meaning = editedDefinitions
+                        .getOrNull(index)
+                        ?.trim()
+                        ?.takeIf { it.isNotEmpty() }
+                        ?: selected.enrichment
+                            ?.definitions
+                            ?.firstOrNull()
+                            ?.definition
+                            ?.takeIf { it.isNotBlank() }
                         ?: word.line
                     cards.addCard(
                         NewCard(
@@ -251,11 +265,15 @@ class CaptureViewModel @Inject constructor(
                     )
                 }
                 if (selection.phrase.isNotBlank()) {
-                    val phraseMeaning = selection.phraseEnrichment
-                        ?.definitions
-                        ?.firstOrNull()
-                        ?.definition
-                        ?.takeIf { it.isNotBlank() }
+                    val phraseMeaning = editedDefinitions
+                        .getOrNull(selection.words.size)
+                        ?.trim()
+                        ?.takeIf { it.isNotEmpty() }
+                        ?: selection.phraseEnrichment
+                            ?.definitions
+                            ?.firstOrNull()
+                            ?.definition
+                            ?.takeIf { it.isNotBlank() }
                         ?: selection.line
                     cards.addCard(
                         NewCard(

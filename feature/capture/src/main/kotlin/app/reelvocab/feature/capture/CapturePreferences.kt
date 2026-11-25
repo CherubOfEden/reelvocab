@@ -50,7 +50,7 @@ object CapturePreferences {
 
     fun showCropOverlay(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_CROP_OVERLAY, true)
+            .getBoolean(KEY_CROP_OVERLAY, false)
 
     fun setShowCropOverlay(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

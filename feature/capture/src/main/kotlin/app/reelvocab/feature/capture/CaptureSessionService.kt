@@ -142,6 +142,8 @@ class CaptureSessionService : Service() {
                 if (isRunning && pill == null) ensurePill()
             }
 
+            ACTION_RELEASE_CAPTURE -> releaseCaptureSession()
+
             ACTION_STOP -> stopEverything()
         }
         return START_NOT_STICKY
@@ -629,6 +631,15 @@ class CaptureSessionService : Service() {
         modeMenu?.visibility = View.VISIBLE
     }
 
+    private fun releaseCaptureSession() {
+        releaseProjection()
+        if (isRunning && pill != null) {
+            startPillForeground()
+        } else {
+            stopEverything()
+        }
+    }
+
     private fun releaseProjection() {
         val current = projection
         projection = null
@@ -677,6 +688,7 @@ class CaptureSessionService : Service() {
         private const val ACTION_STOP = "app.reelvocab.capture.STOP"
         private const val ACTION_RECORDING_STARTED = "app.reelvocab.capture.RECORDING_STARTED"
         private const val ACTION_RECORDING_STOPPED = "app.reelvocab.capture.RECORDING_STOPPED"
+        private const val ACTION_RELEASE_CAPTURE = "app.reelvocab.capture.RELEASE_CAPTURE"
         private const val EXTRA_RESULT_CODE = "result_code"
         private const val EXTRA_DATA = "projection_data"
         private const val EXTRA_CAPTURE_NOW = "capture_now"
@@ -758,6 +770,20 @@ class CaptureSessionService : Service() {
                 Intent(context, CaptureSessionService::class.java)
                     .setAction(ACTION_STOP),
             )
+        }
+
+        fun releaseCapture(context: Context) {
+            val instance = activeInstance
+            if (instance != null) {
+                instance.handler.post { instance.releaseCaptureSession() }
+                return
+            }
+            runCatching {
+                context.startService(
+                    Intent(context, CaptureSessionService::class.java)
+                        .setAction(ACTION_RELEASE_CAPTURE),
+                )
+            }
         }
 
         @Volatile private var activeInstance: CaptureSessionService? = null

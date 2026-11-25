@@ -42,6 +42,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,6 +88,10 @@ fun InAppCapture(
         viewModel.recognize(bitmap)
     }
 
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.clear() }
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -111,7 +116,11 @@ fun InAppCapture(
                         ),
                     )
                     .background(colors.surface)
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                    .windowInsetsPadding(
+                        WindowInsets.safeDrawing.only(
+                            WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal,
+                        ),
+                    )
                     .padding(horizontal = ReelTheme.spacing.screenH)
                     .padding(top = ReelTheme.spacing.m, bottom = ReelTheme.spacing.l),
             ) {
@@ -194,6 +203,7 @@ fun InAppCapture(
                     else -> LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .weight(1f, fill = false)
                             .heightIn(max = 430.dp),
                         contentPadding = PaddingValues(bottom = ReelTheme.spacing.s),
                         verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
@@ -369,8 +379,13 @@ fun InAppCapture(
                 selectedWords = emptySet()
                 selectedLines = emptySet()
             },
-            onSave = {
-                viewModel.saveSelection(multiSelection, sourceTitle, timestampMs) {
+            onSave = { editedDefinitions ->
+                viewModel.saveSelection(
+                    selection = multiSelection,
+                    sourceTitle = sourceTitle,
+                    timestampMs = timestampMs,
+                    editedDefinitions = editedDefinitions,
+                ) {
                     Toast.makeText(context, R.string.capture_saved, Toast.LENGTH_SHORT).show()
                     multiSelect = false
                     selectedWords = emptySet()
@@ -643,9 +658,37 @@ private fun SaveSelectionSheet(
     saving: Boolean,
     saveError: Boolean,
     onDismiss: () -> Unit,
-    onSave: () -> Unit,
+    onSave: (List<String?>) -> Unit,
 ) {
     val colors = ReelTheme.colors
+    var definitions by remember(selection) {
+        mutableStateOf(
+            selection.words.map { selected ->
+                selected.enrichment
+                    ?.definitions
+                    ?.firstOrNull()
+                    ?.definition
+                    .orEmpty()
+            } + if (selection.phrase.isNotBlank()) {
+                listOf(
+                    selection.phraseEnrichment
+                        ?.definitions
+                        ?.firstOrNull()
+                        ?.definition
+                        .orEmpty(),
+                )
+            } else {
+                emptyList()
+            },
+        )
+    }
+    fun updateDefinition(index: Int, value: String) {
+        definitions = definitions.toMutableList().also { updated ->
+            while (updated.size <= index) updated.add("")
+            updated[index] = value
+        }
+    }
+
     ReelSheet(onDismiss = onDismiss, title = stringResource(R.string.capture_selection_title)) {
         Column(
             modifier = Modifier
@@ -653,17 +696,20 @@ private fun SaveSelectionSheet(
                 .heightIn(max = 480.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            selection.words.forEach { selected ->
+            selection.words.forEachIndexed { index, selected ->
                 Text(
                     text = selected.word.text,
                     style = ReelTheme.type.titleM,
                     color = colors.textPrimary,
                 )
-                val meaning = selected.enrichment?.definitions?.firstOrNull()?.definition
-                Text(
-                    text = meaning ?: stringResource(R.string.capture_preview_unavailable),
-                    style = ReelTheme.type.bodyM,
-                    color = colors.textSecondary,
+                Spacer(Modifier.height(ReelTheme.spacing.xs))
+                OutlinedTextField(
+                    value = definitions.getOrElse(index) { "" },
+                    onValueChange = { updateDefinition(index, it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 1,
+                    maxLines = 4,
+                    label = { Text(stringResource(R.string.capture_preview_label)) },
                 )
                 Spacer(Modifier.height(ReelTheme.spacing.m))
             }
@@ -680,15 +726,14 @@ private fun SaveSelectionSheet(
                     style = ReelTheme.type.titleM,
                     color = colors.gold,
                 )
-                val phraseMeaning = selection.phraseEnrichment
-                    ?.definitions
-                    ?.firstOrNull()
-                    ?.definition
-                    ?: stringResource(R.string.capture_preview_unavailable)
-                Text(
-                    text = phraseMeaning,
-                    style = ReelTheme.type.bodyM,
-                    color = colors.textSecondary,
+                Spacer(Modifier.height(ReelTheme.spacing.xs))
+                OutlinedTextField(
+                    value = definitions.getOrElse(selection.words.size) { "" },
+                    onValueChange = { updateDefinition(selection.words.size, it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 1,
+                    maxLines = 4,
+                    label = { Text(stringResource(R.string.capture_preview_label)) },
                 )
             }
         }
@@ -703,7 +748,7 @@ private fun SaveSelectionSheet(
         Spacer(Modifier.height(ReelTheme.spacing.xl))
         ReelButton(
             text = stringResource(R.string.capture_save_selection),
-            onClick = onSave,
+            onClick = { onSave(definitions) },
             loading = saving,
         )
         Spacer(Modifier.height(ReelTheme.spacing.s))
