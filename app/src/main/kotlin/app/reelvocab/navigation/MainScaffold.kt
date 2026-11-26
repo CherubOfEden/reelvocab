@@ -1,7 +1,5 @@
 package app.reelvocab.navigation
 
-import app.reelvocab.core.designsystem.icon.ReelIcons
-
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,11 +9,14 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -58,6 +59,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import app.reelvocab.BuildConfig
 import app.reelvocab.R
+import app.reelvocab.core.designsystem.component.ReelRule
+import app.reelvocab.core.designsystem.icon.ReelIcons
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.feature.capture.CapturePreferences
 import app.reelvocab.feature.capture.CaptureSessionService
@@ -172,7 +175,6 @@ fun MainScaffold(
         currentRoute?.contains(PlayerRoute::class.qualifiedName ?: "") != true &&
             currentRoute?.contains(EditorRoute::class.qualifiedName ?: "") != true
     val pipActive by CaptureSessionService.runningFlow.collectAsStateWithLifecycle()
-
     val startPip: () -> Unit = {
         if (Settings.canDrawOverlays(context)) {
             CaptureSessionService.startPill(context)
@@ -209,10 +211,12 @@ fun MainScaffold(
                     },
                     containerColor = ReelTheme.colors.accent,
                     contentColor = ReelTheme.colors.onAccent,
+                    shape = CircleShape,
                 ) {
                     Icon(
                         imageVector = ReelIcons.ScanText,
                         contentDescription = stringResource(R.string.capture_fab),
+                        modifier = Modifier.size(22.dp),
                     )
                 }
             }
@@ -574,32 +578,39 @@ private fun ReelBottomBar(
     onSelect: (ReelTab) -> Unit,
 ) {
     val colors = ReelTheme.colors
-    NavigationBar(
-        containerColor = colors.surface,
-        contentColor = colors.textPrimary,
-        tonalElevation = 0.dp,
-    ) {
-        ReelTab.entries.forEach { tab ->
-            NavigationBarItem(
-                selected = selectedTab == tab,
-                onClick = { onSelect(tab) },
-                icon = {
-                    Icon(imageVector = tab.icon, contentDescription = null)
-                },
-                label = {
-                    Text(
-                        text = stringResource(tab.labelRes),
-                        style = ReelTheme.type.label,
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = colors.accent,
-                    selectedTextColor = colors.accent,
-                    indicatorColor = colors.accent.copy(alpha = 0.14f),
-                    unselectedIconColor = colors.textTertiary,
-                    unselectedTextColor = colors.textTertiary,
-                ),
-            )
+    Column(modifier = Modifier.background(colors.base)) {
+        ReelRule()
+        NavigationBar(
+            containerColor = colors.surface,
+            contentColor = colors.textPrimary,
+            tonalElevation = 0.dp,
+        ) {
+            ReelTab.entries.forEach { tab ->
+                NavigationBarItem(
+                    selected = selectedTab == tab,
+                    onClick = { onSelect(tab) },
+                    icon = {
+                        Icon(
+                            imageVector = tab.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = stringResource(tab.labelRes),
+                            style = ReelTheme.type.navLabel,
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = colors.accent,
+                        selectedTextColor = colors.accent,
+                        indicatorColor = colors.accent.copy(alpha = 0.10f),
+                        unselectedIconColor = colors.textTertiary,
+                        unselectedTextColor = colors.textTertiary,
+                    ),
+                )
+            }
         }
     }
 }

@@ -218,17 +218,17 @@ class CaptureSessionService : Service() {
         val frame = FrameLayout(this).apply {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                gradientType = GradientDrawable.LINEAR_GRADIENT
-                colors = intArrayOf(ReelDarkColors.accent.toArgb(), ReelDarkColors.accentMuted.toArgb())
-                orientation = GradientDrawable.Orientation.TOP_BOTTOM
+                setColor(ReelDarkColors.base.toArgb())
+                setStroke((1.5f * density).roundToInt().coerceAtLeast(1), ReelDarkColors.accent.toArgb())
             }
-            elevation = 8f * density
+            elevation = 10f * density
             contentDescription = getString(R.string.capture_pill_description)
         }
         val iconSize = (PILL_ICON_DP * density).roundToInt()
         frame.addView(
             ImageView(this).apply {
-                setImageResource(R.drawable.ic_capture_pill)
+                setImageResource(R.drawable.ic_capture_scan)
+                setColorFilter(ReelDarkColors.accent.toArgb(), android.graphics.PorterDuff.Mode.SRC_IN)
                 layoutParams = FrameLayout.LayoutParams(
                     iconSize,
                     iconSize,
@@ -363,8 +363,9 @@ class CaptureSessionService : Service() {
             orientation = LinearLayout.VERTICAL
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = 18f * density
-                setColor(ReelDarkColors.elevated.toArgb())
+                cornerRadius = 14f * density
+                setColor(ReelDarkColors.base.toArgb())
+                setStroke((1f * density).roundToInt().coerceAtLeast(1), ReelDarkColors.accentMuted.toArgb())
             }
             setPadding(
                 (8 * density).toInt(),
@@ -380,6 +381,7 @@ class CaptureSessionService : Service() {
                 TextView(this).apply {
                     text = label
                     textSize = 15f
+                    typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
                     setTextColor(ReelDarkColors.textPrimary.toArgb())
                     setPadding(
                         (18 * density).toInt(),
@@ -693,7 +695,7 @@ class CaptureSessionService : Service() {
         private const val EXTRA_DATA = "projection_data"
         private const val EXTRA_CAPTURE_NOW = "capture_now"
 
-        private const val PILL_SIZE_DP = 44
+        private const val PILL_SIZE_DP = 48
         private const val PILL_ICON_DP = 20
         private const val PILL_MARGIN_DP = 12
         private const val MENU_EDGE_MARGIN_DP = 12
