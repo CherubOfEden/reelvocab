@@ -13,15 +13,23 @@ import androidx.compose.runtime.Immutable
 
 @Immutable
 class ReelMotion(
+    val fastMs: Int,
     val standardMs: Int,
+    val emphasizedMs: Int,
     val sheetStiffness: Float,
     val sheetDampingRatio: Float,
     val captureScaleFrom: Float,
     val pulseMs: Int,
     val standardEasing: Easing,
 ) {
+    val fastSpec: FiniteAnimationSpec<Float>
+        get() = tween(durationMillis = fastMs, easing = standardEasing)
+
     val standardSpec: FiniteAnimationSpec<Float>
         get() = tween(durationMillis = standardMs, easing = standardEasing)
+
+    val emphasizedSpec: FiniteAnimationSpec<Float>
+        get() = tween(durationMillis = emphasizedMs, easing = standardEasing)
 
     val sheetSpec: FiniteAnimationSpec<Float>
         get() = spring(
@@ -31,7 +39,9 @@ class ReelMotion(
 
     companion object {
         val Standard = ReelMotion(
+            fastMs = 150,
             standardMs = 220,
+            emphasizedMs = 250,
             sheetStiffness = 380f,
             sheetDampingRatio = 0.85f,
             captureScaleFrom = 0.96f,
@@ -40,7 +50,9 @@ class ReelMotion(
         )
 
         val Reduced = ReelMotion(
+            fastMs = 0,
             standardMs = 0,
+            emphasizedMs = 0,
             sheetStiffness = 380f,
             sheetDampingRatio = 1f,
             captureScaleFrom = 1f,

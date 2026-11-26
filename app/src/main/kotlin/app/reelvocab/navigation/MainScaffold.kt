@@ -9,6 +9,13 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -175,6 +182,36 @@ fun MainScaffold(
         currentRoute?.contains(PlayerRoute::class.qualifiedName ?: "") != true &&
             currentRoute?.contains(EditorRoute::class.qualifiedName ?: "") != true
     val pipActive by CaptureSessionService.runningFlow.collectAsStateWithLifecycle()
+    val motion = ReelTheme.motion
+    val navEnter = if (motion.standardMs == 0) {
+        EnterTransition.None
+    } else {
+        fadeIn(tween(motion.standardMs, easing = motion.standardEasing)) +
+            slideInVertically(
+                animationSpec = tween(motion.standardMs, easing = motion.standardEasing),
+                initialOffsetY = { it / 60 },
+            )
+    }
+    val navExit = if (motion.fastMs == 0) {
+        ExitTransition.None
+    } else {
+        fadeOut(tween(motion.fastMs, easing = motion.standardEasing))
+    }
+    val navPopEnter = if (motion.fastMs == 0) {
+        EnterTransition.None
+    } else {
+        fadeIn(tween(motion.fastMs, easing = motion.standardEasing))
+    }
+    val navPopExit = if (motion.fastMs == 0) {
+        ExitTransition.None
+    } else {
+        fadeOut(tween(motion.fastMs, easing = motion.standardEasing)) +
+            slideOutVertically(
+                animationSpec = tween(motion.fastMs, easing = motion.standardEasing),
+                targetOffsetY = { it / 60 },
+            )
+    }
+
     val startPip: () -> Unit = {
         if (Settings.canDrawOverlays(context)) {
             CaptureSessionService.startPill(context)
@@ -226,6 +263,10 @@ fun MainScaffold(
             navController = navController,
             startDestination = TodayRoute,
             modifier = Modifier.padding(innerPadding),
+            enterTransition = { navEnter },
+            exitTransition = { navExit },
+            popEnterTransition = { navPopEnter },
+            popExitTransition = { navPopExit },
         ) {
             composable<TodayRoute> {
                 val todayViewModel: TodayViewModel = hiltViewModel()

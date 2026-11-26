@@ -128,11 +128,13 @@ fun rememberReelMotion(): ReelMotion {
     val context = LocalContext.current
     val reduced = remember(context) {
         runCatching {
-            Settings.Global.getFloat(
-                context.contentResolver,
+            listOf(
                 Settings.Global.ANIMATOR_DURATION_SCALE,
-                1f,
-            ) == 0f
+                Settings.Global.TRANSITION_ANIMATION_SCALE,
+                Settings.Global.WINDOW_ANIMATION_SCALE,
+            ).any { key ->
+                Settings.Global.getFloat(context.contentResolver, key, 1f) == 0f
+            }
         }.getOrDefault(false)
     }
     return if (reduced) ReelMotion.Reduced else ReelMotion.Standard
