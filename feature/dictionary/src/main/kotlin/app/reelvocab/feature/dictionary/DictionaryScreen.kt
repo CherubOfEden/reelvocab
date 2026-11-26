@@ -1,5 +1,6 @@
 package app.reelvocab.feature.dictionary
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,10 +18,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.reelvocab.core.designsystem.component.CardSurface
 import app.reelvocab.core.designsystem.component.DictionaryDetailLabels
 import app.reelvocab.core.designsystem.component.DictionaryDetailSheet
 import app.reelvocab.core.designsystem.component.LoadingState
+import app.reelvocab.core.designsystem.component.ReelRule
+import app.reelvocab.core.designsystem.component.ReelScreenHeader
 import app.reelvocab.core.designsystem.component.ReelSearchField
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.core.domain.model.DictionaryEntry
@@ -50,16 +52,9 @@ fun DictionaryScreen(
         verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
     ) {
         item(key = "dictionary-header") {
-            Text(
-                text = stringResource(R.string.dictionary_title),
-                style = ReelTheme.type.titleL,
-                color = colors.textPrimary,
-            )
-            Spacer(Modifier.height(ReelTheme.spacing.xs))
-            Text(
-                text = stringResource(R.string.dictionary_subtitle),
-                style = ReelTheme.type.bodyM,
-                color = colors.textSecondary,
+            ReelScreenHeader(
+                title = stringResource(R.string.dictionary_title),
+                subtitle = stringResource(R.string.dictionary_subtitle),
             )
         }
 
@@ -147,7 +142,9 @@ fun DictionaryScreen(
 @Composable
 private fun PromptCard() {
     val colors = ReelTheme.colors
-    CardSurface {
+    Column {
+        ReelRule()
+        Spacer(Modifier.height(ReelTheme.spacing.xl))
         Text(
             text = stringResource(R.string.dictionary_prompt_title),
             style = ReelTheme.type.titleM,
@@ -168,10 +165,10 @@ private fun DictionaryResult(
     onClick: () -> Unit,
 ) {
     val colors = ReelTheme.colors
-    CardSurface(onClick = onClick) {
+    Column(modifier = Modifier.clickable(onClick = onClick)) {
         Text(
             text = entry.lemma,
-            style = ReelTheme.type.titleM,
+            style = ReelTheme.type.wordmark,
             color = colors.textPrimary,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
@@ -217,6 +214,8 @@ private fun DictionaryResult(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        Spacer(Modifier.height(ReelTheme.spacing.l))
+        ReelRule()
     }
 }
 
@@ -226,16 +225,18 @@ private fun WordOfTheDayCard(
     onClick: () -> Unit,
 ) {
     val colors = ReelTheme.colors
-    CardSurface(onClick = onClick) {
+    Column(modifier = Modifier.clickable(onClick = onClick)) {
+        ReelRule()
+        Spacer(Modifier.height(ReelTheme.spacing.xl))
         Text(
             text = stringResource(R.string.dictionary_word_of_the_day).uppercase(),
-            style = ReelTheme.type.label,
+            style = ReelTheme.type.sectionLabel,
             color = colors.accent,
         )
         Spacer(Modifier.height(ReelTheme.spacing.xs))
         Text(
             text = entry.lemma,
-            style = ReelTheme.type.displayM,
+            style = ReelTheme.type.displayL,
             color = colors.textPrimary,
         )
         val partOfSpeech = entry.wordClass?.storageValue
@@ -270,11 +271,12 @@ private fun WordOfTheDayCard(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Spacer(Modifier.height(ReelTheme.spacing.s))
+        Spacer(Modifier.height(ReelTheme.spacing.m))
         Text(
             text = stringResource(R.string.dictionary_word_of_the_day_cta),
             style = ReelTheme.type.label,
             color = colors.accent,
         )
+        Spacer(Modifier.height(ReelTheme.spacing.xl))
     }
 }

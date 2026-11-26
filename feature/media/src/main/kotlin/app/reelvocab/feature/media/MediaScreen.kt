@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,6 +59,8 @@ import app.reelvocab.core.designsystem.component.EmptyState
 import app.reelvocab.core.designsystem.component.ReelButton
 import app.reelvocab.core.designsystem.component.ReelButtonStyle
 import app.reelvocab.core.designsystem.component.ReelChip
+import app.reelvocab.core.designsystem.component.ReelRule
+import app.reelvocab.core.designsystem.component.ReelScreenHeader
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.core.domain.model.MediaItem
 import app.reelvocab.core.domain.model.MediaKind
@@ -158,16 +161,9 @@ fun MediaScreen(
     ) {
         if (!embedded) {
             item {
-                Text(
-                    text = stringResource(R.string.media_title),
-                    style = ReelTheme.type.titleL,
-                    color = colors.textPrimary,
-                )
-                Spacer(Modifier.height(ReelTheme.spacing.xs))
-                Text(
-                    text = stringResource(R.string.media_subtitle),
-                    style = ReelTheme.type.bodyM,
-                    color = colors.textSecondary,
+                ReelScreenHeader(
+                    title = stringResource(R.string.media_title),
+                    subtitle = stringResource(R.string.media_subtitle),
                 )
             }
         }
@@ -320,8 +316,8 @@ private fun MediaRow(
     val windowEnd = (itemIndex + QUEUE_WINDOW_AFTER + 1).coerceAtMost(itemQueue.size)
     val itemWindow = itemQueue.subList(windowStart, windowEnd)
     val windowIndex = (itemIndex - windowStart).coerceAtLeast(0)
-    CardSurface(
-        onClick = {
+    Column(
+        modifier = Modifier.clickable {
             onPlay(
                 PlayerRoute(
                     uri = item.uri,
@@ -333,13 +329,11 @@ private fun MediaRow(
                 ),
             )
         },
-        contentPadding = PaddingValues(
-            horizontal = ReelTheme.spacing.m,
-            vertical = ReelTheme.spacing.m,
-        ),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = ReelTheme.spacing.m),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
         ) {
@@ -355,7 +349,7 @@ private fun MediaRow(
                 Spacer(Modifier.height(ReelTheme.spacing.xxs))
                 Text(
                     text = mediaSubtitle(item),
-                    style = ReelTheme.type.label,
+                    style = ReelTheme.type.caption,
                     color = colors.textTertiary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -367,6 +361,7 @@ private fun MediaRow(
                 tint = colors.accent,
             )
         }
+        ReelRule()
     }
 }
 

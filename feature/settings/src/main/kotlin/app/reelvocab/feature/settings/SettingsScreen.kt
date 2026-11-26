@@ -1,7 +1,5 @@
 package app.reelvocab.feature.settings
 
-import app.reelvocab.core.designsystem.icon.ReelIcons
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
@@ -35,6 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.reelvocab.core.designsystem.component.CardSurface
+import app.reelvocab.core.designsystem.component.ReelListRow
+import app.reelvocab.core.designsystem.component.ReelScreenHeader
+import app.reelvocab.core.designsystem.component.ReelSectionLabel
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import java.util.Locale
 import kotlinx.serialization.Serializable
@@ -105,10 +105,8 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
     ) {
         item {
-            Text(
-                text = stringResource(R.string.settings_title),
-                style = ReelTheme.type.titleL,
-                color = colors.textPrimary,
+            ReelScreenHeader(
+                title = stringResource(R.string.settings_title),
                 modifier = Modifier.padding(bottom = ReelTheme.spacing.s),
             )
         }
@@ -589,11 +587,9 @@ private fun reminderTimeLabel(hour: Int, minute: Int, is24Hour: Boolean): String
 
 @Composable
 private fun SettingsSectionHeader(text: String) {
-    Text(
+    ReelSectionLabel(
         text = text,
-        style = ReelTheme.type.label,
-        color = ReelTheme.colors.textTertiary,
-        modifier = Modifier.padding(top = ReelTheme.spacing.l, bottom = ReelTheme.spacing.xxs),
+        modifier = Modifier.padding(top = ReelTheme.spacing.xl),
     )
 }
 
@@ -603,34 +599,10 @@ private fun SettingsRow(
     value: String?,
     onClick: (() -> Unit)? = null,
 ) {
-    val colors = ReelTheme.colors
-    CardSurface(onClick = onClick, contentPadding = PaddingValues(ReelTheme.spacing.l)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = label,
-                style = ReelTheme.type.bodyL,
-                color = colors.textPrimary,
-                modifier = Modifier.weight(1f),
-            )
-            if (value != null) {
-                Column(modifier = Modifier.padding(start = ReelTheme.spacing.m)) {
-                    Text(
-                        text = value,
-                        style = ReelTheme.type.bodyM,
-                        color = colors.textSecondary,
-                    )
-                }
-            }
-            if (onClick != null) {
-                Icon(
-                    imageVector = ReelIcons.ChevronRight,
-                    contentDescription = stringResource(R.string.settings_open_item),
-                    tint = colors.textTertiary,
-                )
-            }
-        }
-    }
+    ReelListRow(
+        label = label,
+        value = value,
+        showChevron = onClick != null,
+        onClick = onClick,
+    )
 }

@@ -2,6 +2,7 @@ package app.reelvocab.feature.today
 
 import app.reelvocab.core.designsystem.icon.ReelIcons
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,20 +16,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import app.reelvocab.core.designsystem.component.CardSurface
 import app.reelvocab.core.designsystem.component.ReelButton
+import app.reelvocab.core.designsystem.component.ReelRule
+import app.reelvocab.core.designsystem.component.ReelSectionLabel
 import app.reelvocab.core.designsystem.component.ReelButtonStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.reelvocab.core.designsystem.component.EmptyState
 import app.reelvocab.core.designsystem.component.StreakRing
+import app.reelvocab.core.designsystem.icon.ReelIcon
 import app.reelvocab.core.designsystem.illustration.ReelIllustration
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import java.time.LocalDate
@@ -90,8 +94,11 @@ fun TodayScreen(
                 ) {
                     Text(
                         text = dateLabel,
-                        style = ReelTheme.type.label,
+                        style = ReelTheme.type.caption,
                         color = colors.textTertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs)) {
                         TodayAction(
@@ -143,38 +150,33 @@ fun TodayScreen(
         }
 
         item {
-            Spacer(Modifier.height(ReelTheme.spacing.xxxl))
-        }
-
-        item {
-            CardSurface {
-                Text(
-                    text = stringResource(R.string.today_review_title),
-                    style = ReelTheme.type.titleM,
-                    color = colors.textPrimary,
-                )
-                Spacer(Modifier.height(ReelTheme.spacing.xs))
+            Column {
+                ReelRule()
+                Spacer(Modifier.height(ReelTheme.spacing.xl))
+                ReelSectionLabel(text = stringResource(R.string.today_review_title))
+                Spacer(Modifier.height(ReelTheme.spacing.m))
                 Text(
                     text = pluralStringResource(
                         R.plurals.today_due_now,
                         state.dueCount,
                         state.dueCount,
                     ),
-                    style = ReelTheme.type.titleM,
+                    style = ReelTheme.type.displayM,
                     color = if (state.dueCount > 0) colors.accent else colors.textSecondary,
                 )
-                Spacer(Modifier.height(ReelTheme.spacing.xs))
+                Spacer(Modifier.height(ReelTheme.spacing.s))
                 Text(
                     text = stringResource(R.string.today_review_body),
                     style = ReelTheme.type.bodyM,
                     color = colors.textSecondary,
                 )
-                Spacer(Modifier.height(ReelTheme.spacing.m))
+                Spacer(Modifier.height(ReelTheme.spacing.xl))
                 ReelButton(
                     text = stringResource(R.string.today_review_cta),
                     onClick = onStartReview,
                     style = ReelButtonStyle.Secondary,
                 )
+                Spacer(Modifier.height(ReelTheme.spacing.xl))
             }
         }
 
@@ -192,22 +194,41 @@ fun TodayScreen(
 
         if (!state.loading && state.cardCount > 0) {
             item {
-                CardSurface(onClick = onOpenDeck) {
-                    Text(
-                        text = stringResource(R.string.today_deck_title),
-                        style = ReelTheme.type.titleM,
-                        color = colors.textPrimary,
-                    )
-                    Spacer(Modifier.height(ReelTheme.spacing.xs))
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.today_deck_count,
-                            state.cardCount,
-                            state.cardCount,
-                        ),
-                        style = ReelTheme.type.bodyM,
-                        color = colors.textSecondary,
-                    )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onOpenDeck),
+                ) {
+                    ReelRule()
+                    Spacer(Modifier.height(ReelTheme.spacing.l))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.today_deck_title),
+                                style = ReelTheme.type.titleM,
+                                color = colors.textPrimary,
+                            )
+                            Spacer(Modifier.height(ReelTheme.spacing.xs))
+                            Text(
+                                text = pluralStringResource(
+                                    R.plurals.today_deck_count,
+                                    state.cardCount,
+                                    state.cardCount,
+                                ),
+                                style = ReelTheme.type.bodyM,
+                                color = colors.textSecondary,
+                            )
+                        }
+                        ReelIcon(
+                            imageVector = ReelIcons.ChevronRight,
+                            contentDescription = null,
+                            tint = colors.textTertiary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
             }
         }
@@ -223,7 +244,7 @@ private fun TodayAction(
     onClick: () -> Unit,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
+        IconButton(onClick = onClick, modifier = Modifier.size(ReelTheme.spacing.minTouchTarget)) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,

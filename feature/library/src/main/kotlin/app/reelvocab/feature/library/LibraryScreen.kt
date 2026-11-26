@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
@@ -56,9 +57,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.reelvocab.core.designsystem.component.CardSurface
 import app.reelvocab.core.designsystem.component.EmptyState
 import app.reelvocab.core.designsystem.component.ReelChip
+import app.reelvocab.core.designsystem.component.ReelScreenHeader
+import app.reelvocab.core.designsystem.component.ReelRule
 import app.reelvocab.core.designsystem.illustration.ReelIllustration
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.core.domain.model.VaultItem
@@ -169,16 +171,9 @@ fun LibraryScreen(
                 verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
             ) {
                 item {
-                    Text(
-                        text = stringResource(R.string.library_title),
-                        style = ReelTheme.type.titleL,
-                        color = colors.textPrimary,
-                    )
-                    Spacer(Modifier.height(ReelTheme.spacing.xs))
-                    Text(
-                        text = stringResource(R.string.library_subtitle),
-                        style = ReelTheme.type.bodyM,
-                        color = colors.textSecondary,
+                    ReelScreenHeader(
+                        title = stringResource(R.string.library_title),
+                        subtitle = stringResource(R.string.library_subtitle),
                     )
                 }
 
@@ -351,9 +346,11 @@ private fun VaultRow(
     onDelete: () -> Unit,
 ) {
     val colors = ReelTheme.colors
-    CardSurface(onClick = onPlay) {
+    Column(modifier = Modifier.clickable(onClick = onPlay)) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = ReelTheme.spacing.m),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
         ) {
@@ -436,6 +433,7 @@ private fun VaultRow(
                 }
             }
         }
+        ReelRule()
     }
 }
 

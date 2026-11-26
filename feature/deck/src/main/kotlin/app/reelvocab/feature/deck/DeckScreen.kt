@@ -6,14 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,6 +28,7 @@ import app.reelvocab.core.designsystem.component.DictionaryDetailSheet
 import app.reelvocab.core.designsystem.component.EmptyState
 import app.reelvocab.core.designsystem.component.LoadingState
 import app.reelvocab.core.designsystem.component.ReelChip
+import app.reelvocab.core.designsystem.component.ReelScreenHeader
 import app.reelvocab.core.designsystem.component.ReelSearchField
 import app.reelvocab.core.designsystem.component.TagEditorLabels
 import app.reelvocab.core.designsystem.component.TagEditorSheet
@@ -97,23 +95,18 @@ fun DeckScreen(
             verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.l),
         ) {
             item {
-                Text(
-                    text = stringResource(R.string.deck_title),
-                    style = ReelTheme.type.titleL,
-                    color = colors.textPrimary,
-                )
-                if (!state.loading && state.cards.isNotEmpty()) {
-                    Spacer(Modifier.height(ReelTheme.spacing.xxs))
-                    Text(
-                        text = pluralStringResource(
+                ReelScreenHeader(
+                    title = stringResource(R.string.deck_title),
+                    subtitle = if (!state.loading && state.cards.isNotEmpty()) {
+                        pluralStringResource(
                             R.plurals.deck_count,
                             state.cards.size,
                             state.cards.size,
-                        ),
-                        style = ReelTheme.type.label,
-                        color = colors.textTertiary,
-                    )
-                }
+                        )
+                    } else {
+                        null
+                    },
+                )
             }
 
             item {
