@@ -18,8 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -80,6 +80,8 @@ import app.reelvocab.feature.media.MediaScreen
 import app.reelvocab.feature.media.PlayerRoute
 import app.reelvocab.feature.media.PlayerScreen
 import app.reelvocab.feature.media.PlayerTrack
+import app.reelvocab.feature.notes.NotesRoute
+import app.reelvocab.feature.notes.NotesScreen
 import app.reelvocab.feature.settings.CloudSettingsUi
 import app.reelvocab.feature.settings.PipMode
 import app.reelvocab.feature.settings.SettingsRoute
@@ -118,7 +120,7 @@ private enum class ReelTab(
     Deck(R.string.tab_deck, Icons.Filled.Collections, DeckRoute(), DeckRoute::class),
     Dictionary(R.string.tab_dictionary, Icons.Filled.Search, DictionaryRoute, DictionaryRoute::class),
     Library(R.string.tab_library, Icons.Filled.Book, LibraryRoute, LibraryRoute::class),
-    Media(R.string.tab_media, Icons.Filled.PlayCircle, MediaRoute, MediaRoute::class),
+    Notes(R.string.tab_notes, Icons.Filled.Edit, NotesRoute, NotesRoute::class),
 }
 
 private object PlayerTrackListNavType : NavType<List<PlayerTrack>>(isNullableAllowed = false) {
@@ -278,6 +280,7 @@ fun MainScaffold(
                             EditorRoute(uri = uri, title = title, kind = kind),
                         )
                     },
+                    onPlayMedia = { playerRoute -> navController.navigate(playerRoute) },
                 )
             }
 
@@ -288,6 +291,10 @@ fun MainScaffold(
                     onBack = { navController.popBackStack() },
                     onSaved = { navController.popBackStack() },
                 )
+            }
+
+            composable<NotesRoute> {
+                NotesScreen()
             }
 
             composable<MediaRoute> {

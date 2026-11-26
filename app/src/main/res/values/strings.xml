@@ -7,7 +7,7 @@
     <string name="tab_deck">Deck</string>
     <string name="tab_dictionary">Dictionary</string>
     <string name="tab_library">Library</string>
-    <string name="tab_media">Media</string>
+    <string name="tab_notes">Notes</string>
     <string name="capture_fab">Capture a word</string>
     <string name="tile_video_label">RV Video</string>
     <string name="tile_audio_label">RV Audio</string>

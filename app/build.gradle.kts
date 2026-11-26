@@ -64,6 +64,7 @@ dependencies {
     implementation(project(":feature:library"))
     implementation(project(":feature:settings"))
     implementation(project(":feature:media"))
+    implementation(project(":feature:notes"))
     implementation(project(":feature:capture"))
 
     implementation(libs.androidx.core.ktx)

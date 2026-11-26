@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="library_title">Media vault</string>
+    <string name="library_title">ReelVocab Vault</string>
     <string name="library_subtitle">Every image, clip and recording you capture is kept here, on this device.</string>
+    <string name="library_segment_internal_media">Internal Media</string>
+    <string name="library_segment_vault">ReelVocab Vault</string>
     <string name="library_all">All</string>
     <string name="library_images">Images</string>
     <string name="library_videos">Video</string>

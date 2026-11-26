@@ -36,6 +36,7 @@ android {
 dependencies {
     api(project(":core:designsystem"))
     implementation(project(":core:domain"))
+    implementation(project(":feature:media"))
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.video)

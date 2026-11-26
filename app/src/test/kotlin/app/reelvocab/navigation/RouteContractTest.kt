@@ -7,6 +7,7 @@ import app.reelvocab.feature.library.LibraryRoute
 import app.reelvocab.feature.media.MediaRoute
 import app.reelvocab.feature.media.PlayerRoute
 import app.reelvocab.feature.media.PlayerTrack
+import app.reelvocab.feature.notes.NotesRoute
 import app.reelvocab.feature.settings.SettingsRoute
 import app.reelvocab.feature.today.TodayRoute
 import kotlinx.serialization.json.Json
@@ -61,6 +62,10 @@ class RouteContractTest {
         assertEquals(
             "app.reelvocab.feature.library.LibraryRoute",
             LibraryRoute.serializer().descriptor.serialName,
+        )
+        assertEquals(
+            "app.reelvocab.feature.notes.NotesRoute",
+            NotesRoute.serializer().descriptor.serialName,
         )
         assertEquals(
             "app.reelvocab.feature.settings.SettingsRoute",

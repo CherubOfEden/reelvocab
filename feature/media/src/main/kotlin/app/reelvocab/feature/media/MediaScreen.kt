@@ -93,6 +93,7 @@ data class PlayerRoute(
 fun MediaScreen(
     onPlay: (PlayerRoute) -> Unit,
     modifier: Modifier = Modifier,
+    embedded: Boolean = false,
     viewModel: MediaViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -152,23 +153,25 @@ fun MediaScreen(
         contentPadding = PaddingValues(
             start = ReelTheme.spacing.screenH,
             end = ReelTheme.spacing.screenH,
-            top = ReelTheme.spacing.xl,
+            top = if (embedded) ReelTheme.spacing.s else ReelTheme.spacing.xl,
             bottom = ReelTheme.spacing.screenBottom,
         ),
         verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
     ) {
-        item {
-            Text(
-                text = stringResource(R.string.media_title),
-                style = ReelTheme.type.titleL,
-                color = colors.textPrimary,
-            )
-            Spacer(Modifier.height(ReelTheme.spacing.xs))
-            Text(
-                text = stringResource(R.string.media_subtitle),
-                style = ReelTheme.type.bodyM,
-                color = colors.textSecondary,
-            )
+        if (!embedded) {
+            item {
+                Text(
+                    text = stringResource(R.string.media_title),
+                    style = ReelTheme.type.titleL,
+                    color = colors.textPrimary,
+                )
+                Spacer(Modifier.height(ReelTheme.spacing.xs))
+                Text(
+                    text = stringResource(R.string.media_subtitle),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textSecondary,
+                )
+            }
         }
 
         stickyHeader(key = "media-categories") {

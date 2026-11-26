@@ -36,8 +36,12 @@ import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,6 +50,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +70,8 @@ import app.reelvocab.core.designsystem.illustration.ReelIllustration
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.core.domain.model.VaultItem
 import app.reelvocab.core.domain.model.VaultKind
+import app.reelvocab.feature.media.MediaScreen
+import app.reelvocab.feature.media.PlayerRoute
 import coil.ImageLoader
 import coil.compose.SubcomposeAsyncImage
 import coil.decode.VideoFrameDecoder
@@ -84,17 +91,24 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object LibraryRoute
 
+private enum class LibrarySection(val labelRes: Int) {
+    InternalMedia(R.string.library_segment_internal_media),
+    Vault(R.string.library_segment_vault),
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibraryScreen(
     onOpenDeck: () -> Unit,
     onPlay: (uri: String, title: String, kind: String) -> Unit,
     onEdit: (uri: String, title: String, kind: String) -> Unit,
+    onPlayMedia: (PlayerRoute) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = ReelTheme.colors
+    var section by rememberSaveable { mutableStateOf(LibrarySection.Vault) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var detailsFor by remember { mutableStateOf<VaultItem?>(null) }
@@ -133,99 +147,120 @@ fun LibraryScreen(
         state.items.filter { it.kind == state.category }
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = ReelTheme.spacing.screenH,
-            end = ReelTheme.spacing.screenH,
-            top = ReelTheme.spacing.xl,
-            bottom = ReelTheme.spacing.screenBottom,
-        ),
-        verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
-    ) {
-        item {
-            Text(
-                text = stringResource(R.string.library_title),
-                style = ReelTheme.type.titleL,
-                color = colors.textPrimary,
-            )
-            Spacer(Modifier.height(ReelTheme.spacing.xs))
-            Text(
-                text = stringResource(R.string.library_subtitle),
-                style = ReelTheme.type.bodyM,
-                color = colors.textSecondary,
-            )
-        }
+    Column(modifier = modifier.fillMaxSize()) {
+        LibrarySectionToggle(
+            selected = section,
+            onSelect = { section = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.base)
+                .padding(horizontal = ReelTheme.spacing.screenH)
+                .padding(top = ReelTheme.spacing.m, bottom = ReelTheme.spacing.s),
+        )
 
-        stickyHeader(key = "library-categories") {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.base)
-                    .padding(vertical = ReelTheme.spacing.xs)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
-            ) {
-                ReelChip(
-                    text = stringResource(R.string.library_all),
-                    selected = state.category == null,
-                    onClick = { viewModel.setCategory(null) },
-                )
-                ReelChip(
-                    text = stringResource(R.string.library_images),
-                    selected = state.category == VaultKind.Image,
-                    onClick = { viewModel.setCategory(VaultKind.Image) },
-                )
-                ReelChip(
-                    text = stringResource(R.string.library_videos),
-                    selected = state.category == VaultKind.Video,
-                    onClick = { viewModel.setCategory(VaultKind.Video) },
-                )
-                ReelChip(
-                    text = stringResource(R.string.library_audio),
-                    selected = state.category == VaultKind.Audio,
-                    onClick = { viewModel.setCategory(VaultKind.Audio) },
-                )
-            }
-        }
-
-        if (state.loading) {
-            item {
-                Text(
-                    text = stringResource(R.string.library_loading),
-                    style = ReelTheme.type.bodyM,
-                    color = colors.textSecondary,
-                )
-            }
-        } else if (visible.isEmpty()) {
-            item {
-                EmptyState(
-                    title = stringResource(R.string.library_empty_title),
-                    body = stringResource(R.string.library_empty_body),
-                    ctaLabel = stringResource(R.string.library_cta_deck),
-                    onCta = onOpenDeck,
-                    illustration = ReelIllustration.Ticket,
-                )
-            }
+        if (section == LibrarySection.InternalMedia) {
+            MediaScreen(
+                onPlay = onPlayMedia,
+                modifier = Modifier.weight(1f),
+                embedded = true,
+            )
         } else {
-            items(visible, key = { it.id }) { item ->
-                VaultRow(
-                    item = item,
-                    imageLoader = imageLoader,
-                    onPlay = {
-                        onPlay(item.uri, item.title, item.kind.playerKind())
-                    },
-                    onDetails = { detailsFor = item },
-                    onEdit = {
-                        onEdit(item.uri, item.title, item.kind.playerKind())
-                    },
-                    onExport = {
-                        exportFor = item
-                        exportLauncher.launch(exportFileName(item))
-                    },
-                    onDelete = { deleteFor = item },
-                )
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(
+                    start = ReelTheme.spacing.screenH,
+                    end = ReelTheme.spacing.screenH,
+                    top = ReelTheme.spacing.xl,
+                    bottom = ReelTheme.spacing.screenBottom,
+                ),
+                verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
+            ) {
+                item {
+                    Text(
+                        text = stringResource(R.string.library_title),
+                        style = ReelTheme.type.titleL,
+                        color = colors.textPrimary,
+                    )
+                    Spacer(Modifier.height(ReelTheme.spacing.xs))
+                    Text(
+                        text = stringResource(R.string.library_subtitle),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.textSecondary,
+                    )
+                }
+
+                stickyHeader(key = "library-categories") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.base)
+                            .padding(vertical = ReelTheme.spacing.xs)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
+                    ) {
+                        ReelChip(
+                            text = stringResource(R.string.library_all),
+                            selected = state.category == null,
+                            onClick = { viewModel.setCategory(null) },
+                        )
+                        ReelChip(
+                            text = stringResource(R.string.library_images),
+                            selected = state.category == VaultKind.Image,
+                            onClick = { viewModel.setCategory(VaultKind.Image) },
+                        )
+                        ReelChip(
+                            text = stringResource(R.string.library_videos),
+                            selected = state.category == VaultKind.Video,
+                            onClick = { viewModel.setCategory(VaultKind.Video) },
+                        )
+                        ReelChip(
+                            text = stringResource(R.string.library_audio),
+                            selected = state.category == VaultKind.Audio,
+                            onClick = { viewModel.setCategory(VaultKind.Audio) },
+                        )
+                    }
+                }
+
+                if (state.loading) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.library_loading),
+                            style = ReelTheme.type.bodyM,
+                            color = colors.textSecondary,
+                        )
+                    }
+                } else if (visible.isEmpty()) {
+                    item {
+                        EmptyState(
+                            title = stringResource(R.string.library_empty_title),
+                            body = stringResource(R.string.library_empty_body),
+                            ctaLabel = stringResource(R.string.library_cta_deck),
+                            onCta = onOpenDeck,
+                            illustration = ReelIllustration.Ticket,
+                        )
+                    }
+                } else {
+                    items(visible, key = { it.id }) { item ->
+                        VaultRow(
+                            item = item,
+                            imageLoader = imageLoader,
+                            onPlay = {
+                                onPlay(item.uri, item.title, item.kind.playerKind())
+                            },
+                            onDetails = { detailsFor = item },
+                            onEdit = {
+                                onEdit(item.uri, item.title, item.kind.playerKind())
+                            },
+                            onExport = {
+                                exportFor = item
+                                exportLauncher.launch(exportFileName(item))
+                            },
+                            onDelete = { deleteFor = item },
+                        )
+                    }
+                }
             }
+
         }
     }
 
@@ -272,6 +307,43 @@ fun LibraryScreen(
             },
             containerColor = colors.elevated,
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LibrarySectionToggle(
+    selected: LibrarySection,
+    onSelect: (LibrarySection) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = ReelTheme.colors
+    SingleChoiceSegmentedButtonRow(modifier = modifier) {
+        LibrarySection.entries.forEachIndexed { index, section ->
+            SegmentedButton(
+                selected = selected == section,
+                onClick = { onSelect(section) },
+                shape = SegmentedButtonDefaults.itemShape(
+                    index = index,
+                    count = LibrarySection.entries.size,
+                ),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = colors.gold.copy(alpha = 0.16f),
+                    activeContentColor = colors.gold,
+                    activeBorderColor = colors.gold.copy(alpha = 0.5f),
+                    inactiveContainerColor = colors.elevated,
+                    inactiveContentColor = colors.textSecondary,
+                    inactiveBorderColor = colors.strokeSubtle,
+                ),
+                icon = {},
+                label = {
+                    Text(
+                        text = stringResource(section.labelRes),
+                        style = ReelTheme.type.bodyM,
+                    )
+                },
+            )
+        }
     }
 }
 
