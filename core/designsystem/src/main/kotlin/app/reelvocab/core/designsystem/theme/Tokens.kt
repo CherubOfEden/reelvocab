@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.dp
 
 @Immutable
 data class ReelSpacing(
-    val xxs: Dp = 2.dp,
+    val xxs: Dp = 4.dp,
     val xs: Dp = 4.dp,
     val s: Dp = 8.dp,
     val m: Dp = 12.dp,
@@ -19,8 +19,8 @@ data class ReelSpacing(
     val huge: Dp = 40.dp,
     val giant: Dp = 48.dp,
     val colossal: Dp = 64.dp,
-    val screenH: Dp = 20.dp,
-    val screenBottom: Dp = 24.dp,
+    val screenH: Dp = 24.dp,
+    val screenBottom: Dp = 32.dp,
     val minTouchTarget: Dp = 48.dp,
     val bottomBarHeight: Dp = 80.dp,
     val controlHeight: Dp = 52.dp,
@@ -31,11 +31,11 @@ data class ReelSpacing(
 
 @Immutable
 data class ReelRadius(
-    val chip: Dp = 8.dp,
-    val input: Dp = 12.dp,
-    val card: Dp = 16.dp,
-    val sheet: Dp = 24.dp,
-    val sheetTop: Dp = 28.dp,
+    val chip: Dp = 6.dp,
+    val input: Dp = 10.dp,
+    val card: Dp = 12.dp,
+    val sheet: Dp = 20.dp,
+    val sheetTop: Dp = 24.dp,
 )
 
 val DefaultReelSpacing = ReelSpacing()

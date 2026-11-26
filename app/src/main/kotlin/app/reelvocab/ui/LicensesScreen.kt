@@ -1,5 +1,7 @@
 package app.reelvocab.ui
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,8 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -42,7 +42,6 @@ private val LicenseEntries = listOf(
     LicenseEntry("Fraunces", "licenses/OFL-Fraunces.txt"),
     LicenseEntry("Inter", "licenses/OFL-Inter.txt"),
     LicenseEntry("JetBrains Mono", "licenses/OFL-JetBrainsMono.txt"),
-    LicenseEntry("Source Code Pro", "licenses/OFL-SourceCodePro.txt"),
 )
 
 @Composable
@@ -71,7 +70,7 @@ fun LicensesScreen(
             ) {
                 IconButton(onClick = onBack) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = ReelIcons.ArrowLeft,
                         contentDescription = stringResource(R.string.common_back),
                         tint = colors.textSecondary,
                     )
@@ -125,7 +124,7 @@ fun LicensesScreen(
                                 if (open) R.string.licenses_hide else R.string.licenses_show,
                             ),
                             style = ReelTheme.type.label,
-                            color = colors.gold,
+                            color = colors.accent,
                         )
                     }
                 }

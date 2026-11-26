@@ -5,14 +5,17 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import app.reelvocab.core.designsystem.R
 
 private val Fraunces = FontFamily(
-    Font(R.font.fraunces_semibold, FontWeight.SemiBold),
-    Font(R.font.fraunces_bold, FontWeight.Bold),
+    Font(R.font.fraunces_variable, FontWeight.Normal),
+    Font(R.font.fraunces_variable, FontWeight.Medium),
+    Font(R.font.fraunces_variable, FontWeight.SemiBold),
+    Font(R.font.fraunces_italic_variable, FontWeight.Normal, FontStyle.Italic),
 )
 
 private val Inter = FontFamily(
@@ -26,69 +29,92 @@ private val JetBrainsMono = FontFamily(
     Font(R.font.jetbrains_mono_medium, FontWeight.Medium),
 )
 
-private val SourceCodePro = FontFamily(
-    Font(R.font.source_code_pro_regular, FontWeight.Normal),
-)
-
 @Immutable
 data class ReelType(
     val hero: TextStyle = TextStyle(
         fontFamily = Fraunces,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Normal,
         fontSize = 56.sp,
-        lineHeight = 61.6f.sp,
+        lineHeight = 58.8f.sp,
         letterSpacing = (-0.02f).em,
     ),
     val displayL: TextStyle = TextStyle(
         fontFamily = Fraunces,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Normal,
         fontSize = 40.sp,
         lineHeight = 44f.sp,
         letterSpacing = (-0.02f).em,
     ),
     val displayM: TextStyle = TextStyle(
         fontFamily = Fraunces,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Normal,
         fontSize = 32.sp,
-        lineHeight = 35.2f.sp,
+        lineHeight = 36f.sp,
+        letterSpacing = (-0.01f).em,
+    ),
+    val wordmark: TextStyle = TextStyle(
+        fontFamily = Fraunces,
+        fontWeight = FontWeight.Normal,
+        fontSize = 28.sp,
+        lineHeight = 32f.sp,
         letterSpacing = (-0.01f).em,
     ),
     val titleL: TextStyle = TextStyle(
-        fontFamily = Inter,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 31.2f.sp,
+        fontFamily = Fraunces,
+        fontWeight = FontWeight.Normal,
+        fontSize = 26.sp,
+        lineHeight = 32f.sp,
         letterSpacing = (-0.01f).em,
     ),
     val titleM: TextStyle = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
-        lineHeight = 26f.sp,
+        fontSize = 18.sp,
+        lineHeight = 24f.sp,
     ),
     val bodyL: TextStyle = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 22.4f.sp,
+        lineHeight = 26f.sp,
     ),
     val bodyM: TextStyle = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 19.6f.sp,
+        lineHeight = 22.4f.sp,
     ),
     val label: TextStyle = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        lineHeight = 16f.sp,
+        lineHeight = 18f.sp,
         letterSpacing = 0.02f.em,
     ),
-    val ipa: TextStyle = TextStyle(
-        fontFamily = SourceCodePro,
+    val sectionLabel: TextStyle = TextStyle(
+        fontFamily = Inter,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 11.sp,
+        lineHeight = 16f.sp,
+        letterSpacing = 0.12f.em,
+    ),
+    val caption: TextStyle = TextStyle(
+        fontFamily = Inter,
         fontWeight = FontWeight.Normal,
-        fontSize = 20.sp,
+        fontSize = 12.sp,
+        lineHeight = 18f.sp,
+    ),
+    val navLabel: TextStyle = TextStyle(
+        fontFamily = Inter,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 14f.sp,
+        letterSpacing = 0.01f.em,
+    ),
+    val ipa: TextStyle = TextStyle(
+        fontFamily = JetBrainsMono,
+        fontWeight = FontWeight.Normal,
+        fontSize = 18.sp,
         lineHeight = 24f.sp,
         letterSpacing = 0.01f.em,
     ),
@@ -112,10 +138,10 @@ data class ReelType(
         titleSmall = bodyM.copy(fontWeight = FontWeight.SemiBold),
         bodyLarge = bodyL,
         bodyMedium = bodyM,
-        bodySmall = label.copy(fontWeight = FontWeight.Normal),
+        bodySmall = caption,
         labelLarge = bodyM.copy(fontWeight = FontWeight.Medium),
         labelMedium = label,
-        labelSmall = label.copy(fontSize = 11.sp),
+        labelSmall = sectionLabel,
     )
 }
 
