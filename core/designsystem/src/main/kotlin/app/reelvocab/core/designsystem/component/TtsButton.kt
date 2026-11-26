@@ -1,7 +1,7 @@
 package app.reelvocab.core.designsystem.component
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.VolumeUp
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -18,9 +18,9 @@ fun TtsButton(
     val colors = ReelTheme.colors
     IconButton(onClick = onClick, modifier = modifier) {
         Icon(
-            imageVector = Icons.Filled.VolumeUp,
+            imageVector = ReelIcons.Volume2,
             contentDescription = contentDescription,
-            tint = if (speaking) colors.teal else colors.gold,
+            tint = if (speaking) colors.secondary else colors.accent,
         )
     }
 }

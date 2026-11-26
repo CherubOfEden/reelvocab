@@ -1,5 +1,7 @@
 package app.reelvocab.core.designsystem.component
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -15,12 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.LocalMovies
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -124,7 +120,7 @@ fun WordCard(
                         Text(
                             text = model.partOfSpeech,
                             style = type.label,
-                            color = colors.teal,
+                            color = colors.secondary,
                         )
                     }
                     if (model.partOfSpeech != null && model.difficulty != null) {
@@ -138,13 +134,13 @@ fun WordCard(
             if (onFavorite != null) {
                 IconButton(onClick = onFavorite) {
                     Icon(
-                        imageVector = Icons.Filled.Star,
+                        imageVector = ReelIcons.Heart,
                         contentDescription = if (model.isFavorite) {
                             labels.unfavorite
                         } else {
                             labels.favorite
                         },
-                        tint = if (model.isFavorite) colors.gold else colors.textTertiary,
+                        tint = if (model.isFavorite) colors.accent else colors.textTertiary,
                     )
                 }
             }
@@ -199,14 +195,14 @@ fun WordCard(
                     ThesaurusRow(
                         label = labels.synonyms,
                         words = model.synonyms,
-                        tint = colors.teal,
+                        tint = colors.secondary,
                     )
                 }
                 if (model.antonyms.isNotEmpty()) {
                     ThesaurusRow(
                         label = labels.antonyms,
                         words = model.antonyms,
-                        tint = colors.rose,
+                        tint = colors.error,
                     )
                 }
             }
@@ -248,7 +244,7 @@ fun WordCard(
             }
             IconButton(onClick = onTag) {
                 Icon(
-                    imageVector = Icons.Filled.Style,
+                    imageVector = ReelIcons.Tag,
                     contentDescription = labels.tag,
                     tint = colors.textTertiary,
                 )
@@ -256,15 +252,15 @@ fun WordCard(
             if (onDelete != null) {
                 IconButton(onClick = onDelete) {
                     Icon(
-                        imageVector = Icons.Filled.DeleteOutline,
+                        imageVector = ReelIcons.Trash2,
                         contentDescription = labels.delete,
-                        tint = colors.rose,
+                        tint = colors.error,
                     )
                 }
             }
             IconButton(onClick = onMore) {
                 Icon(
-                    imageVector = Icons.Filled.MoreHoriz,
+                    imageVector = ReelIcons.Ellipsis,
                     contentDescription = labels.more,
                     tint = colors.textTertiary,
                 )
@@ -292,7 +288,7 @@ fun SourceChip(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Filled.LocalMovies,
+            imageVector = ReelIcons.Clapperboard,
             contentDescription = null,
             tint = tint,
             modifier = Modifier.size(14.dp),

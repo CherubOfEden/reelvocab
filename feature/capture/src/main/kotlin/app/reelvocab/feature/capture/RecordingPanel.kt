@@ -38,7 +38,7 @@ class RecordingPanel(
     private val countdown = TextView(context).apply {
         textSize = 38f
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        setTextColor(ReelDarkColors.gold.toArgb())
+        setTextColor(ReelDarkColors.accent.toArgb())
         gravity = Gravity.CENTER
         visibility = View.GONE
     }
@@ -65,7 +65,7 @@ class RecordingPanel(
                         text = title.uppercase(Locale.getDefault())
                         textSize = 11f
                         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-                        setTextColor(ReelDarkColors.gold.toArgb())
+                        setTextColor(ReelDarkColors.accent.toArgb())
                         letterSpacing = 0.12f
                     },
                     LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
@@ -201,7 +201,7 @@ class RecordingPanel(
     private class WaveformView(context: Context) : View(context) {
         private val levels = FloatArray(36)
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = ReelDarkColors.gold.toArgb()
+            color = ReelDarkColors.accent.toArgb()
         }
         private val idlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = ReelDarkColors.strokeSubtle.toArgb()

@@ -60,7 +60,7 @@ fun StreakRing(
                 )
                 if (progress > 0f) {
                     drawArc(
-                        color = colors.gold.copy(alpha = 0.26f),
+                        color = colors.accent.copy(alpha = 0.26f),
                         startAngle = -90f,
                         sweepAngle = progress * 360f,
                         useCenter = false,
@@ -69,7 +69,7 @@ fun StreakRing(
                         style = Stroke(width = stroke * 2.4f, cap = StrokeCap.Round),
                     )
                     drawArc(
-                        color = colors.gold,
+                        color = colors.accent,
                         startAngle = -90f,
                         sweepAngle = progress * 360f,
                         useCenter = false,

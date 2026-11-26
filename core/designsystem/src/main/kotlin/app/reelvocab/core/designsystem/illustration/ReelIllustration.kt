@@ -23,7 +23,7 @@ fun ReelIllustrationArt(
     tint: Color? = null,
 ) {
     val colors = ReelTheme.colors
-    val accent = tint ?: colors.goldDim
+    val accent = tint ?: colors.accentMuted
 
     Canvas(modifier = modifier.size(width = 132.dp, height = 104.dp)) {
         val w = size.width
@@ -44,7 +44,7 @@ fun ReelIllustrationArt(
                     lineTo(w * 0.43f, h * 0.64f)
                     close()
                 }
-                drawPath(play, color = colors.gold)
+                drawPath(play, color = colors.accent)
                 drawRoundRect(
                     color = colors.strokeSubtle,
                     topLeft = Offset(w * 0.24f, h * 0.76f),
@@ -76,7 +76,7 @@ fun ReelIllustrationArt(
                     style = Stroke(hairline),
                 )
                 drawLine(
-                    color = colors.gold,
+                    color = colors.accent,
                     start = Offset(w * 0.13f, h * 0.16f),
                     end = Offset(w * 0.13f, h * 0.58f),
                     strokeWidth = 3.dp.toPx(),
@@ -94,7 +94,7 @@ fun ReelIllustrationArt(
                 drawCircle(color = colors.base, radius = h * 0.09f, center = Offset(w * 0.08f, h * 0.5f))
                 drawCircle(color = colors.base, radius = h * 0.09f, center = Offset(w * 0.92f, h * 0.5f))
                 drawLine(
-                    color = colors.gold,
+                    color = colors.accent,
                     start = Offset(w * 0.28f, h * 0.5f),
                     end = Offset(w * 0.72f, h * 0.5f),
                     strokeWidth = hairline,
@@ -110,7 +110,7 @@ fun ReelIllustrationArt(
                     cornerRadius = CornerRadius(8.dp.toPx()),
                     style = Stroke(hairline),
                 )
-                drawCircle(color = colors.gold, radius = h * 0.07f, center = Offset(w * 0.30f, h * 0.51f))
+                drawCircle(color = colors.accent, radius = h * 0.07f, center = Offset(w * 0.30f, h * 0.51f))
                 val beam = Path().apply {
                     moveTo(w * 0.48f, h * 0.42f)
                     lineTo(w * 0.86f, h * 0.26f)
@@ -118,7 +118,7 @@ fun ReelIllustrationArt(
                     lineTo(w * 0.48f, h * 0.60f)
                     close()
                 }
-                drawPath(beam, color = colors.teal.copy(alpha = 0.22f))
+                drawPath(beam, color = colors.secondary.copy(alpha = 0.22f))
                 drawLine(
                     color = colors.strokeSubtle,
                     start = Offset(w * 0.22f, h * 0.34f),

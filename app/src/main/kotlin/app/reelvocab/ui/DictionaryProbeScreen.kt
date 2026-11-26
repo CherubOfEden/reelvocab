@@ -1,5 +1,7 @@
 package app.reelvocab.ui
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,8 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,7 +66,7 @@ fun DictionaryProbeScreen(
         ) {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = ReelIcons.ArrowLeft,
                     contentDescription = null,
                     tint = colors.textPrimary,
                 )
@@ -98,11 +98,11 @@ fun DictionaryProbeScreen(
                 unfocusedTextColor = colors.textPrimary,
                 focusedContainerColor = colors.surface,
                 unfocusedContainerColor = colors.surface,
-                focusedBorderColor = colors.gold,
+                focusedBorderColor = colors.accent,
                 unfocusedBorderColor = colors.strokeSubtle,
-                focusedLabelColor = colors.gold,
+                focusedLabelColor = colors.accent,
                 unfocusedLabelColor = colors.textTertiary,
-                cursorColor = colors.gold,
+                cursorColor = colors.accent,
             ),
         )
 
@@ -122,7 +122,7 @@ fun DictionaryProbeScreen(
             state.error -> Text(
                 text = stringResource(R.string.probe_error),
                 style = ReelTheme.type.bodyM,
-                color = colors.rose,
+                color = colors.error,
             )
 
             state.loading -> Text(
@@ -198,7 +198,7 @@ private fun EntryBlock(entry: DictionaryEntry) {
                 Text(
                     text = wordClass.storageValue,
                     style = ReelTheme.type.label,
-                    color = colors.teal,
+                    color = colors.secondary,
                 )
             }
             entry.difficulty?.let { difficulty ->
@@ -236,14 +236,14 @@ private fun EntryBlock(entry: DictionaryEntry) {
             ThesaurusRow(
                 label = stringResource(R.string.card_synonyms),
                 words = entry.thesaurus.synonyms,
-                tint = colors.teal,
+                tint = colors.secondary,
             )
         }
         if (entry.thesaurus.antonyms.isNotEmpty()) {
             ThesaurusRow(
                 label = stringResource(R.string.card_antonyms),
                 words = entry.thesaurus.antonyms,
-                tint = colors.rose,
+                tint = colors.error,
             )
         }
     }

@@ -1,5 +1,7 @@
 package app.reelvocab.feature.media
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -33,19 +35,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.BrightnessHigh
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.FastRewind
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -442,7 +431,7 @@ fun PlayerScreen(
             ) {
                 IconButton(onClick = resetAndLeave) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = ReelIcons.ArrowLeft,
                         contentDescription = stringResource(R.string.media_back),
                         tint = Color.White,
                     )
@@ -486,7 +475,7 @@ fun PlayerScreen(
                         },
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.CameraAlt,
+                            imageVector = ReelIcons.ScanText,
                             contentDescription = stringResource(R.string.media_capture),
                             tint = Color.White,
                         )
@@ -498,7 +487,7 @@ fun PlayerScreen(
                         Box {
                             IconButton(onClick = { menuOpen = true }) {
                                 Icon(
-                                    imageVector = Icons.Filled.MoreVert,
+                                    imageVector = ReelIcons.EllipsisVertical,
                                     contentDescription = stringResource(R.string.media_menu_more),
                                     tint = Color.White,
                                 )
@@ -585,7 +574,7 @@ fun PlayerScreen(
                 horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.s),
             ) {
                 Icon(
-                    imageVector = if (isVolume) Icons.Filled.VolumeUp else Icons.Filled.BrightnessHigh,
+                    imageVector = if (isVolume) ReelIcons.Volume2 else ReelIcons.Sun,
                     contentDescription = null,
                     tint = Color.White,
                 )
@@ -648,13 +637,13 @@ private fun PlayerControls(
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
         ControlButton(
-            icon = Icons.Filled.SkipPrevious,
+            icon = ReelIcons.SkipBack,
             description = stringResource(R.string.media_controls_previous),
             enabled = canGoPrevious,
             onClick = onPrevious,
         )
         ControlButton(
-            icon = Icons.Filled.FastRewind,
+            icon = ReelIcons.Rewind,
             description = stringResource(R.string.media_controls_rewind, skipSeconds),
             enabled = true,
             onClick = onRewind,
@@ -664,7 +653,7 @@ private fun PlayerControls(
             modifier = Modifier.size(56.dp),
         ) {
             Icon(
-                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                imageVector = if (isPlaying) ReelIcons.Pause else ReelIcons.Play,
                 contentDescription = stringResource(
                     if (isPlaying) R.string.media_controls_pause else R.string.media_controls_play,
                 ),
@@ -673,13 +662,13 @@ private fun PlayerControls(
             )
         }
         ControlButton(
-            icon = Icons.Filled.FastForward,
+            icon = ReelIcons.FastForward,
             description = stringResource(R.string.media_controls_forward, skipSeconds),
             enabled = true,
             onClick = onForward,
         )
         ControlButton(
-            icon = Icons.Filled.SkipNext,
+            icon = ReelIcons.SkipForward,
             description = stringResource(R.string.media_controls_next),
             enabled = canGoNext,
             onClick = onNext,
@@ -842,14 +831,14 @@ private fun SkipDurationDialog(
                         Text(
                             text = stringResource(R.string.media_skip_seconds, seconds),
                             style = ReelTheme.type.bodyM,
-                            color = if (seconds == selectedSeconds) colors.gold else colors.textPrimary,
+                            color = if (seconds == selectedSeconds) colors.accent else colors.textPrimary,
                             modifier = Modifier.weight(1f),
                         )
                         if (seconds == selectedSeconds) {
                             Icon(
-                                imageVector = Icons.Filled.Check,
+                                imageVector = ReelIcons.Check,
                                 contentDescription = null,
-                                tint = colors.gold,
+                                tint = colors.accent,
                             )
                         }
                     }
@@ -860,7 +849,7 @@ private fun SkipDurationDialog(
             TextButton(onClick = onDismiss) {
                 Text(
                     text = stringResource(R.string.media_skip_cancel),
-                    color = colors.gold,
+                    color = colors.accent,
                 )
             }
         },
@@ -975,7 +964,7 @@ private fun RepeatOption(
             Text(
                 text = if (selected) "✓ $label" else label,
                 style = ReelTheme.type.bodyM,
-                color = if (selected) colors.gold else colors.textPrimary,
+                color = if (selected) colors.accent else colors.textPrimary,
             )
         },
         onClick = onClick,
@@ -994,7 +983,7 @@ private fun RotationOption(
             Text(
                 text = if (selected) "✓ $label" else label,
                 style = ReelTheme.type.bodyM,
-                color = if (selected) colors.gold else colors.textPrimary,
+                color = if (selected) colors.accent else colors.textPrimary,
             )
         },
         onClick = onClick,

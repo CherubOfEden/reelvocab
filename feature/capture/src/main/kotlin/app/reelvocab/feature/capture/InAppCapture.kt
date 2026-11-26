@@ -1,5 +1,7 @@
 package app.reelvocab.feature.capture
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -31,9 +33,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -144,7 +143,7 @@ fun InAppCapture(
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(
-                            imageVector = Icons.Filled.Close,
+                            imageVector = ReelIcons.X,
                             contentDescription = stringResource(R.string.capture_close),
                             tint = colors.textSecondary,
                         )
@@ -171,7 +170,7 @@ fun InAppCapture(
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
-                            color = colors.gold,
+                            color = colors.accent,
                         )
                         Text(
                             text = stringResource(R.string.capture_scanning),
@@ -184,7 +183,7 @@ fun InAppCapture(
                         Text(
                             text = stringResource(R.string.capture_error),
                             style = ReelTheme.type.bodyM,
-                            color = colors.rose,
+                            color = colors.error,
                         )
                         Spacer(Modifier.height(ReelTheme.spacing.s))
                         ReelButton(
@@ -213,7 +212,7 @@ fun InAppCapture(
                                 Text(
                                     text = stringResource(R.string.capture_select_hint),
                                     style = ReelTheme.type.label,
-                                    color = colors.green,
+                                    color = colors.success,
                                 )
                             }
                         } else if (phraseRange != null) {
@@ -221,7 +220,7 @@ fun InAppCapture(
                                 Text(
                                     text = stringResource(R.string.capture_phrase_hint),
                                     style = ReelTheme.type.label,
-                                    color = colors.gold,
+                                    color = colors.accent,
                                 )
                             }
                         }
@@ -293,7 +292,7 @@ fun InAppCapture(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp,
-                                color = colors.green,
+                                color = colors.success,
                             )
                             Text(
                                 text = stringResource(R.string.capture_preview_loading),
@@ -459,7 +458,7 @@ private fun WordChip(
     val colors = ReelTheme.colors
     val shape = RoundedCornerShape(ReelTheme.radius.chip)
     val active = selected || checked
-    val accent = if (checked) colors.green else colors.gold
+    val accent = if (checked) colors.success else colors.accent
     val container = if (active) accent.copy(alpha = 0.16f) else colors.elevated
     val border = if (active) accent.copy(alpha = 0.55f) else colors.strokeSubtle
     Box(
@@ -484,9 +483,9 @@ private fun WordChip(
             )
             if (checked) {
                 Icon(
-                    imageVector = Icons.Filled.Check,
+                    imageVector = ReelIcons.Check,
                     contentDescription = null,
-                    tint = colors.green,
+                    tint = colors.success,
                     modifier = Modifier.size(16.dp),
                 )
             }
@@ -579,7 +578,7 @@ private fun SaveWordSheet(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = colors.gold,
+                                color = colors.accent,
                             )
                             Text(
                                 text = stringResource(R.string.capture_preview_loading),
@@ -616,7 +615,7 @@ private fun SaveWordSheet(
                         synonyms.take(4).joinToString(", "),
                     ),
                     style = ReelTheme.type.label,
-                    color = colors.teal,
+                    color = colors.secondary,
                 )
             }
 
@@ -625,7 +624,7 @@ private fun SaveWordSheet(
                 Text(
                     text = stringResource(R.string.capture_save_error),
                     style = ReelTheme.type.bodyM,
-                    color = colors.rose,
+                    color = colors.error,
                 )
             }
 
@@ -724,7 +723,7 @@ private fun SaveSelectionSheet(
                 Text(
                     text = selection.phrase,
                     style = ReelTheme.type.titleM,
-                    color = colors.gold,
+                    color = colors.accent,
                 )
                 Spacer(Modifier.height(ReelTheme.spacing.xs))
                 OutlinedTextField(
@@ -742,7 +741,7 @@ private fun SaveSelectionSheet(
             Text(
                 text = stringResource(R.string.capture_save_error),
                 style = ReelTheme.type.bodyM,
-                color = colors.rose,
+                color = colors.error,
             )
         }
         Spacer(Modifier.height(ReelTheme.spacing.xl))

@@ -42,7 +42,7 @@ fun GradeBar(
     ) {
         GradeSegment(
             label = labels.again,
-            color = colors.rose,
+            color = colors.error,
             tone = GradeTone.Again,
             enabled = enabled,
             onGrade = onGrade,
@@ -50,7 +50,7 @@ fun GradeBar(
         )
         GradeSegment(
             label = labels.hard,
-            color = colors.goldDim,
+            color = colors.accentMuted,
             tone = GradeTone.Hard,
             enabled = enabled,
             onGrade = onGrade,
@@ -58,7 +58,7 @@ fun GradeBar(
         )
         GradeSegment(
             label = labels.good,
-            color = colors.gold,
+            color = colors.accent,
             tone = GradeTone.Good,
             enabled = enabled,
             onGrade = onGrade,
@@ -66,7 +66,7 @@ fun GradeBar(
         )
         GradeSegment(
             label = labels.easy,
-            color = colors.green,
+            color = colors.success,
             tone = GradeTone.Easy,
             enabled = enabled,
             onGrade = onGrade,

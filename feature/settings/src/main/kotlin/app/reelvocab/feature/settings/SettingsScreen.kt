@@ -1,5 +1,7 @@
 package app.reelvocab.feature.settings
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,8 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -409,7 +409,7 @@ private fun PipModePickerDialog(
                             selected = mode == selected,
                             onClick = null,
                             colors = RadioButtonDefaults.colors(
-                                selectedColor = colors.gold,
+                                selectedColor = colors.accent,
                                 unselectedColor = colors.textTertiary,
                             ),
                         )
@@ -468,7 +468,7 @@ private fun ThemePickerDialog(
                             selected = mode == selected,
                             onClick = null,
                             colors = RadioButtonDefaults.colors(
-                                selectedColor = colors.gold,
+                                selectedColor = colors.accent,
                                 unselectedColor = colors.textTertiary,
                             ),
                         )
@@ -529,14 +529,14 @@ private fun ReminderTimePickerDialog(
                         Text(
                             text = stringResource(R.string.settings_time_format_12),
                             style = ReelTheme.type.label,
-                            color = if (!is24Hour) colors.gold else colors.textSecondary,
+                            color = if (!is24Hour) colors.accent else colors.textSecondary,
                         )
                     }
                     TextButton(onClick = { is24Hour = true }) {
                         Text(
                             text = stringResource(R.string.settings_time_format_24),
                             style = ReelTheme.type.label,
-                            color = if (is24Hour) colors.gold else colors.textSecondary,
+                            color = if (is24Hour) colors.accent else colors.textSecondary,
                         )
                     }
                 }
@@ -559,7 +559,7 @@ private fun ReminderTimePickerDialog(
                 Text(
                     text = stringResource(R.string.settings_time_save),
                     style = ReelTheme.type.label,
-                    color = colors.gold,
+                    color = colors.accent,
                 )
             }
         },
@@ -626,7 +626,7 @@ private fun SettingsRow(
             }
             if (onClick != null) {
                 Icon(
-                    imageVector = Icons.Filled.KeyboardArrowRight,
+                    imageVector = ReelIcons.ChevronRight,
                     contentDescription = stringResource(R.string.settings_open_item),
                     tint = colors.textTertiary,
                 )

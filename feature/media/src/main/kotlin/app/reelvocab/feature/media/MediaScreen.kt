@@ -1,5 +1,7 @@
 package app.reelvocab.feature.media
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -31,10 +33,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -206,7 +204,7 @@ fun MediaScreen(
                     Text(
                         text = stringResource(R.string.media_error),
                         style = ReelTheme.type.bodyM,
-                        color = colors.rose,
+                        color = colors.error,
                     )
                     ReelButton(
                         text = stringResource(R.string.media_retry),
@@ -366,7 +364,7 @@ private fun MediaRow(
             Icon(
                 imageVector = item.kind.icon(),
                 contentDescription = null,
-                tint = colors.gold,
+                tint = colors.accent,
             )
         }
     }
@@ -459,9 +457,9 @@ private fun kindForMime(mimeType: String?): String = when {
 }
 
 private fun MediaKind.icon() = when (this) {
-    MediaKind.Video -> Icons.Filled.Movie
-    MediaKind.Image -> Icons.Filled.Photo
-    MediaKind.Audio -> Icons.Filled.MusicNote
+    MediaKind.Video -> ReelIcons.Clapperboard
+    MediaKind.Image -> ReelIcons.Image
+    MediaKind.Audio -> ReelIcons.Music
 }
 
 @Composable

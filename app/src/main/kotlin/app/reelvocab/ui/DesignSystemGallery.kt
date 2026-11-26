@@ -1,5 +1,7 @@
 package app.reelvocab.ui
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -18,9 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Screenshot
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -97,7 +96,7 @@ fun DesignSystemGallery(
         ) {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = ReelIcons.ArrowLeft,
                     contentDescription = stringResource(R.string.common_back),
                     tint = colors.textSecondary,
                 )
@@ -126,11 +125,11 @@ fun DesignSystemGallery(
                     stringResource(R.string.gallery_color_text_primary) to colors.textPrimary,
                     stringResource(R.string.gallery_color_text_secondary) to colors.textSecondary,
                     stringResource(R.string.gallery_color_text_tertiary) to colors.textTertiary,
-                    stringResource(R.string.gallery_color_gold) to colors.gold,
-                    stringResource(R.string.gallery_color_gold_dim) to colors.goldDim,
-                    stringResource(R.string.gallery_color_teal) to colors.teal,
-                    stringResource(R.string.gallery_color_rose) to colors.rose,
-                    stringResource(R.string.gallery_color_green) to colors.green,
+                    stringResource(R.string.gallery_color_gold) to colors.accent,
+                    stringResource(R.string.gallery_color_gold_dim) to colors.accentMuted,
+                    stringResource(R.string.gallery_color_teal) to colors.secondary,
+                    stringResource(R.string.gallery_color_rose) to colors.error,
+                    stringResource(R.string.gallery_color_green) to colors.success,
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.s)) {
                     swatches.chunked(4).forEach { row ->
@@ -211,7 +210,7 @@ fun DesignSystemGallery(
                     target = stringResource(R.string.gallery_word),
                     sourceTitle = stringResource(R.string.gallery_film),
                     sourceTimestampMs = 5_046_000L,
-                    sourceTint = colors.teal,
+                    sourceTint = colors.secondary,
                     isAiContext = true,
                     hasAudio = true,
                     difficulty = 3,
@@ -308,7 +307,7 @@ fun DesignSystemGallery(
                         label = stringResource(R.string.gallery_stat_accuracy),
                         value = stringResource(R.string.gallery_stat_accuracy_value),
                         delta = stringResource(R.string.gallery_stat_delta),
-                        accent = colors.teal,
+                        accent = colors.secondary,
                     )
                 }
             }
@@ -451,7 +450,7 @@ fun DesignSystemGallery(
         }
 
         GallerySheet.Permission -> PermissionSheet(
-            icon = Icons.Filled.Screenshot,
+            icon = ReelIcons.ScanText,
             title = stringResource(R.string.gallery_permission_title),
             body = stringResource(R.string.gallery_permission_body),
             why = stringResource(R.string.gallery_permission_why),

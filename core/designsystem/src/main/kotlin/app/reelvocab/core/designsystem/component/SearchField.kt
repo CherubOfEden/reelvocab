@@ -1,11 +1,10 @@
 package app.reelvocab.core.designsystem.component
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -24,7 +23,7 @@ fun ReelSearchField(
     placeholder: String,
     clearDescription: String,
     modifier: Modifier = Modifier,
-    leadingIcon: ImageVector = Icons.Filled.Search,
+    leadingIcon: ImageVector = ReelIcons.Search,
     onSearch: (() -> Unit)? = null,
 ) {
     val colors = ReelTheme.colors
@@ -51,7 +50,7 @@ fun ReelSearchField(
             {
                 IconButton(onClick = { onValueChange("") }) {
                     Icon(
-                        imageVector = Icons.Filled.Close,
+                        imageVector = ReelIcons.X,
                         contentDescription = clearDescription,
                         tint = colors.textTertiary,
                     )
@@ -69,9 +68,9 @@ fun ReelSearchField(
             unfocusedTextColor = colors.textPrimary,
             focusedContainerColor = colors.surface,
             unfocusedContainerColor = colors.surface,
-            focusedBorderColor = colors.gold,
+            focusedBorderColor = colors.accent,
             unfocusedBorderColor = colors.strokeSubtle,
-            cursorColor = colors.gold,
+            cursorColor = colors.accent,
         ),
     )
 }

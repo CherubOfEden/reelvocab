@@ -36,7 +36,7 @@ class RecordingBubble(
             shape = GradientDrawable.RECTANGLE
             cornerRadius = dp(22).toFloat()
             setColor(ReelDarkColors.elevated.toArgb())
-            setStroke(dp(1), ReelDarkColors.gold.toArgb())
+            setStroke(dp(1), ReelDarkColors.accent.toArgb())
         }
         elevation = dp(10).toFloat()
         contentDescription = context.getString(R.string.recording_bubble_description)
@@ -46,7 +46,7 @@ class RecordingBubble(
             View(context).apply {
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.OVAL
-                    setColor(ReelDarkColors.rose.toArgb())
+                    setColor(ReelDarkColors.error.toArgb())
                 }
                 layoutParams = LinearLayout.LayoutParams(dp(8), dp(8)).apply {
                     marginEnd = dp(8)

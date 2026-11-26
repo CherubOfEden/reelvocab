@@ -1,5 +1,7 @@
 package app.reelvocab.feature.today
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,10 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -97,7 +95,7 @@ fun TodayScreen(
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.xs)) {
                         TodayAction(
-                            icon = Icons.Filled.PictureInPictureAlt,
+                            icon = ReelIcons.PictureInPicture2,
                             label = stringResource(R.string.today_label_capture),
                             contentDescription = stringResource(
                                 if (pipActive) {
@@ -106,18 +104,18 @@ fun TodayScreen(
                                     R.string.today_pip_off
                                 },
                             ),
-                            tint = if (pipActive) colors.gold else colors.textSecondary,
+                            tint = if (pipActive) colors.accent else colors.textSecondary,
                             onClick = onTogglePip,
                         )
                         TodayAction(
-                            icon = Icons.Filled.Alarm,
+                            icon = ReelIcons.AlarmClock,
                             label = stringResource(R.string.today_label_alarm),
                             contentDescription = stringResource(R.string.today_reminder),
                             tint = colors.textSecondary,
                             onClick = onOpenAlarm,
                         )
                         TodayAction(
-                            icon = Icons.Filled.Settings,
+                            icon = ReelIcons.Settings2,
                             label = stringResource(R.string.today_label_settings),
                             contentDescription = stringResource(R.string.today_settings),
                             tint = colors.textSecondary,
@@ -163,7 +161,7 @@ fun TodayScreen(
                         state.dueCount,
                     ),
                     style = ReelTheme.type.titleM,
-                    color = if (state.dueCount > 0) colors.gold else colors.textSecondary,
+                    color = if (state.dueCount > 0) colors.accent else colors.textSecondary,
                 )
                 Spacer(Modifier.height(ReelTheme.spacing.xs))
                 Text(

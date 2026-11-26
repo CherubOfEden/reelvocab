@@ -25,8 +25,8 @@ fun ReviewProgressDots(
     ) {
         repeat(total.coerceAtLeast(0)) { index ->
             val color = when {
-                index < current -> colors.teal
-                index == current -> colors.gold
+                index < current -> colors.secondary
+                index == current -> colors.accent
                 else -> colors.strokeSubtle
             }
             Box(

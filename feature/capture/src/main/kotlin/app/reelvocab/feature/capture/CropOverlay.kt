@@ -63,7 +63,7 @@ internal fun CropOverlay(
     val safeRight = inset.getRight(density, layoutDirection).toFloat()
     val safeBottom = inset.getBottom(density).toFloat()
     val colors = ReelTheme.colors
-    val borderColor = colors.gold
+    val borderColor = colors.accent
     BackHandler(onBack = onCancel)
 
     val workLeft = safeLeft + gutter

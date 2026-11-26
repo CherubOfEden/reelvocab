@@ -1,5 +1,7 @@
 package app.reelvocab.core.designsystem.component
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,9 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -46,7 +45,7 @@ fun LoadingState(
     ) {
         CircularProgressIndicator(
             modifier = Modifier.size(28.dp),
-            color = colors.gold,
+            color = colors.accent,
             strokeWidth = 2.dp,
         )
         if (message != null) {
@@ -120,13 +119,13 @@ fun ErrorState(
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(colors.rose.copy(alpha = 0.14f)),
+                .background(colors.error.copy(alpha = 0.14f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.Warning,
+                imageVector = ReelIcons.TriangleAlert,
                 contentDescription = null,
-                tint = colors.rose,
+                tint = colors.error,
             )
         }
         Spacer(Modifier.height(ReelTheme.spacing.xl))
@@ -165,14 +164,14 @@ fun OfflineBanner(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(ReelTheme.radius.input))
-            .background(colors.teal.copy(alpha = 0.12f))
+            .background(colors.secondary.copy(alpha = 0.12f))
             .padding(horizontal = ReelTheme.spacing.l, vertical = ReelTheme.spacing.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Filled.CloudOff,
+            imageVector = ReelIcons.CloudOff,
             contentDescription = null,
-            tint = colors.teal,
+            tint = colors.secondary,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(ReelTheme.spacing.s))
@@ -186,7 +185,7 @@ fun OfflineBanner(
             Text(
                 text = retryLabel,
                 style = ReelTheme.type.label,
-                color = colors.teal,
+                color = colors.secondary,
             )
         }
     }
@@ -200,7 +199,7 @@ fun InlineError(
     Text(
         text = text,
         style = ReelTheme.type.bodyM,
-        color = ReelTheme.colors.rose,
+        color = ReelTheme.colors.error,
         modifier = modifier,
     )
 }

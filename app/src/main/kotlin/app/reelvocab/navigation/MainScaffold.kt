@@ -1,5 +1,7 @@
 package app.reelvocab.navigation
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -14,13 +16,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Collections
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -116,11 +111,11 @@ private enum class ReelTab(
     val route: Any,
     val routeClass: KClass<*>,
 ) {
-    Home(R.string.tab_home, Icons.Filled.Home, TodayRoute, TodayRoute::class),
-    Deck(R.string.tab_deck, Icons.Filled.Collections, DeckRoute(), DeckRoute::class),
-    Dictionary(R.string.tab_dictionary, Icons.Filled.Search, DictionaryRoute, DictionaryRoute::class),
-    Library(R.string.tab_library, Icons.Filled.Book, LibraryRoute, LibraryRoute::class),
-    Notes(R.string.tab_notes, Icons.Filled.Edit, NotesRoute, NotesRoute::class),
+    Home(R.string.tab_home, ReelIcons.House, TodayRoute, TodayRoute::class),
+    Deck(R.string.tab_deck, ReelIcons.Layers, DeckRoute(), DeckRoute::class),
+    Dictionary(R.string.tab_dictionary, ReelIcons.BookA, DictionaryRoute, DictionaryRoute::class),
+    Library(R.string.tab_library, ReelIcons.Library, LibraryRoute, LibraryRoute::class),
+    Notes(R.string.tab_notes, ReelIcons.NotebookPen, NotesRoute, NotesRoute::class),
 }
 
 private object PlayerTrackListNavType : NavType<List<PlayerTrack>>(isNullableAllowed = false) {
@@ -212,11 +207,11 @@ fun MainScaffold(
                             startPip()
                         }
                     },
-                    containerColor = ReelTheme.colors.gold,
+                    containerColor = ReelTheme.colors.accent,
                     contentColor = ReelTheme.colors.onAccent,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.CameraAlt,
+                        imageVector = ReelIcons.ScanText,
                         contentDescription = stringResource(R.string.capture_fab),
                     )
                 }
@@ -527,14 +522,14 @@ private fun QuickAlarmDialog(
                         Text(
                             text = stringResource(R.string.quick_alarm_format_12),
                             style = ReelTheme.type.label,
-                            color = if (!is24Hour) colors.gold else colors.textSecondary,
+                            color = if (!is24Hour) colors.accent else colors.textSecondary,
                         )
                     }
                     TextButton(onClick = { is24Hour = true }) {
                         Text(
                             text = stringResource(R.string.quick_alarm_format_24),
                             style = ReelTheme.type.label,
-                            color = if (is24Hour) colors.gold else colors.textSecondary,
+                            color = if (is24Hour) colors.accent else colors.textSecondary,
                         )
                     }
                 }
@@ -557,7 +552,7 @@ private fun QuickAlarmDialog(
                 Text(
                     text = stringResource(R.string.quick_alarm_save),
                     style = ReelTheme.type.label,
-                    color = colors.gold,
+                    color = colors.accent,
                 )
             }
         },
@@ -598,9 +593,9 @@ private fun ReelBottomBar(
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = colors.gold,
-                    selectedTextColor = colors.gold,
-                    indicatorColor = colors.gold.copy(alpha = 0.14f),
+                    selectedIconColor = colors.accent,
+                    selectedTextColor = colors.accent,
+                    indicatorColor = colors.accent.copy(alpha = 0.14f),
                     unselectedIconColor = colors.textTertiary,
                     unselectedTextColor = colors.textTertiary,
                 ),

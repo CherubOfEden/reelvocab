@@ -1,5 +1,7 @@
 package app.reelvocab.core.designsystem.component
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,8 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -32,10 +32,10 @@ fun AIBadge(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(ReelTheme.radius.chip))
-            .background(colors.teal.copy(alpha = 0.14f))
+            .background(colors.secondary.copy(alpha = 0.14f))
             .padding(horizontal = 6.dp, vertical = 2.dp),
     ) {
-        Text(text = label, style = ReelTheme.type.label, color = colors.teal)
+        Text(text = label, style = ReelTheme.type.label, color = colors.secondary)
     }
 }
 
@@ -49,14 +49,14 @@ fun TagChip(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(ReelTheme.radius.chip))
-            .background(colors.gold.copy(alpha = 0.12f))
+            .background(colors.accent.copy(alpha = 0.12f))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = ReelTheme.spacing.s, vertical = ReelTheme.spacing.xxs),
     ) {
         Text(
             text = text,
             style = ReelTheme.type.label,
-            color = colors.gold,
+            color = colors.accent,
             maxLines = 1,
         )
     }
@@ -73,14 +73,14 @@ fun EditableTagChip(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(ReelTheme.radius.chip))
-            .background(colors.gold.copy(alpha = 0.12f))
+            .background(colors.accent.copy(alpha = 0.12f))
             .padding(start = ReelTheme.spacing.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = text,
             style = ReelTheme.type.label,
-            color = colors.gold,
+            color = colors.accent,
         )
         Spacer(Modifier.width(ReelTheme.spacing.xxs))
         IconButton(
@@ -88,9 +88,9 @@ fun EditableTagChip(
             modifier = Modifier.size(28.dp),
         ) {
             Icon(
-                imageVector = Icons.Filled.Close,
+                imageVector = ReelIcons.X,
                 contentDescription = removeDescription,
-                tint = colors.gold,
+                tint = colors.accent,
                 modifier = Modifier.size(14.dp),
             )
         }
@@ -114,7 +114,7 @@ fun DifficultyDots(
                 modifier = Modifier
                     .size(5.dp)
                     .clip(CircleShape)
-                    .background(if (index < level) colors.gold else colors.strokeSubtle),
+                    .background(if (index < level) colors.accent else colors.strokeSubtle),
             )
         }
     }

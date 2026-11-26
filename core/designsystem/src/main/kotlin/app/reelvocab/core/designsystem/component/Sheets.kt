@@ -1,5 +1,7 @@
 package app.reelvocab.core.designsystem.component
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -90,13 +90,13 @@ fun PermissionSheet(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(colors.gold.copy(alpha = 0.14f)),
+                .background(colors.accent.copy(alpha = 0.14f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = colors.gold,
+                tint = colors.accent,
             )
         }
         Spacer(Modifier.height(ReelTheme.spacing.xl))
@@ -115,9 +115,9 @@ fun PermissionSheet(
             Spacer(Modifier.height(ReelTheme.spacing.l))
             Row(verticalAlignment = Alignment.Top) {
                 Icon(
-                    imageVector = Icons.Filled.Info,
+                    imageVector = ReelIcons.Info,
                     contentDescription = null,
-                    tint = colors.teal,
+                    tint = colors.secondary,
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.width(ReelTheme.spacing.s))
@@ -160,7 +160,7 @@ fun ConfirmDestructive(
                 Text(
                     text = confirmLabel,
                     style = ReelTheme.type.label,
-                    color = colors.rose,
+                    color = colors.error,
                 )
             }
         },

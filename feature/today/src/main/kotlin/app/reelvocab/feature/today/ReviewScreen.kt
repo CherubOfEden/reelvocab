@@ -1,5 +1,7 @@
 package app.reelvocab.feature.today
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -74,7 +74,7 @@ fun ReviewScreen(
             ) {
                 IconButton(onClick = onBack) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = ReelIcons.ArrowLeft,
                         contentDescription = stringResource(R.string.review_back),
                         tint = colors.textPrimary,
                     )
@@ -196,7 +196,7 @@ private fun ReviewBody(
         target = card.card.headword,
         sourceTitle = card.card.sourceTitle,
         sourceTimestampMs = card.card.sourceTimestampMs,
-        sourceTint = colors.teal,
+        sourceTint = colors.secondary,
         isAiContext = false,
         hasAudio = card.card.hasAudio,
         difficulty = null,

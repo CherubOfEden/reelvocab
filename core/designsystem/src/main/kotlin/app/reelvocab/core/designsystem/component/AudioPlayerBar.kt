@@ -1,5 +1,7 @@
 package app.reelvocab.core.designsystem.component
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,10 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -53,7 +51,7 @@ fun AudioPlayerBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.Filled.VolumeOff,
+                imageVector = ReelIcons.VolumeX,
                 contentDescription = null,
                 tint = colors.textTertiary,
                 modifier = Modifier.size(18.dp),
@@ -75,16 +73,16 @@ fun AudioPlayerBar(
     ) {
         IconButton(onClick = onPlayPause) {
             Icon(
-                imageVector = if (state.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                imageVector = if (state.playing) ReelIcons.Pause else ReelIcons.Play,
                 contentDescription = if (state.playing) pauseLabel else playLabel,
-                tint = colors.gold,
+                tint = colors.accent,
             )
         }
         Column(modifier = Modifier.weight(1f)) {
             LinearProgressIndicator(
                 progress = { state.progress.coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth(),
-                color = colors.teal,
+                color = colors.secondary,
                 trackColor = colors.strokeSubtle,
             )
             Text(
@@ -106,7 +104,7 @@ fun AudioPlayerBar(
                 Text(
                     text = keepLabel,
                     style = ReelTheme.type.label,
-                    color = colors.gold,
+                    color = colors.accent,
                 )
             }
         }

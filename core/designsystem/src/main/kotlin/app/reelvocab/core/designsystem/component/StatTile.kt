@@ -34,7 +34,7 @@ fun StatTile(
             Text(
                 text = delta,
                 style = ReelTheme.type.label,
-                color = colors.green,
+                color = colors.success,
             )
         }
     }

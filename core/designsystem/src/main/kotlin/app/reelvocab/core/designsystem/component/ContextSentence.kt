@@ -19,7 +19,7 @@ fun ContextSentence(
     modifier: Modifier = Modifier,
 ) {
     val colors = ReelTheme.colors
-    val highlight = colors.gold
+    val highlight = colors.accent
     val annotated = remember(sentence, target, highlight) {
         buildAnnotatedString {
             val index = sentence.indexOf(target, ignoreCase = true)

@@ -219,7 +219,7 @@ class CaptureSessionService : Service() {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 gradientType = GradientDrawable.LINEAR_GRADIENT
-                colors = intArrayOf(ReelDarkColors.gold.toArgb(), ReelDarkColors.goldDim.toArgb())
+                colors = intArrayOf(ReelDarkColors.accent.toArgb(), ReelDarkColors.accentMuted.toArgb())
                 orientation = GradientDrawable.Orientation.TOP_BOTTOM
             }
             elevation = 8f * density

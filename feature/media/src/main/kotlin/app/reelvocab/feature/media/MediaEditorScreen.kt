@@ -1,5 +1,7 @@
 package app.reelvocab.feature.media
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -29,12 +31,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -126,7 +122,7 @@ fun MediaEditorScreen(
         ) {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = ReelIcons.ArrowLeft,
                     contentDescription = stringResource(R.string.media_back),
                     tint = ReelTheme.colors.textPrimary,
                 )
@@ -226,7 +222,7 @@ fun MediaEditorScreen(
                         LinearProgressIndicator(
                             progress = { state.progress / 100f },
                             modifier = Modifier.fillMaxWidth(),
-                            color = ReelTheme.colors.gold,
+                            color = ReelTheme.colors.accent,
                             trackColor = ReelTheme.colors.strokeSubtle,
                         )
                     }
@@ -235,7 +231,7 @@ fun MediaEditorScreen(
                         Text(
                             text = stringResource(R.string.media_editor_failed),
                             style = ReelTheme.type.bodyM,
-                            color = ReelTheme.colors.rose,
+                            color = ReelTheme.colors.error,
                         )
                     }
 
@@ -304,7 +300,7 @@ private fun EditorPreview(
                         modifier = Modifier.fillMaxSize(),
                     )
                 } ?: Icon(
-                    imageVector = Icons.Filled.Movie,
+                    imageVector = ReelIcons.Clapperboard,
                     contentDescription = null,
                     tint = colors.textTertiary,
                     modifier = Modifier.size(40.dp),
@@ -441,9 +437,9 @@ private fun AudioPreview(
             horizontalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
         ) {
             Icon(
-                imageVector = Icons.Filled.GraphicEq,
+                imageVector = ReelIcons.AudioLines,
                 contentDescription = null,
-                tint = colors.gold,
+                tint = colors.accent,
                 modifier = Modifier.size(40.dp),
             )
             Text(
@@ -483,11 +479,11 @@ private fun PlaybackControls(
     ) {
         IconButton(onClick = onPlayPause) {
             Icon(
-                imageVector = if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                imageVector = if (playing) ReelIcons.Pause else ReelIcons.Play,
                 contentDescription = stringResource(
                     if (playing) R.string.media_editor_pause else R.string.media_editor_play,
                 ),
-                tint = colors.gold,
+                tint = colors.accent,
             )
         }
         Slider(
@@ -591,7 +587,7 @@ private fun CropOverlay(
         }
         cropCorners(rect, size).forEach { point ->
             drawCircle(
-                color = colors.gold,
+                color = colors.accent,
                 radius = handleVisualRadius,
                 center = point,
             )
@@ -698,7 +694,7 @@ private fun TrimControls(
             Text(
                 text = "${formatEditorTime(state.startMs)} – ${formatEditorTime(state.endMs)}",
                 style = ReelTheme.type.mono,
-                color = ReelTheme.colors.gold,
+                color = ReelTheme.colors.accent,
             )
         }
         Text(

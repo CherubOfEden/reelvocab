@@ -79,9 +79,9 @@ fun ReelButton(
             enabled = active,
             shape = shape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = colors.gold,
+                containerColor = colors.accent,
                 contentColor = colors.onAccent,
-                disabledContainerColor = colors.goldDim,
+                disabledContainerColor = colors.accentMuted,
                 disabledContentColor = colors.onAccent.copy(alpha = 0.5f),
             ),
             elevation = flatElevation,
@@ -109,7 +109,7 @@ fun ReelButton(
             enabled = active,
             shape = shape,
             colors = ButtonDefaults.textButtonColors(
-                contentColor = colors.teal,
+                contentColor = colors.secondary,
                 disabledContentColor = colors.textTertiary,
             ),
             contentPadding = contentPadding,
@@ -122,9 +122,9 @@ fun ReelButton(
             enabled = active,
             shape = shape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = colors.rose,
+                containerColor = colors.error,
                 contentColor = colors.onAccent,
-                disabledContainerColor = colors.rose.copy(alpha = 0.4f),
+                disabledContainerColor = colors.error.copy(alpha = 0.4f),
                 disabledContentColor = colors.onAccent.copy(alpha = 0.5f),
             ),
             elevation = flatElevation,
@@ -163,20 +163,20 @@ fun ReelChip(
             labelColor = colors.textSecondary,
             iconColor = colors.textSecondary,
             selectedContainerColor = if (colors.isDark) {
-                colors.gold.copy(alpha = 0.16f)
+                colors.accent.copy(alpha = 0.16f)
             } else {
                 colors.elevated
             },
-            selectedLabelColor = colors.gold,
-            selectedLeadingIconColor = colors.gold,
+            selectedLabelColor = colors.accent,
+            selectedLeadingIconColor = colors.accent,
         ),
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
             selected = selected,
             borderColor = colors.strokeSubtle,
-            selectedBorderColor = colors.gold.copy(alpha = 0.5f),
+            selectedBorderColor = colors.accent.copy(alpha = 0.5f),
             disabledBorderColor = colors.strokeSubtle,
-            disabledSelectedBorderColor = colors.goldDim,
+            disabledSelectedBorderColor = colors.accentMuted,
             borderWidth = ReelTheme.spacing.hairline,
             selectedBorderWidth = ReelTheme.spacing.hairline,
         ),

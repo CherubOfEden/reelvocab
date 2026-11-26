@@ -90,7 +90,7 @@ fun DictionaryScreen(
                 Text(
                     text = stringResource(R.string.dictionary_ai_error),
                     style = ReelTheme.type.bodyM,
-                    color = colors.rose,
+                    color = colors.error,
                 )
             }
 
@@ -98,7 +98,7 @@ fun DictionaryScreen(
                 Text(
                     text = stringResource(R.string.dictionary_error),
                     style = ReelTheme.type.bodyM,
-                    color = colors.rose,
+                    color = colors.error,
                 )
             }
 
@@ -190,7 +190,7 @@ private fun DictionaryResult(
             Text(
                 text = partOfSpeech,
                 style = ReelTheme.type.label,
-                color = colors.teal,
+                color = colors.secondary,
             )
         }
         val definition = entry.senses.firstOrNull()?.definition
@@ -230,7 +230,7 @@ private fun WordOfTheDayCard(
         Text(
             text = stringResource(R.string.dictionary_word_of_the_day).uppercase(),
             style = ReelTheme.type.label,
-            color = colors.gold,
+            color = colors.accent,
         )
         Spacer(Modifier.height(ReelTheme.spacing.xs))
         Text(
@@ -243,7 +243,7 @@ private fun WordOfTheDayCard(
             Text(
                 text = partOfSpeech,
                 style = ReelTheme.type.label,
-                color = colors.teal,
+                color = colors.secondary,
             )
         }
         val definition = entry.senses.firstOrNull()?.definition
@@ -274,7 +274,7 @@ private fun WordOfTheDayCard(
         Text(
             text = stringResource(R.string.dictionary_word_of_the_day_cta),
             style = ReelTheme.type.label,
-            color = colors.gold,
+            color = colors.accent,
         )
     }
 }

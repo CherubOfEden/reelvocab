@@ -108,9 +108,9 @@ fun TagEditorSheet(
                 unfocusedTextColor = colors.textPrimary,
                 focusedContainerColor = colors.surface,
                 unfocusedContainerColor = colors.surface,
-                focusedBorderColor = colors.gold,
+                focusedBorderColor = colors.accent,
                 unfocusedBorderColor = colors.strokeSubtle,
-                cursorColor = colors.gold,
+                cursorColor = colors.accent,
             ),
         )
         Spacer(Modifier.height(ReelTheme.spacing.m))

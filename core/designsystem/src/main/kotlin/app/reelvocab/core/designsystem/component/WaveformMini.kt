@@ -17,7 +17,7 @@ fun WaveformMini(
     modifier: Modifier = Modifier,
 ) {
     val colors = ReelTheme.colors
-    val barColor = if (active) colors.gold else colors.textTertiary
+    val barColor = if (active) colors.accent else colors.textTertiary
     Canvas(modifier = modifier.size(width = 72.dp, height = 24.dp)) {
         if (amplitudes.isEmpty()) return@Canvas
         val slot = size.width / amplitudes.size

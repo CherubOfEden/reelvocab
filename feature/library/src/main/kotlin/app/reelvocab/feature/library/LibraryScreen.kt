@@ -1,5 +1,7 @@
 package app.reelvocab.feature.library
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import android.content.Context
 import android.net.Uri
 import android.widget.Toast
@@ -24,15 +26,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -293,7 +286,7 @@ fun LibraryScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.library_delete_confirm),
-                        color = colors.rose,
+                        color = colors.error,
                     )
                 }
             },
@@ -328,9 +321,9 @@ private fun LibrarySectionToggle(
                     count = LibrarySection.entries.size,
                 ),
                 colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = colors.gold.copy(alpha = 0.16f),
-                    activeContentColor = colors.gold,
-                    activeBorderColor = colors.gold.copy(alpha = 0.5f),
+                    activeContainerColor = colors.accent.copy(alpha = 0.16f),
+                    activeContentColor = colors.accent,
+                    activeBorderColor = colors.accent.copy(alpha = 0.5f),
                     inactiveContainerColor = colors.elevated,
                     inactiveContentColor = colors.textSecondary,
                     inactiveBorderColor = colors.strokeSubtle,
@@ -388,7 +381,7 @@ private fun VaultRow(
                 var menuOpen by remember { mutableStateOf(false) }
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
-                        imageVector = Icons.Filled.MoreVert,
+                        imageVector = ReelIcons.EllipsisVertical,
                         contentDescription = stringResource(R.string.library_more),
                         tint = colors.textSecondary,
                     )
@@ -399,7 +392,7 @@ private fun VaultRow(
                 ) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.library_details)) },
-                        leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
+                        leadingIcon = { Icon(ReelIcons.Info, contentDescription = null) },
                         onClick = {
                             menuOpen = false
                             onDetails()
@@ -407,7 +400,7 @@ private fun VaultRow(
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.library_edit)) },
-                        leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                        leadingIcon = { Icon(ReelIcons.Pencil, contentDescription = null) },
                         onClick = {
                             menuOpen = false
                             onEdit()
@@ -415,7 +408,7 @@ private fun VaultRow(
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.library_export)) },
-                        leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                        leadingIcon = { Icon(ReelIcons.Share2, contentDescription = null) },
                         onClick = {
                             menuOpen = false
                             onExport()
@@ -425,14 +418,14 @@ private fun VaultRow(
                         text = {
                             Text(
                                 text = stringResource(R.string.library_delete),
-                                color = colors.rose,
+                                color = colors.error,
                             )
                         },
                         leadingIcon = {
                             Icon(
-                                Icons.Filled.DeleteOutline,
+                                ReelIcons.Trash2,
                                 contentDescription = null,
-                                tint = colors.rose,
+                                tint = colors.error,
                             )
                         },
                         onClick = {
@@ -463,9 +456,9 @@ private fun VaultThumbnail(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.GraphicEq,
+                imageVector = ReelIcons.AudioLines,
                 contentDescription = null,
-                tint = colors.gold,
+                tint = colors.accent,
                 modifier = Modifier.size(32.dp),
             )
         }
@@ -514,9 +507,9 @@ private fun VaultThumbnailPlaceholder(kind: VaultKind) {
 }
 
 private fun VaultKind.thumbnailIcon(): ImageVector = when (this) {
-    VaultKind.Image -> Icons.Filled.Photo
-    VaultKind.Video -> Icons.Filled.Movie
-    VaultKind.Audio -> Icons.Filled.GraphicEq
+    VaultKind.Image -> ReelIcons.Image
+    VaultKind.Video -> ReelIcons.Clapperboard
+    VaultKind.Audio -> ReelIcons.AudioLines
 }
 
 private fun VaultKind.playerKind(): String = when (this) {
@@ -581,7 +574,7 @@ private fun VaultDetailsDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.library_close), color = colors.gold)
+                Text(text = stringResource(R.string.library_close), color = colors.accent)
             }
         },
         containerColor = colors.elevated,

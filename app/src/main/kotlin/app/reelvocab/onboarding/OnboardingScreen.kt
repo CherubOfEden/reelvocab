@@ -1,5 +1,7 @@
 package app.reelvocab.onboarding
 
+import app.reelvocab.core.designsystem.icon.ReelIcons
+
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -28,12 +30,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Screenshot
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -192,7 +188,7 @@ fun OnboardingScreen(
                     Text(
                         text = stringResource(R.string.onboarding_permission_allow),
                         style = ReelTheme.type.label,
-                        color = colors.gold,
+                        color = colors.accent,
                     )
                 }
             },
@@ -342,8 +338,8 @@ private fun MorningQuizPage() {
                 val isCorrect = index == correctIndex
                 val container = when {
                     selectedIndex == null -> colors.surface
-                    isCorrect -> colors.green.copy(alpha = 0.18f)
-                    isSelected -> colors.rose.copy(alpha = 0.18f)
+                    isCorrect -> colors.success.copy(alpha = 0.18f)
+                    isSelected -> colors.error.copy(alpha = 0.18f)
                     else -> colors.surface
                 }
                 Row(
@@ -371,9 +367,9 @@ private fun MorningQuizPage() {
                     )
                     if (selectedIndex != null && (isCorrect || isSelected)) {
                         Icon(
-                            imageVector = if (isCorrect) Icons.Filled.Check else Icons.Filled.Close,
+                            imageVector = if (isCorrect) ReelIcons.Check else ReelIcons.X,
                             contentDescription = null,
-                            tint = if (isCorrect) colors.green else colors.rose,
+                            tint = if (isCorrect) colors.success else colors.error,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -391,7 +387,7 @@ private fun MorningQuizPage() {
                         },
                     ),
                     style = type.bodyM,
-                    color = if (result == correctIndex) colors.green else colors.rose,
+                    color = if (result == correctIndex) colors.success else colors.error,
                 )
             }
         }
@@ -417,22 +413,22 @@ private fun PermissionsPage() {
         )
         Spacer(Modifier.height(ReelTheme.spacing.xxl))
         PermissionRow(
-            icon = Icons.Filled.Screenshot,
-            tint = colors.gold,
+            icon = ReelIcons.ScanText,
+            tint = colors.accent,
             title = stringResource(R.string.onboarding_p3_screen_title),
             body = stringResource(R.string.onboarding_p3_screen_body),
         )
         Spacer(Modifier.height(ReelTheme.spacing.l))
         PermissionRow(
-            icon = Icons.Filled.Mic,
-            tint = colors.teal,
+            icon = ReelIcons.Mic,
+            tint = colors.secondary,
             title = stringResource(R.string.onboarding_p3_mic_title),
             body = stringResource(R.string.onboarding_p3_mic_body),
         )
         Spacer(Modifier.height(ReelTheme.spacing.l))
         PermissionRow(
-            icon = Icons.Filled.Notifications,
-            tint = colors.rose,
+            icon = ReelIcons.Bell,
+            tint = colors.error,
             title = stringResource(R.string.onboarding_p3_notif_title),
             body = stringResource(R.string.onboarding_p3_notif_body),
         )

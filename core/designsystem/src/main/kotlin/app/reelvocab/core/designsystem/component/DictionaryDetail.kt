@@ -103,7 +103,7 @@ fun DictionaryDetailSheet(
                     Text(
                         text = warning,
                         style = ReelTheme.type.bodyM,
-                        color = colors.gold,
+                        color = colors.accent,
                     )
                 }
                 Row(
@@ -115,7 +115,7 @@ fun DictionaryDetailSheet(
                         Text(
                             text = entry.partOfSpeech,
                             style = ReelTheme.type.label,
-                            color = colors.teal,
+                            color = colors.secondary,
                         )
                     }
                     if (entry.difficulty != null) {
@@ -174,7 +174,7 @@ fun DictionaryDetailSheet(
                             ThesaurusRow(
                                 label = labels.synonyms,
                                 words = entry.synonyms,
-                                tint = colors.teal,
+                                tint = colors.secondary,
                                 onWordClick = onWordClick,
                             )
                         }
@@ -182,7 +182,7 @@ fun DictionaryDetailSheet(
                             ThesaurusRow(
                                 label = labels.antonyms,
                                 words = entry.antonyms,
-                                tint = colors.rose,
+                                tint = colors.error,
                                 onWordClick = onWordClick,
                             )
                         }
