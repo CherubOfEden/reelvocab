@@ -27,10 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import java.util.Locale
 
@@ -84,14 +82,18 @@ fun WordCard(
     val colors = ReelTheme.colors
     val type = ReelTheme.type
 
-    CardSurface(modifier = modifier, onClick = onClick) {
+    CardSurface(
+        modifier = modifier,
+        onClick = onClick,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(ReelTheme.spacing.xl),
+    ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = model.headword,
                         style = if (compact) {
-                            type.displayM.copy(fontSize = 24.sp, lineHeight = 28.sp)
+                            type.wordmark
                         } else {
                             type.displayM
                         },
@@ -167,7 +169,7 @@ fun WordCard(
             Spacer(Modifier.height(ReelTheme.spacing.s))
             Text(
                 text = "\u201C$example\u201D",
-                style = type.bodyM.copy(fontStyle = FontStyle.Italic),
+                style = type.quote,
                 color = colors.textSecondary,
                 maxLines = if (compact) 2 else 4,
                 overflow = TextOverflow.Ellipsis,

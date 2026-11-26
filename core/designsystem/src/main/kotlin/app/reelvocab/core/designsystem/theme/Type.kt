@@ -84,6 +84,13 @@ data class ReelType(
         fontSize = 14.sp,
         lineHeight = 22.4f.sp,
     ),
+    val quote: TextStyle = TextStyle(
+        fontFamily = Fraunces,
+        fontWeight = FontWeight.Normal,
+        fontStyle = FontStyle.Italic,
+        fontSize = 16.sp,
+        lineHeight = 26.sp,
+    ),
     val label: TextStyle = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.Medium,
