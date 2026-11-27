@@ -385,7 +385,7 @@ fun MediaScreen(
             }
         }
 
-        if (access.hasVisual && !access.hasAudio) {
+        if (access.hasVisual && !access.audio) {
             item {
                 ReelButton(
                     text = stringResource(R.string.media_permission_audio_cta),
