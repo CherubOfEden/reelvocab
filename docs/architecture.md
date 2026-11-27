@@ -176,9 +176,9 @@ Videos, Images, Audio and Documents. Documents are ordinary non-media files from
 
 ## Motion, type, colour
 
-Unchanged from revision 2: semantic tokens only, Fraunces for headwords,
-Inter for UI, Source Code Pro for IPA, JetBrains Mono for timestamps. Light
-theme accents are darkened to hold AA when used as text.
+Semantic tokens only: Amiri for headwords, Jost for UI, and JetBrains Mono for
+IPA and timestamps. Light theme accents are darkened to hold AA when used as
+text.
 
 ## Milestones
 

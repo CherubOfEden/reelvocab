@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.RectF
 import android.media.projection.MediaProjectionManager
@@ -22,23 +23,38 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.core.designsystem.tts.ProvideReelSpeaker
+import app.reelvocab.core.domain.model.MediaVaultRepository
+import app.reelvocab.core.domain.model.VaultItem
+import app.reelvocab.core.domain.model.VaultKind
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class CaptureActivity : ComponentActivity() {
+
+    @Inject lateinit var vault: MediaVaultRepository
 
     private var recordingMode: String? = null
     private var selectedAudioSource = AudioSourceMode.Internal
     private var launchSource = CaptureLaunchSource.App
     private var sourceDialog: AlertDialog? = null
-    private var pendingCrop: RectF? = null
     private var recordingCrop: RectF? = null
     private var cropOverlayVisible by mutableStateOf(false)
     private var cropDoneAction: ((RectF) -> Unit)? = null
     private var cropCancelAction: (() -> Unit)? = null
     private var recordingLaunched = false
     private var awaitingExternalResult = false
+    private var capturedBitmap by mutableStateOf<Bitmap?>(null)
+    private var cropCapturedImage by mutableStateOf(false)
+    private var imageCropHidesOverlays = false
 
     private val consentLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -53,7 +69,6 @@ class CaptureActivity : ComponentActivity() {
                     resultCode = result.resultCode,
                     data = data,
                     captureImmediately = true,
-                    crop = pendingCrop,
                 )
             }
             finish()
@@ -115,34 +130,7 @@ class CaptureActivity : ComponentActivity() {
             }
             return
         }
-        if (intent.getBooleanExtra(EXTRA_SESSION_CROP, false)) {
-            if (shouldShowCropOverlay()) {
-                showCropOverlay(
-                    onDone = { crop ->
-                        CaptureSessionService.captureWithCrop(this, crop)
-                        finish()
-                    },
-                    onCancel = {
-                        finish()
-                    },
-                )
-            } else {
-                CaptureSessionService.captureWithCrop(this, null)
-                finish()
-            }
-            return
-        }
-        if (shouldShowCropOverlay()) {
-            showCropOverlay(
-                onDone = { crop ->
-                    pendingCrop = crop
-                    requestConsent()
-                },
-                onCancel = { finish() },
-            )
-        } else {
-            requestConsent()
-        }
+        requestConsent()
     }
 
     override fun onStop() {
@@ -152,8 +140,18 @@ class CaptureActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        capturedBitmap?.let { image ->
+            capturedBitmap = null
+            if (!image.isRecycled) image.recycle()
+        }
         sourceDialog?.dismiss()
         sourceDialog = null
+        if (imageCropHidesOverlays) {
+            imageCropHidesOverlays = false
+            if (CaptureSessionService.isRunning) {
+                CaptureSessionService.cropOverlayCancelled(this)
+            }
+        }
         if (
             !recordingLaunched &&
             recordingMode != null &&
@@ -166,8 +164,8 @@ class CaptureActivity : ComponentActivity() {
 
     private fun abandonTransientCapture() {
         cropOverlayVisible = false
-        pendingCrop = null
         recordingCrop = null
+        imageCropHidesOverlays = false
         cropDoneAction = null
         cropCancelAction = null
         sourceDialog?.dismiss()
@@ -329,23 +327,85 @@ class CaptureActivity : ComponentActivity() {
         finish()
     }
 
+    private fun saveCapturedCrop(bitmap: Bitmap) {
+        val snapshot = bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return
+        val capturedAt = System.currentTimeMillis()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                runCatching {
+                    val vaultDir = File(filesDir, "vault").apply { mkdirs() }
+                    val saved = File(vaultDir, "capture_$capturedAt.png")
+                    FileOutputStream(saved).use { output ->
+                        snapshot.compress(Bitmap.CompressFormat.PNG, 100, output)
+                    }
+                    vault.add(
+                        VaultItem(
+                            id = "capture_$capturedAt",
+                            uri = "file://${saved.absolutePath}",
+                            title = "Capture " + SimpleDateFormat(
+                                "MMM d, HH:mm",
+                                Locale.getDefault(),
+                            ).format(Date(capturedAt)),
+                            kind = VaultKind.Image,
+                            createdAtEpochMs = capturedAt,
+                        ),
+                    )
+                }
+            } finally {
+                snapshot.recycle()
+            }
+        }
+    }
+
     private fun showCapture(imagePath: String) {
+        imageCropHidesOverlays = intent.getBooleanExtra(EXTRA_CROP_AFTER_CAPTURE, false)
         val bitmap = BitmapFactory.decodeFile(imagePath)
         File(imagePath).delete()
         if (bitmap == null) {
             finish()
             return
         }
+        capturedBitmap = bitmap
+        cropCapturedImage = imageCropHidesOverlays
         setContent {
             ReelTheme {
-                ProvideReelSpeaker {
-                    InAppCapture(
-                        bitmap = bitmap,
-                        sourceTitle = getString(R.string.capture_screen_source),
-                        timestampMs = 0L,
-                        onDismiss = { finishAndRemoveTask() },
-                        onSaved = { finishAndRemoveTask() },
-                    )
+                val image = capturedBitmap
+                if (image != null) {
+                    if (cropCapturedImage) {
+                        CropOverlay(
+                            bitmap = image,
+                            onDone = { crop ->
+                                val cropped = cropBitmap(image, crop)
+                                capturedBitmap = cropped
+                                cropCapturedImage = false
+                                if (cropped !== image) image.recycle()
+                                saveCapturedCrop(cropped)
+                            },
+                            onCancel = {
+                                capturedBitmap = null
+                                image.recycle()
+                                finishAndRemoveTask()
+                            },
+                        )
+                    } else {
+                        ProvideReelSpeaker {
+                            InAppCapture(
+                                bitmap = image,
+                                sourceTitle = getString(R.string.capture_screen_source),
+                                timestampMs = 0L,
+                                onDismiss = {
+                                    capturedBitmap = null
+                                    image.recycle()
+                                    finishAndRemoveTask()
+                                },
+                                onSaved = {
+                                    capturedBitmap = null
+                                    image.recycle()
+                                    finishAndRemoveTask()
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -358,16 +418,12 @@ class CaptureActivity : ComponentActivity() {
         const val EXTRA_START_FROM_PIP = "start_from_pip"
         private const val EXTRA_AUDIO_SOURCE = "audio_source"
         private const val EXTRA_SKIP_SOURCE_DIALOG = "skip_source_dialog"
-        const val EXTRA_SESSION_CROP = "session_crop"
+        const val EXTRA_CROP_AFTER_CAPTURE = "crop_after_capture"
         const val MODE_VIDEO = "video"
         const val MODE_AUDIO = "audio"
 
         fun consentIntent(context: Context): Intent =
             Intent(context, CaptureActivity::class.java)
-
-        fun cropSessionIntent(context: Context): Intent =
-            Intent(context, CaptureActivity::class.java)
-                .putExtra(EXTRA_SESSION_CROP, true)
 
         fun imageIntent(context: Context, imagePath: String): Intent =
             Intent(context, CaptureActivity::class.java)

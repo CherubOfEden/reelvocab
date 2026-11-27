@@ -6,6 +6,7 @@ import app.reelvocab.core.domain.model.MediaItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,19 +36,39 @@ class MediaViewModel @Inject constructor(
     private val _state = MutableStateFlow(MediaUiState())
     val state: StateFlow<MediaUiState> = _state.asStateFlow()
 
+    private var lastAccess: MediaAccess? = null
+    private var scanJob: Job? = null
+
     fun setCategory(category: MediaCategory) {
         _state.update { it.copy(category = category) }
     }
 
-    fun scan(force: Boolean = false) {
+    fun scan(access: MediaAccess, force: Boolean = false) {
+        if (!access.hasAny) {
+            scanJob?.cancel()
+            scanJob = null
+            lastAccess = access
+            _state.update {
+                it.copy(loading = false, error = false, items = emptyList(), scanned = false)
+            }
+            return
+        }
         val current = _state.value
-        if (current.loading || (current.scanned && !force)) return
-        viewModelScope.launch {
+        if (current.loading && lastAccess == access) return
+        if (!force && current.scanned && lastAccess == access) return
+        lastAccess = access
+        scanJob?.cancel()
+        scanJob = viewModelScope.launch {
             _state.update { it.copy(loading = true, error = false) }
             try {
-                val items = scanner.scan()
+                val result = scanner.scan(access)
                 _state.update {
-                    it.copy(loading = false, error = false, items = items, scanned = true)
+                    it.copy(
+                        loading = false,
+                        error = result.items.isEmpty() && result.failedKinds.isNotEmpty(),
+                        items = result.items,
+                        scanned = true,
+                    )
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled

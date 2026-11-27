@@ -111,17 +111,7 @@ class CaptureSessionService : Service() {
 
             ACTION_CAPTURE -> when {
                 projection == null -> launchConsent()
-                CapturePreferences.showCropOverlay(this) -> openCropOverlay()
                 else -> captureFrame()
-            }
-
-            ACTION_CAPTURE_WITH_CROP -> {
-                val crop = intent.readCropRect()
-                if (projection == null) {
-                    launchConsent()
-                } else {
-                    captureFrame(crop, CROP_EXIT_DELAY_MS)
-                }
             }
 
             ACTION_CROP_STARTED -> {
@@ -339,7 +329,6 @@ class CaptureSessionService : Service() {
     private fun requestWordCapture() {
         when {
             projection == null -> launchConsent()
-            CapturePreferences.showCropOverlay(this) -> openCropOverlay()
             else -> captureFrame()
         }
     }
@@ -500,14 +489,6 @@ class CaptureSessionService : Service() {
         )
     }
 
-    private fun openCropOverlay() {
-        removeModeMenu(animate = false)
-        startActivity(
-            CaptureActivity.cropSessionIntent(this)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
-    }
-
     private fun startSession(resultCode: Int, data: Intent) {
         if (projection != null) return
         startCaptureForeground()
@@ -564,6 +545,7 @@ class CaptureSessionService : Service() {
     }
 
     private fun captureFrameNow(reader: ImageReader, crop: android.graphics.RectF?) {
+        val postCrop = crop == null && CapturePreferences.showCropOverlay(this)
         var image: android.media.Image? = null
         try {
             image = reader.acquireLatestImage()
@@ -596,35 +578,40 @@ class CaptureSessionService : Service() {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
             }
             bitmap.recycle()
-            runCatching {
-                val vaultDir = File(filesDir, "vault").apply { mkdirs() }
-                val saved = File(vaultDir, "capture_$capturedAt.png")
-                file.copyTo(saved, overwrite = true)
-                scope.launch {
-                    vault.add(
-                        VaultItem(
-                            id = "capture_$capturedAt",
-                            uri = "file://${saved.absolutePath}",
-                            title = "Capture " + SimpleDateFormat(
-                                "MMM d, HH:mm",
-                                Locale.getDefault(),
-                            ).format(Date(capturedAt)),
-                            kind = VaultKind.Image,
-                            createdAtEpochMs = capturedAt,
-                        ),
-                    )
+            if (!postCrop) {
+                runCatching {
+                    val vaultDir = File(filesDir, "vault").apply { mkdirs() }
+                    val saved = File(vaultDir, "capture_$capturedAt.png")
+                    file.copyTo(saved, overwrite = true)
+                    scope.launch {
+                        vault.add(
+                            VaultItem(
+                                id = "capture_$capturedAt",
+                                uri = "file://${saved.absolutePath}",
+                                title = "Capture " + SimpleDateFormat(
+                                    "MMM d, HH:mm",
+                                    Locale.getDefault(),
+                                ).format(Date(capturedAt)),
+                                kind = VaultKind.Image,
+                                createdAtEpochMs = capturedAt,
+                            ),
+                        )
+                    }
                 }
             }
 
-            startActivity(
-                CaptureActivity.imageIntent(this, file.absolutePath)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            )
+            val imageIntent = CaptureActivity.imageIntent(this, file.absolutePath)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (postCrop) {
+                imageIntent.putExtra(CaptureActivity.EXTRA_CROP_AFTER_CAPTURE, true)
+            }
+            startActivity(imageIntent)
         } catch (error: Exception) {
+            if (postCrop) restoreOverlays()
             handler.postDelayed({ captureFrame(crop) }, RETRY_DELAY_MS)
         } finally {
             image?.close()
-            restoreOverlays()
+            if (!postCrop) restoreOverlays()
             capturing = false
         }
     }
@@ -685,7 +672,6 @@ class CaptureSessionService : Service() {
         private const val ACTION_START_PILL = "app.reelvocab.capture.START_PILL"
         private const val ACTION_START_SESSION = "app.reelvocab.capture.START_SESSION"
         private const val ACTION_CAPTURE = "app.reelvocab.capture.CAPTURE"
-        private const val ACTION_CAPTURE_WITH_CROP = "app.reelvocab.capture.CAPTURE_WITH_CROP"
         private const val ACTION_CROP_STARTED = "app.reelvocab.capture.CROP_STARTED"
         private const val ACTION_CROP_CANCELLED = "app.reelvocab.capture.CROP_CANCELLED"
         private const val ACTION_STOP = "app.reelvocab.capture.STOP"
@@ -702,7 +688,6 @@ class CaptureSessionService : Service() {
         private const val MENU_EDGE_MARGIN_DP = 12
         private const val MENU_GAP_DP = 10
         private const val CAPTURE_DELAY_MS = 350L
-        private const val CROP_EXIT_DELAY_MS = 300L
         private const val RETRY_DELAY_MS = 150L
         private const val OVERLAY_HIDE_DELAY_MS = 120L
 
@@ -744,14 +729,6 @@ class CaptureSessionService : Service() {
             context.startService(
                 Intent(context, CaptureSessionService::class.java)
                     .setAction(ACTION_CAPTURE),
-            )
-        }
-
-        fun captureWithCrop(context: Context, crop: android.graphics.RectF?) {
-            context.startService(
-                Intent(context, CaptureSessionService::class.java)
-                    .setAction(ACTION_CAPTURE_WITH_CROP)
-                    .putCropRect(crop),
             )
         }
 

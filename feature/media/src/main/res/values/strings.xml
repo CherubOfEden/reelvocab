@@ -72,4 +72,27 @@
     <string name="media_editor_exporting">Exporting %1$d%%…</string>
     <string name="media_editor_saved">Saved to your vault</string>
     <string name="media_editor_failed">This edit could not be completed.</string>
+    <string name="media_more">More options</string>
+    <string name="media_menu_details">Details</string>
+    <string name="media_menu_edit">Edit</string>
+    <string name="media_menu_delete">Delete</string>
+    <string name="media_share">Share</string>
+    <string name="media_share_failed">No app can share this item.</string>
+    <string name="media_delete_title">Delete media?</string>
+    <string name="media_delete_body">Remove \"%1$s\" from this device?</string>
+    <string name="media_delete_confirm">Delete</string>
+    <string name="media_delete_failed">This item could not be deleted.</string>
+    <string name="media_details_title">Media details</string>
+    <string name="media_detail_title">Title</string>
+    <string name="media_detail_kind">Kind</string>
+    <string name="media_detail_duration">Duration</string>
+    <string name="media_detail_mime">Type</string>
+    <string name="media_detail_name">File name</string>
+    <string name="media_detail_size">Size</string>
+    <string name="media_detail_modified">Modified</string>
+    <string name="media_detail_path">Location</string>
+    <string name="media_close">Close</string>
+    <string name="media_partial_access">Only selected photos and videos are visible. Allow full access to see everything.</string>
+    <string name="media_permission_audio_cta">Allow audio access</string>
+    <string name="media_permission_visual_cta">Allow photos and videos</string>
 </resources>

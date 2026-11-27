@@ -6,22 +6,34 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import app.reelvocab.core.designsystem.R
 
-private val Fraunces = FontFamily(
-    Font(R.font.fraunces_variable, FontWeight.Normal),
-    Font(R.font.fraunces_variable, FontWeight.Medium),
-    Font(R.font.fraunces_variable, FontWeight.SemiBold),
-    Font(R.font.fraunces_italic_variable, FontWeight.Normal, FontStyle.Italic),
+private val Amiri = FontFamily(
+    Font(R.font.amiri_regular, FontWeight.Normal),
+    Font(R.font.amiri_bold, FontWeight.Bold),
+    Font(R.font.amiri_italic, FontWeight.Normal, FontStyle.Italic),
 )
 
-private val Inter = FontFamily(
-    Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_medium, FontWeight.Medium),
-    Font(R.font.inter_semibold, FontWeight.SemiBold),
+private val Jost = FontFamily(
+    Font(
+        resId = R.font.jost_variable,
+        weight = FontWeight.Normal,
+        variationSettings = FontVariation.Settings(FontVariation.weight(400)),
+    ),
+    Font(
+        resId = R.font.jost_variable,
+        weight = FontWeight.Medium,
+        variationSettings = FontVariation.Settings(FontVariation.weight(500)),
+    ),
+    Font(
+        resId = R.font.jost_variable,
+        weight = FontWeight.SemiBold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(600)),
+    ),
 )
 
 private val JetBrainsMono = FontFamily(
@@ -32,104 +44,109 @@ private val JetBrainsMono = FontFamily(
 @Immutable
 data class ReelType(
     val hero: TextStyle = TextStyle(
-        fontFamily = Fraunces,
+        fontFamily = Amiri,
         fontWeight = FontWeight.Normal,
-        fontSize = 56.sp,
-        lineHeight = 58.8f.sp,
-        letterSpacing = (-0.02f).em,
+        fontSize = 42.sp,
+        lineHeight = 52.sp,
+        letterSpacing = (-0.01f).em,
     ),
     val displayL: TextStyle = TextStyle(
-        fontFamily = Fraunces,
-        fontWeight = FontWeight.Normal,
-        fontSize = 40.sp,
-        lineHeight = 44f.sp,
-        letterSpacing = (-0.02f).em,
-    ),
-    val displayM: TextStyle = TextStyle(
-        fontFamily = Fraunces,
+        fontFamily = Amiri,
         fontWeight = FontWeight.Normal,
         fontSize = 32.sp,
-        lineHeight = 36f.sp,
+        lineHeight = 42.sp,
         letterSpacing = (-0.01f).em,
     ),
-    val wordmark: TextStyle = TextStyle(
-        fontFamily = Fraunces,
-        fontWeight = FontWeight.Normal,
-        fontSize = 28.sp,
-        lineHeight = 32f.sp,
-        letterSpacing = (-0.01f).em,
-    ),
-    val titleL: TextStyle = TextStyle(
-        fontFamily = Fraunces,
+    val displayM: TextStyle = TextStyle(
+        fontFamily = Amiri,
         fontWeight = FontWeight.Normal,
         fontSize = 26.sp,
-        lineHeight = 32f.sp,
-        letterSpacing = (-0.01f).em,
+        lineHeight = 34.sp,
+        letterSpacing = 0.em,
+    ),
+    val wordmark: TextStyle = TextStyle(
+        fontFamily = Amiri,
+        fontWeight = FontWeight.Normal,
+        fontSize = 24.sp,
+        lineHeight = 32.sp,
+        letterSpacing = 0.em,
+    ),
+    val titleL: TextStyle = TextStyle(
+        fontFamily = Amiri,
+        fontWeight = FontWeight.Normal,
+        fontSize = 21.sp,
+        lineHeight = 30.sp,
+        letterSpacing = 0.em,
     ),
     val titleM: TextStyle = TextStyle(
-        fontFamily = Inter,
+        fontFamily = Jost,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp,
-        lineHeight = 24f.sp,
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.01f.em,
     ),
     val bodyL: TextStyle = TextStyle(
-        fontFamily = Inter,
+        fontFamily = Jost,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 26f.sp,
+        fontSize = 15.sp,
+        lineHeight = 26.sp,
+        letterSpacing = 0.01f.em,
     ),
     val bodyM: TextStyle = TextStyle(
-        fontFamily = Inter,
+        fontFamily = Jost,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 22.4f.sp,
+        fontSize = 13.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.01f.em,
     ),
     val quote: TextStyle = TextStyle(
-        fontFamily = Fraunces,
+        fontFamily = Amiri,
         fontWeight = FontWeight.Normal,
         fontStyle = FontStyle.Italic,
-        fontSize = 16.sp,
+        fontSize = 15.sp,
         lineHeight = 26.sp,
+        letterSpacing = 0.01f.em,
     ),
     val label: TextStyle = TextStyle(
-        fontFamily = Inter,
+        fontFamily = Jost,
         fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        lineHeight = 18f.sp,
-        letterSpacing = 0.02f.em,
+        fontSize = 11.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.04f.em,
     ),
     val sectionLabel: TextStyle = TextStyle(
-        fontFamily = Inter,
+        fontFamily = Jost,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 11.sp,
-        lineHeight = 16f.sp,
-        letterSpacing = 0.12f.em,
+        fontSize = 10.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.14f.em,
     ),
     val caption: TextStyle = TextStyle(
-        fontFamily = Inter,
+        fontFamily = Jost,
         fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        lineHeight = 18f.sp,
+        fontSize = 11.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.01f.em,
     ),
     val navLabel: TextStyle = TextStyle(
-        fontFamily = Inter,
+        fontFamily = Jost,
         fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 14f.sp,
-        letterSpacing = 0.01f.em,
+        fontSize = 10.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.02f.em,
     ),
     val ipa: TextStyle = TextStyle(
         fontFamily = JetBrainsMono,
         fontWeight = FontWeight.Normal,
-        fontSize = 18.sp,
-        lineHeight = 24f.sp,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
         letterSpacing = 0.01f.em,
     ),
     val mono: TextStyle = TextStyle(
         fontFamily = JetBrainsMono,
         fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        lineHeight = 16f.sp,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
         letterSpacing = 0.02f.em,
     ),
 ) {

@@ -61,9 +61,8 @@ five-tab navigation graph and depends on `:core:data`. Nothing depends on `:app`
 - Dark first. Light is a variant of the same semantic tokens, never a second palette.
 - All colours live in `core/designsystem/theme/Palette.kt`. CI fails on `Color(0x`
   literals anywhere else.
-- Fraunces is only for headwords, hero words, and quiz prompts. Inter for UI text.
-  Source Code Pro for IPA (JetBrains Mono has no IPA glyphs). JetBrains Mono for
-  timestamps and counters.
+- Amiri is only for headwords, hero words, and quiz prompts. Jost for UI text.
+  JetBrains Mono for IPA, timestamps, and counters.
 - Motion reads `Settings.Global.ANIMATOR_DURATION_SCALE`; when animations are off,
   transitions collapse to 0 ms instead of disappearing.
 - Text meets WCAG AA at the sizes used; `TokenContrastTest` enforces the pairs.
@@ -114,6 +113,6 @@ no Play Services model download.
 
 ## Licences
 
-Bundled typefaces (Fraunces, Inter, JetBrains Mono, Source Code Pro) are licensed
-under the SIL Open Font Licence. Full texts ship in `app/src/main/assets/licenses/`
+Bundled typefaces (Jost, Amiri, JetBrains Mono) are licensed under the SIL Open
+Font Licence. Full texts ship in `app/src/main/assets/licenses/`
 and are readable in-app under Settings → Fonts and licences.

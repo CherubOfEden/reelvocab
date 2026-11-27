@@ -55,12 +55,12 @@
     <string name="onboarding_permission_later">Not now</string>
 
     <string name="licenses_title">Fonts and licences</string>
-    <string name="licenses_intro">ReelVocab bundles four open-source typefaces under the SIL Open Font Licence. The full licence text is shown below each name.</string>
+    <string name="licenses_intro">ReelVocab bundles three open-source typefaces under the SIL Open Font Licence. The full licence text is shown below each name.</string>
     <string name="licenses_show">Show licence</string>
     <string name="licenses_hide">Hide licence</string>
     <string name="licenses_unreadable">This licence file could not be read on this device.</string>
     <string name="licenses_version">Version %1$s</string>
-    <string name="licenses_attribution">Fraunces by Undercase Type, Inter by Rasmus Andersson, JetBrains Mono by JetBrains, Source Code Pro by Adobe.</string>
+    <string name="licenses_attribution">Jost by indestructible type*, Amiri by Khaled Hosny, JetBrains Mono by JetBrains.</string>
 
     <string name="gallery_title">Design system</string>
     <string name="gallery_section_color">Colour</string>

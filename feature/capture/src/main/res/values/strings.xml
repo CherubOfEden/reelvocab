@@ -65,7 +65,9 @@
     <string name="recording_title_audio">RV Audio</string>
     <string name="recording_notification_video">Recording RV Video</string>
     <string name="recording_notification_audio">Recording RV Audio</string>
-    <string name="recording_notification_text">Tap stop here or use the floating panel.</string>
+    <string name="recording_notification_text">Use the controls here to pause or stop recording.</string>
+    <string name="recording_notification_starting">Recording starts in %1$d seconds.</string>
+    <string name="recording_notification_paused">Paused at %1$s.</string>
     <string name="recording_pause">Pause</string>
     <string name="recording_resume">Resume</string>
     <string name="recording_stop">Stop</string>

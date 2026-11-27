@@ -156,6 +156,7 @@ fun LibraryScreen(
         if (section == LibrarySection.InternalMedia) {
             MediaScreen(
                 onPlay = onPlayMedia,
+                onEdit = onEdit,
                 modifier = Modifier.weight(1f),
                 embedded = true,
             )

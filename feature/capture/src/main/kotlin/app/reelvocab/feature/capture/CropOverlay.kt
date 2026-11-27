@@ -1,5 +1,6 @@
 package app.reelvocab.feature.capture
 
+import android.graphics.Bitmap
 import android.graphics.RectF
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
@@ -27,6 +28,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -35,19 +37,25 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import app.reelvocab.core.designsystem.component.ReelButton
 import app.reelvocab.core.designsystem.component.ReelButtonStyle
 import app.reelvocab.core.designsystem.theme.ReelTheme
+import kotlin.math.roundToInt
 
 @Composable
 internal fun CropOverlay(
     onDone: (RectF) -> Unit,
     onCancel: () -> Unit,
+    bitmap: Bitmap? = null,
     modifier: Modifier = Modifier,
 ) {
-    val cropState = remember { mutableStateOf(CropFrame.Inset) }
+    val imageBitmap = remember(bitmap) { bitmap?.asImageBitmap() }
+    val cropState = remember(bitmap) {
+        mutableStateOf(if (bitmap != null) CropFrame.Full else CropFrame.Inset)
+    }
     val activeHandle = remember { mutableStateOf<CropHandle?>(null) }
     val size = remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
@@ -66,10 +74,23 @@ internal fun CropOverlay(
     val borderColor = colors.accent
     BackHandler(onBack = onCancel)
 
-    val workLeft = safeLeft + gutter
-    val workTop = safeTop + gutter
-    val workRight = (size.value.width - safeRight - gutter).coerceAtLeast(workLeft + 1f)
-    val workBottom = (size.value.height - safeBottom - gutter).coerceAtLeast(workTop + 1f)
+    val imageRect = bitmap?.let {
+        fitImageRect(
+            left = safeLeft + gutter,
+            top = safeTop + gutter,
+            right = (size.value.width - safeRight - gutter).coerceAtLeast(safeLeft + gutter + 1f),
+            bottom = (size.value.height - safeBottom - gutter).coerceAtLeast(safeTop + gutter + 1f),
+            imageWidth = it.width,
+            imageHeight = it.height,
+            fraction = 0.88f,
+        )
+    }
+    val workLeft = imageRect?.left ?: (safeLeft + gutter)
+    val workTop = imageRect?.top ?: (safeTop + gutter)
+    val workRight = imageRect?.right
+        ?: (size.value.width - safeRight - gutter).coerceAtLeast(workLeft + 1f)
+    val workBottom = imageRect?.bottom
+        ?: (size.value.height - safeBottom - gutter).coerceAtLeast(workTop + 1f)
     val workWidth = workRight - workLeft
     val workHeight = workBottom - workTop
     val minWidthNorm = (minWidth / workWidth).coerceIn(0.01f, 1f)
@@ -127,7 +148,7 @@ internal fun CropOverlay(
                                 dragY = delta.y / workHeight,
                                 minWidth = minWidthNorm,
                                 minHeight = minHeightNorm,
-                                edgeInset = CropFrame.InsetMargin,
+                                edgeInset = if (bitmap != null) 0f else CropFrame.InsetMargin,
                             )
                             change.consume()
                         }
@@ -137,6 +158,19 @@ internal fun CropOverlay(
             },
     ) {
         Canvas(Modifier.fillMaxSize()) {
+            if (imageBitmap != null && imageRect != null) {
+                drawImage(
+                    image = imageBitmap,
+                    dstOffset = IntOffset(
+                        imageRect.left.roundToInt(),
+                        imageRect.top.roundToInt(),
+                    ),
+                    dstSize = IntSize(
+                        imageRect.width.roundToInt(),
+                        imageRect.height.roundToInt(),
+                    ),
+                )
+            }
             val frame = cropState.value
             val rect = Rect(
                 left = workLeft + frame.left * workWidth,
@@ -190,20 +224,54 @@ internal fun CropOverlay(
             ReelButton(
                 text = stringResource(R.string.capture_crop_done),
                 onClick = {
-                    val frame = cropState.value.toScreen(
-                        workLeft = workLeft,
-                        workTop = workTop,
-                        workWidth = workWidth,
-                        workHeight = workHeight,
-                        screenWidth = size.value.width.toFloat(),
-                        screenHeight = size.value.height.toFloat(),
-                    )
-                    onDone(RectF(frame.left, frame.top, frame.right, frame.bottom))
+                    val frame = cropState.value
+                    val output = if (bitmap != null) {
+                        RectF(frame.left, frame.top, frame.right, frame.bottom)
+                    } else {
+                        val screen = frame.toScreen(
+                            workLeft = workLeft,
+                            workTop = workTop,
+                            workWidth = workWidth,
+                            workHeight = workHeight,
+                            screenWidth = size.value.width.toFloat(),
+                            screenHeight = size.value.height.toFloat(),
+                        )
+                        RectF(screen.left, screen.top, screen.right, screen.bottom)
+                    }
+                    onDone(output)
                 },
                 modifier = Modifier.weight(1f),
             )
         }
     }
+}
+
+private fun fitImageRect(
+    left: Float,
+    top: Float,
+    right: Float,
+    bottom: Float,
+    imageWidth: Int,
+    imageHeight: Int,
+    fraction: Float,
+): Rect {
+    if (imageWidth <= 0 || imageHeight <= 0) {
+        return Rect(left, top, right, bottom)
+    }
+    val availableWidth = (right - left).coerceAtLeast(1f) * fraction
+    val availableHeight = (bottom - top).coerceAtLeast(1f) * fraction
+    val scale = minOf(availableWidth / imageWidth, availableHeight / imageHeight)
+        .coerceAtLeast(0.0001f)
+    val width = imageWidth * scale
+    val height = imageHeight * scale
+    val centerX = (left + right) / 2f
+    val centerY = (top + bottom) / 2f
+    return Rect(
+        left = centerX - width / 2f,
+        top = centerY - height / 2f,
+        right = centerX + width / 2f,
+        bottom = centerY + height / 2f,
+    )
 }
 
 private fun DrawScope.drawCropMask(rect: Rect) {

@@ -16,8 +16,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.provider.Settings
-import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -51,7 +49,6 @@ class RecordingService : Service() {
     private val extractionScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val transcribeMutex = Mutex()
 
-    private lateinit var windowManager: WindowManager
     private val handler = Handler(Looper.getMainLooper())
 
     private var recordingEngine: MediaRecordingEngine? = null
@@ -60,23 +57,12 @@ class RecordingService : Service() {
     private var recordingKind: RecordingKind? = null
     private var recordingTitle: String = ""
     private var recordingStartedAtEpochMs = 0L
-    private var recordingPanel: RecordingPanel? = null
-    private var recordingBubble: RecordingBubble? = null
     private var transcriber: OnDeviceTranscriber? = null
     private var launchSource = CaptureLaunchSource.App
     private var stoppingRecording = false
     private var recordingActive = false
     private var countdownRemaining = 0
     private var countdownEngine: MediaRecordingEngine? = null
-
-    private val timerRunnable = object : Runnable {
-        override fun run() {
-            val elapsed = if (recordingActive) recordingEngine?.elapsedMs() ?: 0L else 0L
-            recordingPanel?.setElapsed(elapsed)
-            recordingBubble?.setElapsed(elapsed)
-            handler.postDelayed(this, TIMER_INTERVAL_MS)
-        }
-    }
 
     private val countdownRunnable = object : Runnable {
         override fun run() {
@@ -89,14 +75,13 @@ class RecordingService : Service() {
                 return
             }
             countdownRemaining -= 1
-            recordingPanel?.setCountdown(countdownRemaining)
+            updateRecordingNotification(countdown = countdownRemaining)
             handler.postDelayed(this, COUNTDOWN_INTERVAL_MS)
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        windowManager = getSystemService(WindowManager::class.java)
         createChannel()
     }
 
@@ -132,6 +117,8 @@ class RecordingService : Service() {
                 )
             }
 
+            ACTION_PAUSE -> pauseRecording()
+            ACTION_RESUME -> resumeRecording()
             ACTION_STOP -> stopRecording()
         }
         return START_NOT_STICKY
@@ -141,8 +128,6 @@ class RecordingService : Service() {
 
     override fun onDestroy() {
         cancelCountdown()
-        handler.removeCallbacks(timerRunnable)
-        teardownOverlays()
         val engine = recordingEngine
         recordingEngine = null
         if (engine != null) {
@@ -278,11 +263,7 @@ class RecordingService : Service() {
                 outputFile = file,
                 crop = crop,
                 listener = object : RecordingListener {
-                    override fun onLevel(level: Float) {
-                        handler.post {
-                            if (recordingActive) recordingPanel?.pushLevel(level)
-                        }
-                    }
+                    override fun onLevel(level: Float) = Unit
 
                     override fun onSpeechSegment(segment: SpeechSegment) {
                         if (!recordingActive || recordingEngine == null) return
@@ -339,17 +320,13 @@ class RecordingService : Service() {
         }
 
         recordingEngine = engine
-        if (showRecordingPanel(kind)) {
-            beginCountdown(engine)
-        } else {
-            startEngine(engine)
-        }
+        beginCountdown(engine)
     }
 
     private fun beginCountdown(engine: MediaRecordingEngine) {
         countdownEngine = engine
         countdownRemaining = COUNTDOWN_SECONDS
-        recordingPanel?.setCountdown(countdownRemaining)
+        updateRecordingNotification(countdown = countdownRemaining)
         handler.postDelayed(countdownRunnable, COUNTDOWN_INTERVAL_MS)
     }
 
@@ -361,14 +338,11 @@ class RecordingService : Service() {
 
     private fun startEngine(engine: MediaRecordingEngine) {
         if (stoppingRecording) return
-        removeRecordingPanel()
-        removeRecordingBubble()
         recordingStartedAtEpochMs = System.currentTimeMillis()
         try {
             engine.start()
         } catch (error: Throwable) {
             cancelCountdown()
-            teardownOverlays()
             runCatching { recordingProjection?.stop() }
             runCatching { recordingFile?.delete() }
             clearRecordingState()
@@ -377,10 +351,19 @@ class RecordingService : Service() {
             return
         }
         recordingActive = true
-        recordingPanel?.setCountdownComplete()
-        recordingPanel?.setPaused(false)
-        startTimer()
-        collapseToBubble()
+        updateRecordingNotification()
+    }
+
+    private fun pauseRecording() {
+        if (!recordingActive) return
+        recordingEngine?.pause()
+        updateRecordingNotification()
+    }
+
+    private fun resumeRecording() {
+        if (!recordingActive) return
+        recordingEngine?.resume()
+        updateRecordingNotification()
     }
 
     private fun stopRecording() {
@@ -392,8 +375,6 @@ class RecordingService : Service() {
         }
         stoppingRecording = true
         cancelCountdown()
-        handler.removeCallbacks(timerRunnable)
-        teardownOverlays()
 
         val file = recordingFile
         val startedAt = recordingStartedAtEpochMs
@@ -454,103 +435,9 @@ class RecordingService : Service() {
 
     private fun finishService() {
         cancelCountdown()
-        handler.removeCallbacks(timerRunnable)
-        teardownOverlays()
         resetBubble()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
-    }
-
-    private fun showRecordingPanel(kind: RecordingKind): Boolean {
-        if (recordingPanel != null) return true
-        if (stoppingRecording) return false
-        if (!Settings.canDrawOverlays(this)) {
-            showToast(R.string.recording_overlay_required)
-            return false
-        }
-        val panel = RecordingPanel(
-            context = this,
-            title = getString(
-                if (kind == RecordingKind.Video) {
-                    R.string.recording_title_video
-                } else {
-                    R.string.recording_title_audio
-                },
-            ),
-            pauseLabel = getString(R.string.recording_pause),
-            resumeLabel = getString(R.string.recording_resume),
-            stopLabel = getString(R.string.recording_stop),
-            hideLabel = getString(R.string.recording_hide),
-            onPause = { recordingEngine?.pause() },
-            onResume = {
-                recordingEngine?.resume()
-                collapseToBubble()
-            },
-            onStop = { stopRecording() },
-            onHide = { collapseToBubble() },
-        )
-        var added = false
-        runCatching {
-            windowManager.addView(panel.view, panel.windowParams())
-        }.onSuccess {
-            if (stoppingRecording) {
-                runCatching { windowManager.removeViewImmediate(panel.view) }
-                return false
-            }
-            recordingPanel = panel
-            added = true
-            panel.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
-        }
-        return added
-    }
-
-    private fun teardownOverlays() {
-        removeRecordingPanel()
-        removeRecordingBubble()
-    }
-
-    private fun removeRecordingPanel() {
-        val panel = recordingPanel ?: return
-        recordingPanel = null
-        runCatching { windowManager.removeViewImmediate(panel.view) }
-    }
-
-    private fun collapseToBubble() {
-        removeRecordingPanel()
-        if (stoppingRecording) return
-        if (!recordingActive || !Settings.canDrawOverlays(this)) return
-        if (recordingBubble != null) return
-        val bubble = RecordingBubble(this) { expandControls() }
-        runCatching {
-            windowManager.addView(bubble.view, bubble.windowParams())
-        }.onSuccess {
-            if (stoppingRecording) {
-                runCatching { windowManager.removeViewImmediate(bubble.view) }
-                return
-            }
-            recordingBubble = bubble
-            bubble.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
-        }
-    }
-
-    private fun expandControls() {
-        if (!recordingActive) return
-        removeRecordingBubble()
-        val kind = recordingKind ?: return
-        if (!showRecordingPanel(kind)) return
-        recordingPanel?.setPaused(recordingEngine?.isPaused() == true)
-        recordingPanel?.setElapsed(recordingEngine?.elapsedMs() ?: 0L)
-    }
-
-    private fun removeRecordingBubble() {
-        val bubble = recordingBubble ?: return
-        recordingBubble = null
-        runCatching { windowManager.removeViewImmediate(bubble.view) }
-    }
-
-    private fun startTimer() {
-        handler.removeCallbacks(timerRunnable)
-        handler.post(timerRunnable)
     }
 
     private fun createChannel() {
@@ -582,14 +469,37 @@ class RecordingService : Service() {
         )
     }
 
-    private fun buildRecordingNotification(kind: RecordingKind): Notification {
+    private fun buildRecordingNotification(
+        kind: RecordingKind,
+        countdown: Int? = null,
+    ): Notification {
         val stopIntent = PendingIntent.getService(
             this,
-            2,
+            REQUEST_STOP,
             Intent(this, RecordingService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val pauseIntent = PendingIntent.getService(
+            this,
+            REQUEST_PAUSE,
+            Intent(this, RecordingService::class.java).setAction(ACTION_PAUSE),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val resumeIntent = PendingIntent.getService(
+            this,
+            REQUEST_RESUME,
+            Intent(this, RecordingService::class.java).setAction(ACTION_RESUME),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val paused = recordingEngine?.isPaused() == true
+        val elapsed = recordingEngine?.elapsedMs() ?: 0L
+        val active = recordingActive && countdown == null
+        val text = when {
+            countdown != null -> getString(R.string.recording_notification_starting, countdown)
+            paused -> getString(R.string.recording_notification_paused, formatElapsed(elapsed))
+            else -> getString(R.string.recording_notification_text)
+        }
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(
                 getString(
                     if (kind == RecordingKind.Video) {
@@ -599,12 +509,48 @@ class RecordingService : Service() {
                     },
                 ),
             )
-            .setContentText(getString(R.string.recording_notification_text))
+            .setContentText(text)
             .setSmallIcon(R.drawable.ic_capture_pill)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .setSilent(true)
-            .addAction(0, getString(R.string.capture_stop), stopIntent)
-            .build()
+        if (active) {
+            builder
+                .setShowWhen(true)
+                .setUsesChronometer(!paused)
+                .setWhen(System.currentTimeMillis() - elapsed)
+        }
+        if (countdown == null && recordingActive) {
+            if (paused) {
+                builder.addAction(0, getString(R.string.recording_resume), resumeIntent)
+            } else {
+                builder.addAction(0, getString(R.string.recording_pause), pauseIntent)
+            }
+        }
+        builder.addAction(0, getString(R.string.capture_stop), stopIntent)
+        return builder.build()
+    }
+
+    private fun updateRecordingNotification(countdown: Int? = null) {
+        val kind = recordingKind ?: return
+        runCatching {
+            getSystemService(NotificationManager::class.java).notify(
+                NOTIFICATION_ID,
+                buildRecordingNotification(kind, countdown),
+            )
+        }
+    }
+
+    private fun formatElapsed(elapsedMs: Long): String {
+        val totalSeconds = elapsedMs / 1000L
+        val hours = totalSeconds / 3600L
+        val minutes = (totalSeconds % 3600L) / 60L
+        val seconds = totalSeconds % 60L
+        return if (hours > 0L) {
+            String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            String.format(Locale.US, "%02d:%02d", minutes, seconds)
+        }
     }
 
     private fun showAudioSourceToast(requested: AudioSourceMode, active: AudioSourceMode) {
@@ -642,13 +588,17 @@ class RecordingService : Service() {
         private const val CHANNEL_ID = "recording_session"
         private const val NOTIFICATION_ID = 4203
         private const val ACTION_START_RECORDING = "app.reelvocab.recording.START"
+        private const val ACTION_PAUSE = "app.reelvocab.recording.PAUSE"
+        private const val ACTION_RESUME = "app.reelvocab.recording.RESUME"
         private const val ACTION_STOP = "app.reelvocab.recording.STOP"
         private const val EXTRA_RECORD_MODE = "record_mode"
         private const val EXTRA_AUDIO_SOURCE = "audio_source"
         private const val EXTRA_LAUNCH_SOURCE = "launch_source"
         private const val EXTRA_RESULT_CODE = "result_code"
         private const val EXTRA_DATA = "projection_data"
-        private const val TIMER_INTERVAL_MS = 250L
+        private const val REQUEST_PAUSE = 3
+        private const val REQUEST_RESUME = 4
+        private const val REQUEST_STOP = 2
         private const val COUNTDOWN_SECONDS = 5
         private const val COUNTDOWN_INTERVAL_MS = 1_000L
 

@@ -39,8 +39,8 @@ data object LicensesRoute
 private data class LicenseEntry(val title: String, val asset: String)
 
 private val LicenseEntries = listOf(
-    LicenseEntry("Fraunces", "licenses/OFL-Fraunces.txt"),
-    LicenseEntry("Inter", "licenses/OFL-Inter.txt"),
+    LicenseEntry("Jost", "licenses/OFL-Jost.txt"),
+    LicenseEntry("Amiri", "licenses/OFL-Amiri.txt"),
     LicenseEntry("JetBrains Mono", "licenses/OFL-JetBrainsMono.txt"),
 )
 

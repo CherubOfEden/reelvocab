@@ -12,39 +12,67 @@ import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+data class MediaScanResult(
+    val items: List<MediaItem>,
+    val failedKinds: Set<MediaKind>,
+)
+
 @Singleton
 class MediaScanner @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    suspend fun scan(): List<MediaItem> = withContext(Dispatchers.IO) {
-        val videos = safely {
-            query(
-                collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                kind = MediaKind.Video,
-                hasDuration = true,
-                selection = "${MediaStore.MediaColumns.DURATION} > 0",
-            )
-        }
-        val images = safely {
-            query(
-                collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                kind = MediaKind.Image,
-                hasDuration = false,
-            )
-        }
-        val audio = safely {
-            query(
-                collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                kind = MediaKind.Audio,
-                hasDuration = true,
-                selection = "${MediaStore.MediaColumns.DURATION} > 0",
-            )
-        }
-        (videos + images + audio).distinctBy { it.uri }
-    }
+    suspend fun scan(access: MediaAccess): MediaScanResult = withContext(Dispatchers.IO) {
+        val items = mutableListOf<MediaItem>()
+        val failed = mutableSetOf<MediaKind>()
 
-    private inline fun <T> safely(block: () -> List<T>): List<T> =
-        runCatching(block).getOrDefault(emptyList())
+        fun load(
+            kind: MediaKind,
+            allowed: Boolean,
+            collection: Uri,
+            hasDuration: Boolean,
+            selection: String? = null,
+        ) {
+            if (!allowed) return
+            runCatching {
+                query(
+                    collection = collection,
+                    kind = kind,
+                    hasDuration = hasDuration,
+                    selection = selection,
+                )
+            }.onSuccess { loaded ->
+                items += loaded
+            }.onFailure {
+                failed += kind
+            }
+        }
+
+        load(
+            kind = MediaKind.Video,
+            allowed = access.video,
+            collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            hasDuration = true,
+            selection = "${MediaStore.MediaColumns.DURATION} > 0",
+        )
+        load(
+            kind = MediaKind.Image,
+            allowed = access.images,
+            collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            hasDuration = false,
+        )
+        load(
+            kind = MediaKind.Audio,
+            allowed = access.audio,
+            collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            hasDuration = true,
+            selection = "${MediaStore.MediaColumns.DURATION} > 0",
+        )
+
+        MediaScanResult(
+            items = items.distinctBy { it.uri },
+            failedKinds = failed,
+        )
+    }
 
     private fun query(
         collection: Uri,

@@ -340,6 +340,11 @@ fun MainScaffold(
             composable<MediaRoute> {
                 MediaScreen(
                     onPlay = { playerRoute -> navController.navigate(playerRoute) },
+                    onEdit = { uri, title, kind ->
+                        navController.navigate(
+                            EditorRoute(uri = uri, title = title, kind = kind),
+                        )
+                    },
                 )
             }
 
