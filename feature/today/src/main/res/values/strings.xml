@@ -61,4 +61,8 @@
     <string name="review_tag_save">Save tags</string>
     <string name="review_tag_empty">No tags yet. Add one to find this card later by mood, film, or grammar.</string>
     <string name="review_tag_remove">Remove tag</string>
+    <string name="review_translate">Translate</string>
+    <string name="review_translating">Translating…</string>
+    <string name="review_translation">Translation</string>
+    <string name="review_translation_error">Could not translate. Check your connection and try again.</string>
 </resources>

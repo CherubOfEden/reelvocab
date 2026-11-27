@@ -194,13 +194,23 @@ fun PlayerScreen(
     fun togglePlayback() {
         val exo = player ?: return
         if (exo.playbackState == Player.STATE_ENDED) {
-            exo.seekTo(0L)
+            exo.seekTo(exo.currentMediaItemIndex, 0L)
             exo.play()
         } else if (exo.isPlaying) {
             exo.pause()
         } else {
             exo.play()
         }
+        refreshPlayerState()
+    }
+
+    fun playNextPaused() {
+        val exo = player ?: return
+        if (!exo.hasNextMediaItem()) return
+        exo.pause()
+        exo.seekToNextMediaItem()
+        exo.playWhenReady = false
+        controlsVisible = true
         refreshPlayerState()
     }
 
@@ -536,7 +546,7 @@ fun PlayerScreen(
                         interactionTick++
                     },
                     onNext = {
-                        player?.seekToNextMediaItem()
+                        playNextPaused()
                         interactionTick++
                     },
                     modifier = Modifier.align(Alignment.Center),

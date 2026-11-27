@@ -71,7 +71,6 @@ fun WordCard(
     model: WordCardModel,
     labels: WordCardLabels,
     onClick: () -> Unit,
-    onTts: () -> Unit,
     onTag: () -> Unit,
     onMore: () -> Unit,
     modifier: Modifier = Modifier,
@@ -136,7 +135,11 @@ fun WordCard(
             if (onFavorite != null) {
                 IconButton(onClick = onFavorite) {
                     Icon(
-                        imageVector = ReelIcons.Heart,
+                        imageVector = if (model.isFavorite) {
+                            ReelIcons.HeartFilled
+                        } else {
+                            ReelIcons.Heart
+                        },
                         contentDescription = if (model.isFavorite) {
                             labels.unfavorite
                         } else {
@@ -146,13 +149,10 @@ fun WordCard(
                     )
                 }
             }
-            if (model.hasAudio) {
-                TtsButton(
-                    onClick = onTts,
-                    speaking = false,
-                    contentDescription = labels.playPronunciation,
-                )
-            }
+            ReelSpeakButton(
+                text = model.headword,
+                contentDescription = labels.playPronunciation,
+            )
         }
 
         Spacer(Modifier.height(ReelTheme.spacing.m))

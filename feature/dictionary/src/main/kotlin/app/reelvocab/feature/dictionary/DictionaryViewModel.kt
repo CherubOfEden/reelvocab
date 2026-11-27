@@ -11,6 +11,7 @@ import app.reelvocab.core.domain.model.DictionaryRepository
 import app.reelvocab.core.domain.model.Enrichment
 import app.reelvocab.core.domain.model.EnrichmentService
 import app.reelvocab.core.domain.model.NewCard
+import app.reelvocab.core.domain.model.TranslationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -42,6 +43,7 @@ class DictionaryViewModel @Inject constructor(
     private val dictionary: DictionaryRepository,
     private val cards: CardRepository,
     private val enrichment: EnrichmentService,
+    private val translation: TranslationService,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DictionaryUiState())
@@ -49,6 +51,7 @@ class DictionaryViewModel @Inject constructor(
 
     private var searchJob: Job? = null
     private var detailJob: Job? = null
+    private var translationJob: Job? = null
     private var detailEntry: DictionaryEntry? = null
 
     fun loadWordOfTheDay() {
@@ -69,6 +72,7 @@ class DictionaryViewModel @Inject constructor(
     fun onQueryChange(value: String) {
         searchJob?.cancel()
         detailJob?.cancel()
+        translationJob?.cancel()
         detailEntry = null
         _state.update {
             it.copy(
@@ -147,6 +151,7 @@ class DictionaryViewModel @Inject constructor(
 
     fun openDetail(entry: DictionaryEntry) {
         detailJob?.cancel()
+        translationJob?.cancel()
         detailEntry = entry
         _state.update {
             it.copy(
@@ -160,6 +165,7 @@ class DictionaryViewModel @Inject constructor(
 
     fun openWord(word: String) {
         detailJob?.cancel()
+        translationJob?.cancel()
         detailEntry = null
         _state.update {
             it.copy(
@@ -184,6 +190,45 @@ class DictionaryViewModel @Inject constructor(
                         ?: DictionaryDetailModel(headword = word, isKnown = false),
                     detailLoading = false,
                 )
+            }
+        }
+    }
+
+    fun translateDetail() {
+        val detail = _state.value.detail ?: return
+        val headword = detail.headword.trim()
+        if (headword.isEmpty() || detail.translationLoading) return
+        translationJob?.cancel()
+        _state.update {
+            it.copy(
+                detail = it.detail?.copy(
+                    translation = null,
+                    translationLoading = true,
+                    translationError = false,
+                ),
+            )
+        }
+        translationJob = viewModelScope.launch {
+            val result = try {
+                translation.translate(headword)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                null
+            }
+            _state.update { current ->
+                val active = current.detail
+                if (active == null || active.headword != detail.headword) {
+                    current
+                } else {
+                    current.copy(
+                        detail = active.copy(
+                            translation = result?.translation,
+                            translationLoading = false,
+                            translationError = result == null,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -244,6 +289,7 @@ class DictionaryViewModel @Inject constructor(
 
     fun closeDetail() {
         detailJob?.cancel()
+        translationJob?.cancel()
         detailEntry = null
         _state.update { it.copy(detail = null, detailLoading = false, saved = false) }
     }

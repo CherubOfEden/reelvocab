@@ -7,6 +7,7 @@ import app.reelvocab.core.domain.model.CardRepository
 import app.reelvocab.core.domain.model.Enrichment
 import app.reelvocab.core.domain.model.EnrichmentService
 import app.reelvocab.core.domain.model.NewCard
+import app.reelvocab.core.domain.model.TranslationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -44,6 +45,9 @@ data class CaptureUiState(
     val multiLoading: Boolean = false,
     val multiSaving: Boolean = false,
     val multiError: Boolean = false,
+    val translation: String? = null,
+    val translationLoading: Boolean = false,
+    val translationError: Boolean = false,
 )
 
 @HiltViewModel
@@ -51,6 +55,7 @@ class CaptureViewModel @Inject constructor(
     private val ocr: OcrEngine,
     private val enrichment: EnrichmentService,
     private val cards: CardRepository,
+    private val translationService: TranslationService,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CaptureUiState())
@@ -58,10 +63,13 @@ class CaptureViewModel @Inject constructor(
 
     private var previewJob: Job? = null
     private var selectionJob: Job? = null
+    private var translationJob: Job? = null
     private var previewToken = 0
 
     fun recognize(bitmap: Bitmap) {
         previewJob?.cancel()
+        selectionJob?.cancel()
+        translationJob?.cancel()
         viewModelScope.launch {
             _state.update {
                 it.copy(
@@ -76,6 +84,9 @@ class CaptureViewModel @Inject constructor(
                     multiLoading = false,
                     multiSaving = false,
                     multiError = false,
+                    translation = null,
+                    translationLoading = false,
+                    translationError = false,
                 )
             }
             try {
@@ -92,12 +103,16 @@ class CaptureViewModel @Inject constructor(
     fun select(word: CaptureWord) {
         previewJob?.cancel()
         previewToken += 1
+        translationJob?.cancel()
         _state.update {
             it.copy(
                 selected = word,
                 preview = null,
                 previewLoading = true,
                 saveError = false,
+                translation = null,
+                translationLoading = false,
+                translationError = false,
             )
         }
         previewJob = viewModelScope.launch {
@@ -120,28 +135,92 @@ class CaptureViewModel @Inject constructor(
 
     fun dismissSelection() {
         previewJob?.cancel()
+        translationJob?.cancel()
         previewToken += 1
-        _state.update { it.copy(selected = null, preview = null, previewLoading = false) }
+        _state.update {
+            it.copy(
+                selected = null,
+                preview = null,
+                previewLoading = false,
+                translation = null,
+                translationLoading = false,
+                translationError = false,
+            )
+        }
+    }
+
+    fun translate(text: String) {
+        val query = text.trim()
+        val selected = _state.value.selected ?: return
+        if (query.isEmpty()) return
+        translationJob?.cancel()
+        _state.update {
+            it.copy(
+                translation = null,
+                translationLoading = true,
+                translationError = false,
+            )
+        }
+        translationJob = viewModelScope.launch {
+            val result = try {
+                translationService.translate(query)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                null
+            }
+            _state.update { current ->
+                if (current.selected?.text != selected.text) {
+                    current
+                } else {
+                    current.copy(
+                        translation = result?.translation,
+                        translationLoading = false,
+                        translationError = result == null,
+                    )
+                }
+            }
+        }
     }
 
     fun clear() {
         previewJob?.cancel()
         selectionJob?.cancel()
+        translationJob?.cancel()
         previewJob = null
         selectionJob = null
+        translationJob = null
         previewToken += 1
         _state.value = CaptureUiState()
     }
 
     fun previewEdited(text: String, line: String) {
         previewJob?.cancel()
+        translationJob?.cancel()
         val token = ++previewToken
         val query = text.trim()
         if (query.isEmpty()) {
-            _state.update { it.copy(preview = null, previewLoading = false) }
+            _state.update {
+                it.copy(
+                    preview = null,
+                    previewLoading = false,
+                    translation = null,
+                    translationLoading = false,
+                    translationError = false,
+                )
+            }
             return
         }
-        _state.update { it.copy(preview = null, previewLoading = true, saveError = false) }
+        _state.update {
+            it.copy(
+                preview = null,
+                previewLoading = true,
+                saveError = false,
+                translation = null,
+                translationLoading = false,
+                translationError = false,
+            )
+        }
         previewJob = viewModelScope.launch {
             delay(PREVIEW_DEBOUNCE_MS)
             if (token != previewToken) return@launch
@@ -165,7 +244,9 @@ class CaptureViewModel @Inject constructor(
 
     fun prepareSelection(words: List<CaptureWord>) {
         if (words.isEmpty()) return
+        previewJob?.cancel()
         selectionJob?.cancel()
+        translationJob?.cancel()
         _state.update {
             it.copy(
                 multiSelection = null,
@@ -173,6 +254,9 @@ class CaptureViewModel @Inject constructor(
                 multiError = false,
                 selected = null,
                 preview = null,
+                translation = null,
+                translationLoading = false,
+                translationError = false,
             )
         }
         selectionJob = viewModelScope.launch {
@@ -181,7 +265,7 @@ class CaptureViewModel @Inject constructor(
                 val enriched = words.map { word ->
                     MultiSelectionWord(
                         word = word,
-                        enrichment = enrichSafely(word.text, line),
+                        enrichment = enrichSafely(word.text, word.line),
                     )
                 }
                 val hasFullLine = words.any {
@@ -376,6 +460,7 @@ class CaptureViewModel @Inject constructor(
                     ),
                 )
                 previewJob?.cancel()
+                translationJob?.cancel()
                 _state.update {
                     it.copy(
                         saving = false,
@@ -383,6 +468,9 @@ class CaptureViewModel @Inject constructor(
                         preview = null,
                         previewLoading = false,
                         saved = true,
+                        translation = null,
+                        translationLoading = false,
+                        translationError = false,
                     )
                 }
                 onSaved()

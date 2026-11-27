@@ -136,6 +136,38 @@ class CropInteractionTest {
     }
 
     @Test
+    fun `inset keeps handles inside the work area`() {
+        val moved = dragCropFrame(
+            crop = CropFrame.Inset,
+            handle = CropHandle.TopLeft,
+            dragX = -1f,
+            dragY = -1f,
+            minWidth = 0.1f,
+            minHeight = 0.1f,
+            edgeInset = CropFrame.InsetMargin,
+        )
+        assertEquals(CropFrame.InsetMargin, moved.left, 0.0001f)
+        assertEquals(CropFrame.InsetMargin, moved.top, 0.0001f)
+        assertEquals(1f - CropFrame.InsetMargin, moved.right, 0.0001f)
+        assertEquals(1f - CropFrame.InsetMargin, moved.bottom, 0.0001f)
+    }
+
+    @Test
+    fun `inset clamps outward drags before the work bounds`() {
+        val moved = dragCropFrame(
+            crop = CropFrame(left = 0.2f, top = 0.2f, right = 0.8f, bottom = 0.8f),
+            handle = CropHandle.BottomRight,
+            dragX = 1f,
+            dragY = 1f,
+            minWidth = 0.1f,
+            minHeight = 0.1f,
+            edgeInset = CropFrame.InsetMargin,
+        )
+        assertEquals(1f - CropFrame.InsetMargin, moved.right, 0.0001f)
+        assertEquals(1f - CropFrame.InsetMargin, moved.bottom, 0.0001f)
+    }
+
+    @Test
     fun `full work area maps back to the work bounds`() {
         val screen = CropFrame.Full.toScreen(
             workLeft = 18f,

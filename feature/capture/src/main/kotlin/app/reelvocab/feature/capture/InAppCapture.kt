@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -60,6 +62,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.reelvocab.core.designsystem.component.ReelButton
+import app.reelvocab.core.designsystem.component.ReelSpeakButton
 import app.reelvocab.core.designsystem.component.ReelButtonStyle
 import app.reelvocab.core.designsystem.component.ReelSheet
 import app.reelvocab.core.designsystem.theme.ReelTheme
@@ -82,6 +85,7 @@ fun InAppCapture(
     var multiSelect by remember(state.lines) { mutableStateOf(false) }
     var selectedWords by remember(state.lines) { mutableStateOf<Set<CaptureWord>>(emptySet()) }
     var selectedLines by remember(state.lines) { mutableStateOf<Set<Int>>(emptySet()) }
+    val listState = rememberLazyListState()
 
     LaunchedEffect(bitmap) {
         viewModel.recognize(bitmap)
@@ -199,36 +203,63 @@ fun InAppCapture(
                         color = colors.textSecondary,
                     )
 
-                    else -> LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = false)
-                            .heightIn(max = 430.dp),
-                        contentPadding = PaddingValues(bottom = ReelTheme.spacing.s),
-                        verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
-                    ) {
-                        if (multiSelect) {
-                            item(key = "multi-hint") {
+                    else -> {
+                        val selectedLineTexts = state.lines
+                            .filterIndexed { index, _ -> index in selectedLines }
+                            .map { it.text.trim().lowercase() }
+                            .toSet()
+                        val selectedCount = selectedLines.size + selectedWords.count {
+                            it.line.trim().lowercase() !in selectedLineTexts
+                        }
+                        if (multiSelect || phraseRange != null) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = ReelTheme.spacing.s),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
                                 Text(
-                                    text = stringResource(R.string.capture_select_hint),
+                                    text = stringResource(
+                                        if (multiSelect) {
+                                            R.string.capture_select_hint
+                                        } else {
+                                            R.string.capture_phrase_hint
+                                        },
+                                    ),
                                     style = ReelTheme.type.label,
-                                    color = colors.success,
+                                    color = if (multiSelect) colors.success else colors.accent,
+                                    modifier = Modifier.weight(1f),
                                 )
-                            }
-                        } else if (phraseRange != null) {
-                            item(key = "phrase-hint") {
-                                Text(
-                                    text = stringResource(R.string.capture_phrase_hint),
-                                    style = ReelTheme.type.label,
-                                    color = colors.accent,
-                                )
+                                if (multiSelect && selectedCount > 0) {
+                                    Text(
+                                        text = stringResource(
+                                            R.string.capture_selected_count,
+                                            selectedCount,
+                                        ),
+                                        style = ReelTheme.type.label,
+                                        color = colors.success,
+                                    )
+                                }
                             }
                         }
-                        itemsIndexed(state.lines) { lineIndex, line ->
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f, fill = false)
+                                .heightIn(max = 430.dp),
+                            contentPadding = PaddingValues(bottom = ReelTheme.spacing.s),
+                            verticalArrangement = Arrangement.spacedBy(ReelTheme.spacing.m),
+                        ) {
+                            itemsIndexed(
+                                items = state.lines,
+                                key = { index, line -> "$index:${line.text}" },
+                            ) { lineIndex, line ->
                             CaptureLineRow(
                                 line = line,
                                 lineSelected = lineIndex in selectedLines,
                                 onLineSelectedChange = { checked ->
+                                    phraseRange = null
                                     val updated = if (checked) {
                                         selectedLines + lineIndex
                                     } else {
@@ -277,6 +308,7 @@ fun InAppCapture(
                                     selectedWords = selectedWords + word
                                 },
                             )
+                            }
                         }
                     }
                 }
@@ -319,11 +351,19 @@ fun InAppCapture(
                                 ReelButton(
                                     text = stringResource(R.string.capture_select_ok),
                                     onClick = {
-                                        val fullLines = state.lines
+                                        val selectedLineEntries = state.lines
                                             .filterIndexed { index, _ -> index in selectedLines }
-                                            .map { CaptureWord(text = it.text, line = it.text) }
-                                        val selectedLineTexts = fullLines
-                                            .map { it.line.trim().lowercase() }
+                                        val combinedLine = selectedLineEntries
+                                            .joinToString(" ") { it.text.trim() }
+                                            .trim()
+                                        val lineSelection = combinedLine
+                                            .takeIf { it.isNotEmpty() }
+                                            ?.let {
+                                                listOf(CaptureWord(text = it, line = it))
+                                            }
+                                            .orEmpty()
+                                        val selectedLineTexts = selectedLineEntries
+                                            .map { it.text.trim().lowercase() }
                                             .toSet()
                                         val individualWords = state.lines
                                             .flatMap { it.words }
@@ -332,7 +372,7 @@ fun InAppCapture(
                                                 it.line.trim().lowercase() !in selectedLineTexts
                                             }
                                         viewModel.prepareSelection(
-                                            (fullLines + individualWords)
+                                            (lineSelection + individualWords)
                                                 .distinctBy { it.text.trim().lowercase() },
                                         )
                                     },
@@ -356,8 +396,12 @@ fun InAppCapture(
             previewLoading = state.previewLoading,
             saving = state.saving,
             saveError = state.saveError,
+            translation = state.translation,
+            translationLoading = state.translationLoading,
+            translationError = state.translationError,
             onDismiss = viewModel::dismissSelection,
             onTextChange = { viewModel.previewEdited(it, selected.line) },
+            onTranslate = viewModel::translate,
             onSave = { edited, definition ->
                 viewModel.save(selected, edited, definition, sourceTitle, timestampMs) {
                     Toast.makeText(context, R.string.capture_saved, Toast.LENGTH_SHORT).show()
@@ -502,8 +546,12 @@ private fun SaveWordSheet(
     previewLoading: Boolean,
     saving: Boolean,
     saveError: Boolean,
+    translation: String?,
+    translationLoading: Boolean,
+    translationError: Boolean,
     onDismiss: () -> Unit,
     onTextChange: (String) -> Unit,
+    onTranslate: (String) -> Unit,
     onSave: (String, String?) -> Unit,
 ) {
     val colors = ReelTheme.colors
@@ -526,6 +574,7 @@ private fun SaveWordSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 520.dp)
+                .imePadding()
                 .verticalScroll(rememberScrollState()),
         ) {
             OutlinedTextField(
@@ -538,8 +587,14 @@ private fun SaveWordSheet(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 1,
-                maxLines = 6,
+                maxLines = Int.MAX_VALUE,
                 label = { Text(stringResource(R.string.capture_word_label)) },
+                trailingIcon = {
+                    ReelSpeakButton(
+                        text = edited,
+                        contentDescription = stringResource(R.string.capture_play),
+                    )
+                },
             )
             Spacer(Modifier.height(ReelTheme.spacing.s))
             Text(
@@ -567,7 +622,7 @@ private fun SaveWordSheet(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
-                maxLines = 8,
+                maxLines = Int.MAX_VALUE,
                 label = { Text(stringResource(R.string.capture_preview_label)) },
                 supportingText = {
                     when {
@@ -597,6 +652,59 @@ private fun SaveWordSheet(
                     }
                 },
             )
+
+            Spacer(Modifier.height(ReelTheme.spacing.s))
+            val translated = translation?.trim()?.takeIf { it.isNotEmpty() }
+            when {
+                translationLoading -> Text(
+                    text = stringResource(R.string.capture_translating),
+                    style = ReelTheme.type.bodyM,
+                    color = colors.textSecondary,
+                )
+
+                translationError -> {
+                    Text(
+                        text = stringResource(R.string.capture_translation_error),
+                        style = ReelTheme.type.bodyM,
+                        color = colors.error,
+                    )
+                    TextButton(onClick = { onTranslate(edited) }) {
+                        Text(
+                            text = stringResource(R.string.capture_translate),
+                            style = ReelTheme.type.label,
+                            color = colors.accent,
+                        )
+                    }
+                }
+
+                translated != null -> {
+                    Text(
+                        text = stringResource(R.string.capture_translation).uppercase(),
+                        style = ReelTheme.type.label,
+                        color = colors.textTertiary,
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = translated,
+                            style = ReelTheme.type.bodyM,
+                            color = colors.textPrimary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        ReelSpeakButton(
+                            text = translated,
+                            contentDescription = stringResource(R.string.capture_play),
+                        )
+                    }
+                }
+
+                else -> TextButton(onClick = { onTranslate(edited) }) {
+                    Text(
+                        text = stringResource(R.string.capture_translate),
+                        style = ReelTheme.type.label,
+                        color = colors.accent,
+                    )
+                }
+            }
 
             preview?.ipa?.let { ipa ->
                 Spacer(Modifier.height(ReelTheme.spacing.xs))
@@ -693,21 +801,29 @@ private fun SaveSelectionSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 480.dp)
+                .imePadding()
                 .verticalScroll(rememberScrollState()),
         ) {
             selection.words.forEachIndexed { index, selected ->
-                Text(
-                    text = selected.word.text,
-                    style = ReelTheme.type.titleM,
-                    color = colors.textPrimary,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = selected.word.text,
+                        style = ReelTheme.type.titleM,
+                        color = colors.textPrimary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ReelSpeakButton(
+                        text = selected.word.text,
+                        contentDescription = stringResource(R.string.capture_play),
+                    )
+                }
                 Spacer(Modifier.height(ReelTheme.spacing.xs))
                 OutlinedTextField(
                     value = definitions.getOrElse(index) { "" },
                     onValueChange = { updateDefinition(index, it) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 1,
-                    maxLines = 4,
+                    maxLines = Int.MAX_VALUE,
                     label = { Text(stringResource(R.string.capture_preview_label)) },
                 )
                 Spacer(Modifier.height(ReelTheme.spacing.m))
@@ -720,18 +836,25 @@ private fun SaveSelectionSheet(
                     color = colors.textTertiary,
                 )
                 Spacer(Modifier.height(ReelTheme.spacing.xxs))
-                Text(
-                    text = selection.phrase,
-                    style = ReelTheme.type.titleM,
-                    color = colors.accent,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = selection.phrase,
+                        style = ReelTheme.type.titleM,
+                        color = colors.accent,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ReelSpeakButton(
+                        text = selection.phrase,
+                        contentDescription = stringResource(R.string.capture_play),
+                    )
+                }
                 Spacer(Modifier.height(ReelTheme.spacing.xs))
                 OutlinedTextField(
                     value = definitions.getOrElse(selection.words.size) { "" },
                     onValueChange = { updateDefinition(selection.words.size, it) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 1,
-                    maxLines = 4,
+                    maxLines = Int.MAX_VALUE,
                     label = { Text(stringResource(R.string.capture_preview_label)) },
                 )
             }

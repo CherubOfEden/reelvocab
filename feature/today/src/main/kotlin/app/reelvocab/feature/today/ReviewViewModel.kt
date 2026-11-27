@@ -12,6 +12,7 @@ import app.reelvocab.core.domain.model.DictionaryRepository
 import app.reelvocab.core.domain.model.ReviewCard
 import app.reelvocab.core.domain.model.ReviewGrade
 import app.reelvocab.core.domain.model.ReviewRepository
+import app.reelvocab.core.domain.model.TranslationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -43,6 +44,7 @@ class ReviewViewModel @Inject constructor(
     private val reviews: ReviewRepository,
     private val cards: CardRepository,
     private val dictionary: DictionaryRepository,
+    private val translation: TranslationService,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReviewUiState())
@@ -51,6 +53,7 @@ class ReviewViewModel @Inject constructor(
     private var started = false
     private var grading = false
     private var detailJob: Job? = null
+    private var translationJob: Job? = null
 
     fun start() {
         if (started) return
@@ -105,6 +108,7 @@ class ReviewViewModel @Inject constructor(
     fun openDetail() {
         val card = _state.value.current?.card ?: return
         detailJob?.cancel()
+        translationJob?.cancel()
         _state.update {
             it.copy(
                 detail = DictionaryDetailModel(
@@ -138,7 +142,47 @@ class ReviewViewModel @Inject constructor(
 
     fun closeDetail() {
         detailJob?.cancel()
+        translationJob?.cancel()
         _state.update { it.copy(detail = null, detailLoading = false) }
+    }
+
+    fun translateDetail() {
+        val detail = _state.value.detail ?: return
+        val headword = detail.headword.trim()
+        if (headword.isEmpty() || detail.translationLoading) return
+        translationJob?.cancel()
+        _state.update {
+            it.copy(
+                detail = it.detail?.copy(
+                    translation = null,
+                    translationLoading = true,
+                    translationError = false,
+                ),
+            )
+        }
+        translationJob = viewModelScope.launch {
+            val result = try {
+                translation.translate(headword)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                null
+            }
+            _state.update { current ->
+                val active = current.detail
+                if (active == null || active.headword != detail.headword) {
+                    current
+                } else {
+                    current.copy(
+                        detail = active.copy(
+                            translation = result?.translation,
+                            translationLoading = false,
+                            translationError = result == null,
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     fun openTagEditor() {

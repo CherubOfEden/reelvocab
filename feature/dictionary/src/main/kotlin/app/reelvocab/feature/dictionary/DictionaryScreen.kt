@@ -3,9 +3,11 @@ package app.reelvocab.feature.dictionary
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,6 +27,7 @@ import app.reelvocab.core.designsystem.component.LoadingState
 import app.reelvocab.core.designsystem.component.ReelRule
 import app.reelvocab.core.designsystem.component.ReelScreenHeader
 import app.reelvocab.core.designsystem.component.ReelSearchField
+import app.reelvocab.core.designsystem.component.ReelSpeakButton
 import app.reelvocab.core.designsystem.theme.ReelTheme
 import app.reelvocab.core.domain.model.DictionaryEntry
 import kotlinx.serialization.Serializable
@@ -129,9 +133,15 @@ fun DictionaryScreen(
                 close = stringResource(R.string.dictionary_close),
                 save = stringResource(R.string.dictionary_save),
                 saved = stringResource(R.string.dictionary_saved),
+                playPronunciation = stringResource(R.string.dictionary_play),
+                translate = stringResource(R.string.dictionary_translate),
+                translating = stringResource(R.string.dictionary_translating),
+                translation = stringResource(R.string.dictionary_translation),
+                translationError = stringResource(R.string.dictionary_translation_error),
             ),
             onDismiss = viewModel::closeDetail,
             onWordClick = viewModel::openWord,
+            onTranslate = viewModel::translateDetail,
             onSave = viewModel::saveDetail,
             saving = state.saving,
             saved = state.saved,
@@ -166,13 +176,23 @@ private fun DictionaryResult(
 ) {
     val colors = ReelTheme.colors
     Column(modifier = Modifier.clickable(onClick = onClick)) {
-        Text(
-            text = entry.lemma,
-            style = ReelTheme.type.wordmark,
-            color = colors.textPrimary,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = entry.lemma,
+                style = ReelTheme.type.wordmark,
+                color = colors.textPrimary,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            ReelSpeakButton(
+                text = entry.lemma,
+                contentDescription = stringResource(R.string.dictionary_play),
+            )
+        }
         val ipa = entry.ipa
         if (ipa != null) {
             Text(
@@ -234,11 +254,21 @@ private fun WordOfTheDayCard(
             color = colors.accent,
         )
         Spacer(Modifier.height(ReelTheme.spacing.xs))
-        Text(
-            text = entry.lemma,
-            style = ReelTheme.type.displayL,
-            color = colors.textPrimary,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = entry.lemma,
+                style = ReelTheme.type.displayL,
+                color = colors.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            ReelSpeakButton(
+                text = entry.lemma,
+                contentDescription = stringResource(R.string.dictionary_play),
+            )
+        }
         val partOfSpeech = entry.wordClass?.storageValue
         if (partOfSpeech != null) {
             Text(

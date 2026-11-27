@@ -36,6 +36,9 @@ data class DictionaryDetailModel(
     val fallbackMeaning: String? = null,
     val fallbackWarning: String? = null,
     val isKnown: Boolean = true,
+    val translation: String? = null,
+    val translationLoading: Boolean = false,
+    val translationError: Boolean = false,
 )
 
 @Immutable
@@ -49,6 +52,11 @@ data class DictionaryDetailLabels(
     val close: String,
     val save: String = "",
     val saved: String = "",
+    val playPronunciation: String = "",
+    val translate: String = "",
+    val translating: String = "",
+    val translation: String = "",
+    val translationError: String = "",
 )
 
 @Composable
@@ -58,6 +66,7 @@ fun DictionaryDetailSheet(
     labels: DictionaryDetailLabels,
     onDismiss: () -> Unit,
     onWordClick: ((String) -> Unit)? = null,
+    onTranslate: (() -> Unit)? = null,
     onSave: (() -> Unit)? = null,
     saving: Boolean = false,
     saved: Boolean = false,
@@ -80,16 +89,27 @@ fun DictionaryDetailSheet(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
                 ) {
-                Text(
-                    text = entry.headword,
-                    style = if (entry.headword.contains(' ')) {
-                        ReelTheme.type.titleL
-                    } else {
-                        ReelTheme.type.displayM
-                    },
-                    color = colors.textPrimary,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = entry.headword,
+                        style = if (entry.headword.contains(' ')) {
+                            ReelTheme.type.titleL
+                        } else {
+                            ReelTheme.type.displayM
+                        },
+                        color = colors.textPrimary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (labels.playPronunciation.isNotEmpty()) {
+                        ReelSpeakButton(
+                            text = entry.headword,
+                            contentDescription = labels.playPronunciation,
+                        )
+                    }
+                }
                 if (entry.ipa != null) {
                     Text(
                         text = entry.ipa,
@@ -165,6 +185,66 @@ fun DictionaryDetailSheet(
                         style = ReelTheme.type.bodyM,
                         color = colors.textSecondary,
                     )
+                }
+
+                val translateAction = onTranslate
+                if (translateAction != null && labels.translate.isNotEmpty()) {
+                    Spacer(Modifier.height(ReelTheme.spacing.l))
+                    val translated = entry.translation?.trim()?.takeIf { it.isNotEmpty() }
+                    when {
+                        entry.translationLoading -> {
+                            Text(
+                                text = labels.translating,
+                                style = ReelTheme.type.bodyM,
+                                color = colors.textSecondary,
+                            )
+                        }
+
+                        entry.translationError -> {
+                            Text(
+                                text = labels.translationError,
+                                style = ReelTheme.type.bodyM,
+                                color = colors.error,
+                            )
+                            Spacer(Modifier.height(ReelTheme.spacing.s))
+                            ReelButton(
+                                text = labels.translate,
+                                onClick = translateAction,
+                                style = ReelButtonStyle.Secondary,
+                            )
+                        }
+
+                        translated != null -> {
+                            Text(
+                                text = labels.translation.uppercase(),
+                                style = ReelTheme.type.label.copy(fontWeight = FontWeight.SemiBold),
+                                color = colors.textTertiary,
+                            )
+                            Row(
+                                modifier = Modifier.padding(top = ReelTheme.spacing.xs),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = translated,
+                                    style = ReelTheme.type.bodyL,
+                                    color = colors.textPrimary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                ReelSpeakButton(
+                                    text = translated,
+                                    contentDescription = labels.playPronunciation,
+                                )
+                            }
+                        }
+
+                        else -> {
+                            ReelButton(
+                                text = labels.translate,
+                                onClick = translateAction,
+                                style = ReelButtonStyle.Secondary,
+                            )
+                        }
+                    }
                 }
 
                 if (entry.synonyms.isNotEmpty() || entry.antonyms.isNotEmpty()) {

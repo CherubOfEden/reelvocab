@@ -21,4 +21,9 @@
     <string name="dictionary_saved">Saved to deck</string>
     <string name="dictionary_word_of_the_day">Word of the day</string>
     <string name="dictionary_word_of_the_day_cta">Explore this word →</string>
+    <string name="dictionary_play">Play pronunciation</string>
+    <string name="dictionary_translate">Translate</string>
+    <string name="dictionary_translating">Translating…</string>
+    <string name="dictionary_translation">Translation</string>
+    <string name="dictionary_translation_error">Could not translate. Check your connection and try again.</string>
 </resources>

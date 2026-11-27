@@ -29,6 +29,7 @@
     <string name="capture_screen_source">Screen capture</string>
     <string name="capture_select_hint">Selection mode. Tap words or check a full line, then OK.</string>
     <string name="capture_select_ok">OK</string>
+    <string name="capture_selected_count">%1$d selected</string>
     <string name="capture_selection_title">Selected words</string>
     <string name="capture_phrase_title">Together</string>
     <string name="capture_save_selection">Save all to deck</string>
@@ -70,4 +71,9 @@
     <string name="recording_stop">Stop</string>
     <string name="recording_hide">Hide controls</string>
     <string name="recording_bubble_description">Recording controls</string>
+    <string name="capture_play">Play pronunciation</string>
+    <string name="capture_translate">Translate</string>
+    <string name="capture_translating">Translating…</string>
+    <string name="capture_translation">Translation</string>
+    <string name="capture_translation_error">Could not translate. Check your connection and try again.</string>
 </resources>

@@ -47,7 +47,7 @@ internal fun CropOverlay(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val cropState = remember { mutableStateOf(CropFrame.Full) }
+    val cropState = remember { mutableStateOf(CropFrame.Inset) }
     val activeHandle = remember { mutableStateOf<CropHandle?>(null) }
     val size = remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
@@ -127,6 +127,7 @@ internal fun CropOverlay(
                                 dragY = delta.y / workHeight,
                                 minWidth = minWidthNorm,
                                 minHeight = minHeightNorm,
+                                edgeInset = CropFrame.InsetMargin,
                             )
                             change.consume()
                         }
@@ -146,11 +147,12 @@ internal fun CropOverlay(
             drawCropMask(rect)
             if (rect.width > 0f && rect.height > 0f) {
                 drawCropGrid(rect)
+                val stroke = 2.dp.toPx()
                 drawRect(
                     color = borderColor,
-                    topLeft = Offset(rect.left, rect.top),
-                    size = Size(rect.width, rect.height),
-                    style = Stroke(width = 2.dp.toPx()),
+                    topLeft = Offset(rect.left + stroke / 2f, rect.top + stroke / 2f),
+                    size = Size(rect.width - stroke, rect.height - stroke),
+                    style = Stroke(width = stroke),
                 )
                 drawCropHandles(rect, borderColor, activeHandle.value)
             }

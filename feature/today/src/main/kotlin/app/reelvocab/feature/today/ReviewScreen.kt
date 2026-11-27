@@ -136,8 +136,14 @@ fun ReviewScreen(
                     notFound = stringResource(R.string.review_not_found),
                     loading = stringResource(R.string.review_lookup),
                     close = stringResource(R.string.review_close),
+                    playPronunciation = stringResource(R.string.review_play),
+                    translate = stringResource(R.string.review_translate),
+                    translating = stringResource(R.string.review_translating),
+                    translation = stringResource(R.string.review_translation),
+                    translationError = stringResource(R.string.review_translation_error),
                 ),
                 onDismiss = viewModel::closeDetail,
+                onTranslate = viewModel::translateDetail,
             )
         }
 
@@ -223,7 +229,6 @@ private fun ReviewBody(
                 model = model,
                 labels = cardLabels,
                 onClick = onOpenDetail,
-                onTts = {},
                 onTag = onOpenTags,
                 onMore = onOpenDetail,
             )

@@ -45,4 +45,8 @@
     <string name="deck_tag_save">Save tags</string>
     <string name="deck_tag_empty">No tags yet. Add one to find this card later by mood, film, or grammar.</string>
     <string name="deck_tag_remove">Remove tag</string>
+    <string name="deck_translate">Translate</string>
+    <string name="deck_translating">Translating…</string>
+    <string name="deck_translation">Translation</string>
+    <string name="deck_translation_error">Could not translate. Check your connection and try again.</string>
 </resources>

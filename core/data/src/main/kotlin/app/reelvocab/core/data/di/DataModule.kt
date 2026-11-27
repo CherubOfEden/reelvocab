@@ -15,6 +15,7 @@ import app.reelvocab.core.data.db.ReelDatabase
 import app.reelvocab.core.data.db.ReviewDao
 import app.reelvocab.core.data.db.WordDao
 import app.reelvocab.core.data.dictionary.DictionaryRepositoryImpl
+import app.reelvocab.core.data.enrichment.CloudTranslationService
 import app.reelvocab.core.data.enrichment.EnrichmentRouter
 import app.reelvocab.core.data.enrichment.FakeEnrichmentService
 import app.reelvocab.core.data.enrichment.FakeTranscriptionService
@@ -26,6 +27,7 @@ import app.reelvocab.core.domain.model.EnrichmentService
 import app.reelvocab.core.domain.model.MediaVaultRepository
 import app.reelvocab.core.domain.model.ReviewRepository
 import app.reelvocab.core.domain.model.TranscriptionService
+import app.reelvocab.core.domain.model.TranslationService
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -89,4 +91,8 @@ abstract class DataBindingsModule {
     @Binds
     @Singleton
     abstract fun bindTranscriptionService(impl: FakeTranscriptionService): TranscriptionService
+
+    @Binds
+    @Singleton
+    abstract fun bindTranslationService(impl: CloudTranslationService): TranslationService
 }

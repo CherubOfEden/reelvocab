@@ -20,6 +20,11 @@ data class AiDictionaryDefinition(
     val example: String? get() = examples.firstOrNull()
 }
 
+data class AiTranslation(
+    val translation: String,
+    val sourceLanguage: String? = null,
+)
+
 @Singleton
 class CloudEnrichmentClient @Inject constructor(
     private val config: CloudConfigStore,
@@ -40,14 +45,51 @@ class CloudEnrichmentClient @Inject constructor(
         }
     }
 
+    suspend fun translatePhrase(
+        phrase: String,
+        serverUrl: String,
+    ): AiTranslation? = withContext(dispatchers.io) {
+        val term = phrase.trim()
+        if (term.isEmpty() || !config.enabled) return@withContext null
+        try {
+            requestTranslation(term, serverUrl)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            throw DictionaryAiException(cause = error)
+        }
+    }
+
     private fun requestDefinition(
         query: String,
         serverUrl: String,
     ): AiDictionaryDefinition {
+        val body = post(
+            payload = JSONObject()
+                .put("query", query)
+                .put("type", TYPE_DEFINITION),
+            serverUrl = serverUrl,
+        )
+        return parseDefinition(body)
+            ?: throw IOException("AI server response did not contain a definition")
+    }
+
+    private fun requestTranslation(
+        query: String,
+        serverUrl: String,
+    ): AiTranslation {
+        val body = post(
+            payload = JSONObject()
+                .put("query", query)
+                .put("type", TYPE_TRANSLATE),
+            serverUrl = serverUrl,
+        )
+        return parseTranslation(body)
+            ?: throw IOException("AI server response did not contain a translation")
+    }
+
+    private fun post(payload: JSONObject, serverUrl: String): String {
         if (serverUrl.isBlank()) throw IOException("Missing AI server URL")
-        val payload = JSONObject()
-            .put("query", query)
-            .put("type", TYPE_DEFINITION)
         val connection = (URL(serverUrl).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 8_000
@@ -70,8 +112,7 @@ class CloudEnrichmentClient @Inject constructor(
             if (body.isNullOrBlank()) {
                 throw IOException("AI server returned an empty response")
             }
-            parseDefinition(body)
-                ?: throw IOException("AI server response did not contain a definition")
+            body
         } finally {
             connection.disconnect()
         }
@@ -95,6 +136,19 @@ class CloudEnrichmentClient @Inject constructor(
             synonyms = readRelations(root, "synonyms"),
             antonyms = readRelations(root, "antonyms"),
             examples = examples.toList(),
+        )
+    }
+
+    private fun parseTranslation(body: String): AiTranslation? {
+        val root = runCatching { JSONObject(body) }.getOrNull() ?: return null
+        val translation = firstNonBlank(
+            root.optString("translation"),
+            root.optString("translatedText"),
+        ) ?: return null
+        return AiTranslation(
+            translation = translation,
+            sourceLanguage = firstNonBlank(root.optString("sourceLanguage"))
+                ?.takeUnless { it.equals("unknown", ignoreCase = true) },
         )
     }
 
@@ -126,5 +180,6 @@ class CloudEnrichmentClient @Inject constructor(
 
     private companion object {
         const val TYPE_DEFINITION = "definition"
+        const val TYPE_TRANSLATE = "translate"
     }
 }

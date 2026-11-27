@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import app.reelvocab.core.designsystem.theme.ReelTheme
+import app.reelvocab.core.designsystem.tts.ProvideReelSpeaker
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 
@@ -203,6 +204,10 @@ class CaptureActivity : ComponentActivity() {
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
         window.isStatusBarContrastEnforced = false
         window.isNavigationBarContrastEnforced = false
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
         if (CaptureSessionService.isRunning) {
             CaptureSessionService.cropOverlayStarted(this)
         }
@@ -333,13 +338,15 @@ class CaptureActivity : ComponentActivity() {
         }
         setContent {
             ReelTheme {
-                InAppCapture(
-                    bitmap = bitmap,
-                    sourceTitle = getString(R.string.capture_screen_source),
-                    timestampMs = 0L,
-                    onDismiss = { finishAndRemoveTask() },
-                    onSaved = { finishAndRemoveTask() },
-                )
+                ProvideReelSpeaker {
+                    InAppCapture(
+                        bitmap = bitmap,
+                        sourceTitle = getString(R.string.capture_screen_source),
+                        timestampMs = 0L,
+                        onDismiss = { finishAndRemoveTask() },
+                        onSaved = { finishAndRemoveTask() },
+                    )
+                }
             }
         }
     }

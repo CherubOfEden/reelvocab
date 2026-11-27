@@ -234,7 +234,6 @@ fun DesignSystemGallery(
                         model = model,
                         labels = labels,
                         onClick = {},
-                        onTts = {},
                         onTag = {},
                         onMore = {},
                     )
@@ -242,7 +241,6 @@ fun DesignSystemGallery(
                         model = model,
                         labels = labels,
                         onClick = {},
-                        onTts = {},
                         onTag = {},
                         onMore = {},
                         compact = true,

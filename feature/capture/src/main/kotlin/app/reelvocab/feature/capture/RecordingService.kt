@@ -362,6 +362,7 @@ class RecordingService : Service() {
     private fun startEngine(engine: MediaRecordingEngine) {
         if (stoppingRecording) return
         removeRecordingPanel()
+        removeRecordingBubble()
         recordingStartedAtEpochMs = System.currentTimeMillis()
         try {
             engine.start()

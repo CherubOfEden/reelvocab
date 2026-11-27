@@ -172,7 +172,6 @@ fun DeckScreen(
                         model = card.toWordCardModel(colors),
                         labels = cardLabels,
                         onClick = { viewModel.openDetail(card) },
-                        onTts = {},
                         onTag = { viewModel.openTagEditor(card) },
                         onMore = { viewModel.openDetail(card) },
                         onDelete = { pendingDelete = card },
@@ -194,8 +193,14 @@ fun DeckScreen(
                     notFound = stringResource(R.string.deck_not_found),
                     loading = stringResource(R.string.deck_lookup),
                     close = stringResource(R.string.deck_close),
+                    playPronunciation = stringResource(R.string.deck_play),
+                    translate = stringResource(R.string.deck_translate),
+                    translating = stringResource(R.string.deck_translating),
+                    translation = stringResource(R.string.deck_translation),
+                    translationError = stringResource(R.string.deck_translation_error),
                 ),
                 onDismiss = viewModel::closeDetail,
+                onTranslate = viewModel::translateDetail,
             )
         }
 

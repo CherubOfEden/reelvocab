@@ -21,7 +21,15 @@ internal data class CropFrame(
     val height: Float get() = bottom - top
 
     companion object {
+        const val InsetMargin = 0.035f
+
         val Full = CropFrame()
+        val Inset = CropFrame(
+            left = InsetMargin,
+            top = InsetMargin,
+            right = 1f - InsetMargin,
+            bottom = 1f - InsetMargin,
+        )
     }
 }
 
@@ -69,17 +77,22 @@ internal fun dragCropFrame(
     dragY: Float,
     minWidth: Float,
     minHeight: Float,
+    edgeInset: Float = 0f,
 ): CropFrame {
-    val minW = minWidth.coerceIn(0.01f, 1f)
-    val minH = minHeight.coerceIn(0.01f, 1f)
-    val left = crop.left.coerceIn(0f, 1f - minW)
-    val top = crop.top.coerceIn(0f, 1f - minH)
-    val right = crop.right.coerceIn(left + minW, 1f)
-    val bottom = crop.bottom.coerceIn(top + minH, 1f)
+    val inset = edgeInset.coerceIn(0f, 0.45f)
+    val lower = inset
+    val upper = 1f - inset
+    val available = (upper - lower).coerceAtLeast(0.02f)
+    val minW = minWidth.coerceIn(0.01f, available)
+    val minH = minHeight.coerceIn(0.01f, available)
+    val left = crop.left.coerceIn(lower, upper - minW)
+    val top = crop.top.coerceIn(lower, upper - minH)
+    val right = crop.right.coerceIn(left + minW, upper)
+    val bottom = crop.bottom.coerceIn(top + minH, upper)
 
     return when (handle) {
         CropHandle.Left -> CropFrame(
-            left = (left + dragX).coerceIn(0f, right - minW),
+            left = (left + dragX).coerceIn(lower, right - minW),
             top = top,
             right = right,
             bottom = bottom,
@@ -87,7 +100,7 @@ internal fun dragCropFrame(
 
         CropHandle.Top -> CropFrame(
             left = left,
-            top = (top + dragY).coerceIn(0f, bottom - minH),
+            top = (top + dragY).coerceIn(lower, bottom - minH),
             right = right,
             bottom = bottom,
         )
@@ -95,7 +108,7 @@ internal fun dragCropFrame(
         CropHandle.Right -> CropFrame(
             left = left,
             top = top,
-            right = (right + dragX).coerceIn(left + minW, 1f),
+            right = (right + dragX).coerceIn(left + minW, upper),
             bottom = bottom,
         )
 
@@ -103,35 +116,35 @@ internal fun dragCropFrame(
             left = left,
             top = top,
             right = right,
-            bottom = (bottom + dragY).coerceIn(top + minH, 1f),
+            bottom = (bottom + dragY).coerceIn(top + minH, upper),
         )
 
         CropHandle.TopLeft -> CropFrame(
-            left = (left + dragX).coerceIn(0f, right - minW),
-            top = (top + dragY).coerceIn(0f, bottom - minH),
+            left = (left + dragX).coerceIn(lower, right - minW),
+            top = (top + dragY).coerceIn(lower, bottom - minH),
             right = right,
             bottom = bottom,
         )
 
         CropHandle.TopRight -> CropFrame(
             left = left,
-            top = (top + dragY).coerceIn(0f, bottom - minH),
-            right = (right + dragX).coerceIn(left + minW, 1f),
+            top = (top + dragY).coerceIn(lower, bottom - minH),
+            right = (right + dragX).coerceIn(left + minW, upper),
             bottom = bottom,
         )
 
         CropHandle.BottomLeft -> CropFrame(
-            left = (left + dragX).coerceIn(0f, right - minW),
+            left = (left + dragX).coerceIn(lower, right - minW),
             top = top,
             right = right,
-            bottom = (bottom + dragY).coerceIn(top + minH, 1f),
+            bottom = (bottom + dragY).coerceIn(top + minH, upper),
         )
 
         CropHandle.BottomRight -> CropFrame(
             left = left,
             top = top,
-            right = (right + dragX).coerceIn(left + minW, 1f),
-            bottom = (bottom + dragY).coerceIn(top + minH, 1f),
+            right = (right + dragX).coerceIn(left + minW, upper),
+            bottom = (bottom + dragY).coerceIn(top + minH, upper),
         )
     }
 }

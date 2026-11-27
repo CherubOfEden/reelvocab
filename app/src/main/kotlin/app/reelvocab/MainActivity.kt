@@ -12,13 +12,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.reelvocab.core.designsystem.component.LoadingState
 import app.reelvocab.core.designsystem.theme.ReelTheme
+import app.reelvocab.core.designsystem.tts.ProvideReelSpeaker
 import app.reelvocab.data.AppearancePrefs
 import app.reelvocab.feature.settings.ThemeMode
 import app.reelvocab.navigation.MainScaffold
@@ -44,35 +47,45 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.Light -> false
             }
             ReelTheme(darkTheme = darkTheme) {
-                val state by viewModel.state.collectAsStateWithLifecycle()
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = ReelTheme.colors.base,
-                ) {
-                    when (state) {
-                        MainUiState.Loading -> Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            LoadingState()
+                SideEffect {
+                    WindowCompat.getInsetsController(window, window.decorView).apply {
+                        isAppearanceLightStatusBars = !darkTheme
+                        isAppearanceLightNavigationBars = !darkTheme
+                    }
+                    window.isStatusBarContrastEnforced = false
+                    window.isNavigationBarContrastEnforced = false
+                }
+                ProvideReelSpeaker {
+                    val state by viewModel.state.collectAsStateWithLifecycle()
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = ReelTheme.colors.base,
+                    ) {
+                        when (state) {
+                            MainUiState.Loading -> Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                LoadingState()
+                            }
+
+                            MainUiState.Onboarding -> OnboardingScreen(
+                                onFinished = viewModel::completeOnboarding,
+                            )
+
+                            MainUiState.Main -> MainScaffold(
+                                themeMode = themeMode,
+                                onThemeModeChange = { mode ->
+                                    AppearancePrefs.setThemeMode(this, mode)
+                                    themeMode = mode
+                                },
+                                openReviewRequest = pendingReview,
+                                onReviewRequestHandled = {
+                                    pendingReview = false
+                                    intent?.removeExtra(EXTRA_OPEN_REVIEW)
+                                },
+                            )
                         }
-
-                        MainUiState.Onboarding -> OnboardingScreen(
-                            onFinished = viewModel::completeOnboarding,
-                        )
-
-                        MainUiState.Main -> MainScaffold(
-                            themeMode = themeMode,
-                            onThemeModeChange = { mode ->
-                                AppearancePrefs.setThemeMode(this, mode)
-                                themeMode = mode
-                            },
-                            openReviewRequest = pendingReview,
-                            onReviewRequestHandled = {
-                                pendingReview = false
-                                intent?.removeExtra(EXTRA_OPEN_REVIEW)
-                            },
-                        )
                     }
                 }
             }
